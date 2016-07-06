@@ -7,20 +7,10 @@ var renderer = new THREE.WebGLRenderer();
 document.body.appendChild( renderer.domElement );
 var start, timePassed;
 
-navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-  navigator.getUserMedia(
-    {audio:true},
-    init,
-    function(err) {
-      console.log("The following error occured: " + err);
-    } 
-);
-
-function init(stream) {
+function init() {
 
   renderer.setSize( window.innerWidth, window.innerHeight );
   start = Date.now();
-  audioAnalyser.gotStream(stream);
   loop();
 }
 
@@ -36,3 +26,5 @@ function loop() {
   requestAnimationFrame( loop );
     
 }
+
+init();

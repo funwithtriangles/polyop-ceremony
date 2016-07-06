@@ -1,3 +1,8 @@
 body {
 	margin: 0;
 }
+
+audio {
+	position: absolute;
+	bottom: 0;
+}
