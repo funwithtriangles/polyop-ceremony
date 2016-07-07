@@ -8,7 +8,7 @@ scene = new THREE.Scene();
 camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 30000 );
 camera.position.z = 500;
 
-// controls = new OrbitControls(camera);
+controls = new OrbitControls(camera);
 
 module.exports = {
 	scene: scene,

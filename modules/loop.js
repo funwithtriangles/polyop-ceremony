@@ -2,6 +2,7 @@ var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
+var leaves = require('./leaves');
 
 var renderer = new THREE.WebGLRenderer();
 document.body.appendChild( renderer.domElement );

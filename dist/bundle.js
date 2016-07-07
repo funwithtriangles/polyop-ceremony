@@ -82,7 +82,7 @@
 
 
 	// module
-	exports.push([module.id, "body {\n\tmargin: 0;\n}", ""]);
+	exports.push([module.id, "body {\n\tmargin: 0;\n}\n\naudio {\n\tposition: absolute;\n\tbottom: 0;\n}", ""]);
 
 	// exports
 
@@ -408,20 +408,10 @@
 	document.body.appendChild( renderer.domElement );
 	var start, timePassed;
 
-	navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-	  navigator.getUserMedia(
-	    {audio:true},
-	    init,
-	    function(err) {
-	      console.log("The following error occured: " + err);
-	    } 
-	);
-
-	function init(stream) {
+	function init() {
 
 	  renderer.setSize( window.innerWidth, window.innerHeight );
 	  start = Date.now();
-	  audioAnalyser.gotStream(stream);
 	  loop();
 	}
 
@@ -438,6 +428,7 @@
 	    
 	}
 
+	init();
 
 /***/ },
 /* 6 */
@@ -43471,21 +43462,27 @@
 	var levelsData = [];
 	var levelsCount = 4;
 
-	var gotStream = function( stream ) {
+	var audio = new Audio();
+	audio.src = 'swamp.mp3';
+	audio.controls = true;
+	audio.autoplay = true;
+	document.body.appendChild(audio);
 
-		audioContext = new( window.AudioContext || window.webkitAudioContext );
 
-		analyser = audioContext.createAnalyser();
-		source = audioContext.createMediaStreamSource( stream );
-		freqs = new Uint8Array( analyser.frequencyBinCount );
+	audioContext = new( window.AudioContext || window.webkitAudioContext );
 
-		source.connect( analyser );
+	analyser = audioContext.createAnalyser();
+	source = audioContext.createMediaElementSource(audio);
+	freqs = new Uint8Array( analyser.frequencyBinCount );
 
-		levelBins = Math.floor( ( analyser.frequencyBinCount - 500 ) / levelsCount ); //number of bins in each level
+	source.connect( analyser );
+	analyser.connect(audioContext.destination);
 
-		analyser.fftSize = 1024;
+	levelBins = Math.floor( ( analyser.frequencyBinCount - 500 ) / levelsCount ); //number of bins in each level
 
-	}
+	analyser.fftSize = 1024;
+
+
 
 	var updateLevels = function() {
 
@@ -43514,7 +43511,6 @@
 	}
 
 	module.exports = {
-		gotStream: gotStream,
 		getLevels: getLevels,
 		updateLevels: updateLevels
 	}
