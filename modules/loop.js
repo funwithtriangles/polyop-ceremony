@@ -4,13 +4,12 @@ var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
 
-var renderer = new THREE.WebGLRenderer();
-document.body.appendChild( renderer.domElement );
+
 var start, timePassed;
 
 function init() {
 
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  threeEnv.renderer.setSize( window.innerWidth, window.innerHeight );
   start = Date.now();
   loop();
 }
@@ -22,8 +21,9 @@ function loop() {
   audioAnalyser.updateLevels();
 
   background.draw(timePassed);
+  leaves.draw(timePassed);
 
-  renderer.render( threeEnv.scene, threeEnv.camera );
+  threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
   requestAnimationFrame( loop );
     
 }
