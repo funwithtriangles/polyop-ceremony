@@ -2,6 +2,10 @@ var THREE = require("three");
 var OrbitControls = require('three-orbit-controls')(THREE)
 
 var renderer, scene, camera, controls;
+var box = {
+	width: window.innerWidth,
+	height: window.innerHeight
+}
 
 renderer = new THREE.WebGLRenderer();
 document.body.appendChild( renderer.domElement );
@@ -21,15 +25,20 @@ scene.add( lights[ 0 ] );
 scene.add( lights[ 1 ] );
 scene.add( lights[ 2 ] );
 
+
+var ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
+
+scene.add( ambientLight );
 //scene.fog = new THREE.FogExp2( 0x000000, 0.01 );
 
 camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 30000 );
 camera.position.z = 500;
 
-controls = new OrbitControls(camera);
+// controls = new OrbitControls(camera);
 
 module.exports = {
 	renderer: renderer,
 	scene: scene,
-	camera: camera
+	camera: camera,
+	box: box
 }
