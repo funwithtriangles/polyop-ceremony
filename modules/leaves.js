@@ -31,8 +31,11 @@ loader.load('leaf.js', function ( geometry ) {
 			{
 				side: THREE.DoubleSide,
 				color: 0x00ff00,
-				fog: true
+				transparent: true,
+				blending: THREE.AdditiveBlending
 			});
+
+		
 		leafModel = new THREE.Mesh( geometry, material );
 		leafModel.scale.set(5,5,5);
 
@@ -83,7 +86,7 @@ var Leaf = function(i) {
 		}
 
 		var tween = new TWEEN.Tween(params)
-	    .to(target, 400)
+	    .to(target, 800)
 	    .easing(TWEEN.Easing.Quintic.InOut)
 	    .start();
 

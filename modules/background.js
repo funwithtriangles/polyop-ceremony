@@ -47,11 +47,12 @@ swampMaterial = new THREE.ShaderMaterial( {
 	},
     vertexShader: shaders.vertex,
     fragmentShader: shaders.fragment
+
 });
 
 swampMesh = new THREE.Mesh( swampGeometry, swampMaterial );
 
-threeEnv.scene.add( swampMesh );
+threeEnv.bgScene.add( swampMesh );
 
 exports.draw = function(timePassed) {
 

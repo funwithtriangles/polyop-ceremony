@@ -16,14 +16,19 @@ function init() {
 
 function loop() {
 
-  timePassed = Date.now() - start;
+	timePassed = Date.now() - start;
 
-  audioAnalyser.updateLevels();
+	audioAnalyser.updateLevels();
 
-  background.draw(timePassed);
-  leaves.draw(timePassed);
+	background.draw(timePassed);
+	leaves.draw(timePassed);
 
-  threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
+	//threeEnv.renderer.clear();
+	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
+	threeEnv.renderer.clearDepth();
+	threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
+
+
   requestAnimationFrame( loop );
     
 }
