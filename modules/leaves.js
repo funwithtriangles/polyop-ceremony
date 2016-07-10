@@ -22,7 +22,7 @@ loader.load('leaf.js', function ( geometry ) {
 	}
 );
 
-var leaf = function() {
+var Leaf = function() {
 
 	this.mesh = leafModel.clone();
 	this.mesh.position.x = (Math.random() * 1000) - 500;
@@ -42,7 +42,7 @@ var init = function() {
 
 	for (var i = 0; i < numLeafs; i++) {
 
-		particles.push(new leaf());
+		particles.push(new Leaf());
 		
 	}
 
