@@ -1,7 +1,7 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var audioAnalyser = require('./audioAnalyser');
-var gui = require('./gui');
+var gui = require('./gui').addFolder('Background');
 var shaders = {
 	vertex: require('../shaders/simple_vertex.glsl'),
 	fragment: require('../shaders/swamp_01.glsl')

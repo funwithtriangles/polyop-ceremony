@@ -2,12 +2,28 @@ var THREE = require('three');
 var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
 
+var gui = require('./gui').addFolder('Leaves');
+
 var loader = new THREE.JSONLoader();
 var leafModel;
 var particles = [];
 var numLeafs = 100;
 
 var radius = threeEnv.box.height*0.3;
+
+var leafGroup = new THREE.Object3D();
+threeEnv.scene.add(leafGroup);
+
+var params = {
+	groupRotSpeed: 0.01,
+	gotoCircle: function() {
+		gotoCircle();
+	}
+}
+
+gui.add(params, 'groupRotSpeed', 0, 0.05);
+gui.add(params, 'gotoCircle');
+
 
 loader.load('leaf.js', function ( geometry ) {
 
@@ -36,13 +52,13 @@ var Leaf = function(i) {
 	this.mesh.position.y = (Math.random() * 1000) - 500;
 	this.mesh.position.z = (Math.random() * 1000) - 500;
 
-// //	this.vz = Math.random() + 0.5;
+	this.vz = Math.random() + 0.5;
 
-// 	this.mesh.rotation.x = Math.random() * Math.PI*2;
-// 	this.mesh.rotation.y = Math.random() * Math.PI*2;
-// 	this.mesh.rotation.z = Math.random() * Math.PI*2;
+	this.mesh.rotation.x = Math.random() * Math.PI*2;
+	this.mesh.rotation.y = Math.random() * Math.PI*2;
+	this.mesh.rotation.z = Math.random() * Math.PI*2;
 
-	threeEnv.scene.add(this.mesh);
+	leafGroup.add(this.mesh);
 
 	this.circleTween = function() {
 
@@ -52,6 +68,8 @@ var Leaf = function(i) {
 			xPos: that.mesh.position.x,
 			yPos: that.mesh.position.y,
 			zPos: that.mesh.position.z,
+			xRot: that.mesh.rotation.x,
+			yRot: that.mesh.rotation.y,
 			zRot: that.mesh.rotation.z
 		}
 
@@ -59,11 +77,13 @@ var Leaf = function(i) {
 			xPos: radius * Math.cos(rot),
 			yPos: radius * Math.sin(rot),
 			zPos: 0,
-			zRot: rot - Math.PI/2
+			xRot: 0,
+			yRot: 0,
+			zRot: rot - Math.PI/2,
 		}
 
 		var tween = new TWEEN.Tween(params)
-	    .to(target, 1000)
+	    .to(target, 400)
 	    .easing(TWEEN.Easing.Quintic.InOut)
 	    .start();
 
@@ -73,6 +93,8 @@ var Leaf = function(i) {
 		    that.mesh.position.x = params.xPos;
 		    that.mesh.position.y = params.yPos;
 		    that.mesh.position.z = params.zPos;
+		    that.mesh.rotation.x = params.xRot;
+		    that.mesh.rotation.y = params.yRot;
 		    that.mesh.rotation.z = params.zRot;
 		});
 
@@ -81,6 +103,13 @@ var Leaf = function(i) {
 	
 }
 
+var gotoCircle = function() {
+
+	for (var i = 0; i < numLeafs; i++) {
+		particles[i].circleTween();
+	}
+
+}
 
 var init = function() {
 
@@ -92,27 +121,19 @@ var init = function() {
 		
 	}
 
-	var t = setTimeout(function() {
-		for (var i = 0; i < numLeafs; i++) {
-
-			particles[i].circleTween();
-
-		}
-
-		
-	}, 3000)
-
-
-
 }
 
 var draw = function(timePassed) {
+
+	TWEEN.update();
+
+	leafGroup.rotation.z += params.groupRotSpeed;
 
 	for (var i = 0; i < particles.length; i++) {
 
 		var particle = particles[i];
 
-		particle.mesh.position.z += 1;
+		particle.mesh.position.z += particle.vz;
 		particle.mesh.rotation.x += 0.01;
 		particle.mesh.rotation.y += 0.01;
 		particle.mesh.rotation.z += 0.01;
@@ -122,8 +143,6 @@ var draw = function(timePassed) {
 		}
 		
 	}
-
-	TWEEN.update();
 
 }
 
