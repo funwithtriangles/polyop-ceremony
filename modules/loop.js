@@ -1,5 +1,6 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
+var lights = require('./lights');
 var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
