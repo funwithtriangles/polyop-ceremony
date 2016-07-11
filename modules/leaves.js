@@ -9,18 +9,20 @@ var leafModel;
 var particles = [];
 var numLeafs = 100;
 
-var radius = threeEnv.box.height*0.3;
+var radius = threeEnv.box.height*0.1;
 
 var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
 
 var params = {
 	groupRotSpeed: 0.01,
+	speed: 1,
 	gotoCircle: function() {
 		gotoCircle();
 	}
 }
 
+gui.add(params, 'speed', -10, 10);
 gui.add(params, 'groupRotSpeed', 0, 0.05);
 gui.add(params, 'gotoCircle');
 
@@ -136,7 +138,7 @@ var draw = function(timePassed) {
 
 		var particle = particles[i];
 
-		particle.mesh.position.z += particle.vz;
+		particle.mesh.position.z += particle.vz * params.speed;
 		particle.mesh.rotation.x += 0.01;
 		particle.mesh.rotation.y += 0.01;
 		particle.mesh.rotation.z += 0.01;
@@ -145,6 +147,10 @@ var draw = function(timePassed) {
 			particle.mesh.position.z = -500;
 		}
 		
+		if (particle.mesh.position.z < -500) {
+			particle.mesh.position.z = 500;
+		}
+
 	}
 
 }
