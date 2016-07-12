@@ -21,17 +21,21 @@ source = audioContext.createMediaElementSource(audio);
 // Set up audio lib
 analyser = new Freq(audioContext);
 
-var ranges = {
+var params = {
 	'a0': 0,
 	'a1': 0.01,
 	'b0': 0.1,
-	'b1': 0.5
+	'b1': 0.5,
+	'smoothing': 0.85
 }
 
-var a0 = gui.add(ranges, 'a0', 0, 1);
-var a1 = gui.add(ranges, 'a1', 0, 1);
-var b0 = gui.add(ranges, 'b0', 0, 1);
-var b1 = gui.add(ranges, 'b1', 0, 1);
+
+var a0 = gui.add(params, 'a0', 0, 1);
+var a1 = gui.add(params, 'a1', 0, 1);
+var b0 = gui.add(params, 'b0', 0, 1);
+var b1 = gui.add(params, 'b1', 0, 1);
+var smoothing = gui.add(params, 'smoothing', 0, 1);
+
 
 a0.onChange(function(value) {
 	stream.bands[0].updateLower(value);
@@ -49,12 +53,17 @@ b1.onChange(function(value) {
 	stream.bands[1].updateUpper(value);
 });
 
+smoothing.onChange(function(value) {
+	stream.updateSmoothing(value);
+});
+
 // Create a stream
 stream = analyser.createStream(source, {
 	bandVals: [
-		[ ranges['a0'], ranges['a1'] ],
-		[ ranges['b0'], ranges['b1'] ]
-	]
+		[ params['a0'], params['a1'] ],
+		[ params['b0'], params['b1'] ]
+	],
+	smoothing: params.smoothing
 });
 
 // Create a new visualiser from stream passing in an empty div

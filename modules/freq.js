@@ -35,7 +35,8 @@ Freq.prototype.Stream = function( source, settings ) {
 			[ 0.25, 0.5 ],
 			[ 0.5, 0.75 ],
 			[ 0.75, 1]
-		]
+		],
+		smoothing: 0.85
 	}
 
 	console.log(settings);
@@ -57,6 +58,8 @@ Freq.prototype.Stream = function( source, settings ) {
 
 	// Setup frequency array
 	this.freqDomain = new Uint8Array( this.analyser.frequencyBinCount );
+
+	this.analyser.smoothingTimeConstant = settings.smoothing;
 
 	//connect to source
 	source.connect( this.analyser );
@@ -107,6 +110,12 @@ Freq.prototype.Stream.prototype.read = function() {
 		rawFreqs: this.freqDomain
 	}
 }
+
+// Band data can then be read by many modules
+Freq.prototype.Stream.prototype.updateSmoothing = function(value) {
+	this.analyser.smoothingTimeConstant = value;
+}
+
 
 
 Freq.prototype.Stream.prototype.visualiser = function( containerElement ) {
