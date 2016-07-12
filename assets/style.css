@@ -7,3 +7,11 @@ audio {
 	bottom: 0;
 	left: 0;
 }
+
+.debug-visualiser {
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 20%;
+	height: 10%;
+}

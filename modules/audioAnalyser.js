@@ -1,6 +1,6 @@
-var audioContext, analyser, source, freqs;
-var levelsData = [];
-var levelsCount = 4;
+var Freq = require('./freq');
+
+var audioContext, analyser, source, stream, freqs;
 
 var audio = new Audio();
 audio.src = 'swamp.mp3';
@@ -8,46 +8,35 @@ audio.controls = true;
 audio.autoplay = true;
 document.body.appendChild(audio);
 
+var elVisualiser = document.createElement("div");
+elVisualiser.className = "debug-visualiser";
+document.body.appendChild( elVisualiser );
+
 
 audioContext = new( window.AudioContext || window.webkitAudioContext );
 
-analyser = audioContext.createAnalyser();
 source = audioContext.createMediaElementSource(audio);
-freqs = new Uint8Array( analyser.frequencyBinCount );
 
-source.connect( analyser );
-analyser.connect(audioContext.destination);
+// Set up audio lib
+analyser = new Freq(audioContext);
 
-levelBins = Math.floor( ( analyser.frequencyBinCount - 500 ) / levelsCount ); //number of bins in each level
+// Create a stream
+stream = analyser.createStream(source, {
+	bandVals: [
+		[ 0, 0.01 ],
+		[ 0.1, 0.5]
+	]
+});
 
-analyser.fftSize = 1024;
-
-
+// Create a new visualiser from stream passing in an empty div
+stream.visualiser(elVisualiser);
 
 var updateLevels = function() {
-
-	analyser.smoothingTimeConstant = 0.9;
-
-	// Get the frequency data from the currently playing music
-	analyser.getByteFrequencyData( freqs );
-
-	for ( var i = 0; i < levelsCount; i++ ) {
-
-		var sum = 0;
-
-		for ( var j = 0; j < levelBins; j++ ) {
-
-			sum += freqs[ ( i * levelBins ) + j ];
-		
-			levelsData[ i ] = ( sum / levelBins ) / 256; // Convert to val between 0 and 1;
-
-		}
-	}
-
+	stream.update();
 }
 
 var getLevels = function() {
-	return levelsData;
+	return stream.read();
 }
 
 module.exports = {
