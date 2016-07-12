@@ -28,7 +28,6 @@ var ranges = {
 	'b1': 0.5
 }
 
-
 var a0 = gui.add(ranges, 'a0', 0, 1);
 var a1 = gui.add(ranges, 'a1', 0, 1);
 var b0 = gui.add(ranges, 'b0', 0, 1);
