@@ -1,7 +1,8 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var audioAnalyser = require('./audioAnalyser');
-var gui = require('./gui').addFolder('Background');
+var gui = require('./gui');
+var guiFolder = gui.addFolder('Background');
 var shaders = {
 	vertex: require('../shaders/simple_vertex.glsl'),
 	fragment: require('../shaders/swamp_01.glsl')
@@ -15,9 +16,11 @@ var params = {
 	scale: 1.0
 }
 
-gui.add(params, 'bounceAmp', 0, 1);
-gui.add(params, 'pulseAmp', 0, 1);
-gui.add(params, 'scale', 1, 10);
+gui.remember(params);
+
+guiFolder.add(params, 'bounceAmp', 0, 1);
+guiFolder.add(params, 'pulseAmp', 0, 1);
+guiFolder.add(params, 'scale', 1, 10);
 
 swampGeometry = new THREE.PlaneGeometry( window.innerWidth, window.innerHeight);
 

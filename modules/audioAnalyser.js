@@ -1,5 +1,6 @@
 var Freq = require('./freq');
-var gui = require('./gui').addFolder('Frequencies');
+var gui = require('./gui');
+var guiFolder = gui.addFolder('Frequencies');
 
 var audioContext, analyser, source, stream, freqs;
 
@@ -29,12 +30,13 @@ var params = {
 	'smoothing': 0.85
 }
 
+gui.remember(params);
 
-var a0 = gui.add(params, 'a0', 0, 1);
-var a1 = gui.add(params, 'a1', 0, 1);
-var b0 = gui.add(params, 'b0', 0, 1);
-var b1 = gui.add(params, 'b1', 0, 1);
-var smoothing = gui.add(params, 'smoothing', 0, 1);
+var a0 = guiFolder.add(params, 'a0', 0, 1);
+var a1 = guiFolder.add(params, 'a1', 0, 1);
+var b0 = guiFolder.add(params, 'b0', 0, 1);
+var b1 = guiFolder.add(params, 'b1', 0, 1);
+var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
 
 
 a0.onChange(function(value) {

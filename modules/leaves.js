@@ -2,7 +2,8 @@ var THREE = require('three');
 var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
 
-var gui = require('./gui').addFolder('Leaves');
+var gui = require('./gui');
+var guiFolder = gui.addFolder('Leaves');
 
 var loader = new THREE.JSONLoader();
 var leafModel;
@@ -22,9 +23,11 @@ var params = {
 	}
 }
 
-gui.add(params, 'speed', -10, 10);
-gui.add(params, 'groupRotSpeed', 0, 0.05);
-gui.add(params, 'gotoCircle');
+gui.remember(params);
+
+guiFolder.add(params, 'speed', -10, 10);
+guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
+guiFolder.add(params, 'gotoCircle');
 
 
 loader.load('leaf.js', function ( geometry ) {
