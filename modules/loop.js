@@ -5,6 +5,7 @@ var lights = require('./lights');
 var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
+var mask = require('./mask');
 
 var stats;
 var start, timePassed;

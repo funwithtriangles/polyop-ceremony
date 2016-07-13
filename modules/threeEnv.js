@@ -29,7 +29,7 @@ bgCamera.position.z = 500;
 bgScene.add(bgCamera);
 scene.add(camera);
 
-// controls = new OrbitControls(camera);
+controls = new OrbitControls(camera);
 
 module.exports = {
 	renderer: renderer,
