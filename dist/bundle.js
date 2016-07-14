@@ -400,12 +400,14 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var Stats = __webpack_require__(7);
-	var threeEnv = __webpack_require__(8);
-	var lights = __webpack_require__(10);
-	var audioAnalyser = __webpack_require__(15);
-	var background = __webpack_require__(17);
-	var leaves = __webpack_require__(20);
+	var TWEEN = __webpack_require__(7);
+	var Stats = __webpack_require__(8);
+	var threeEnv = __webpack_require__(9);
+	var lights = __webpack_require__(11);
+	var audioAnalyser = __webpack_require__(16);
+	var background = __webpack_require__(18);
+	var leaves = __webpack_require__(21);
+	var mask = __webpack_require__(22);
 
 	var stats;
 	var start, timePassed;
@@ -426,14 +428,17 @@
 
 		stats.begin();
 
+		TWEEN.update();
+
 		timePassed = Date.now() - start;
 
 		audioAnalyser.updateLevels();
 
 		background.draw(timePassed);
 		leaves.draw(timePassed);
+		mask.draw(timePassed);
 
-		//threeEnv.renderer.clear();
+		threeEnv.renderer.clear();
 		threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
 		threeEnv.renderer.clearDepth();
 		threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
@@ -42326,6 +42331,902 @@
 
 /***/ },
 /* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
+	 * Tween.js - Licensed under the MIT license
+	 * https://github.com/tweenjs/tween.js
+	 * ----------------------------------------------
+	 *
+	 * See https://github.com/tweenjs/tween.js/graphs/contributors for the full list of contributors.
+	 * Thank you all, you're awesome!
+	 */
+
+	// Include a performance.now polyfill
+	(function () {
+
+		if ('performance' in window === false) {
+			window.performance = {};
+		}
+
+		// IE 8
+		Date.now = (Date.now || function () {
+			return new Date().getTime();
+		});
+
+		if ('now' in window.performance === false) {
+			var offset = window.performance.timing && window.performance.timing.navigationStart ? window.performance.timing.navigationStart
+			                                                                                    : Date.now();
+
+			window.performance.now = function () {
+				return Date.now() - offset;
+			};
+		}
+
+	})();
+
+	var TWEEN = TWEEN || (function () {
+
+		var _tweens = [];
+
+		return {
+
+			getAll: function () {
+
+				return _tweens;
+
+			},
+
+			removeAll: function () {
+
+				_tweens = [];
+
+			},
+
+			add: function (tween) {
+
+				_tweens.push(tween);
+
+			},
+
+			remove: function (tween) {
+
+				var i = _tweens.indexOf(tween);
+
+				if (i !== -1) {
+					_tweens.splice(i, 1);
+				}
+
+			},
+
+			update: function (time) {
+
+				if (_tweens.length === 0) {
+					return false;
+				}
+
+				var i = 0;
+
+				time = time !== undefined ? time : window.performance.now();
+
+				while (i < _tweens.length) {
+
+					if (_tweens[i].update(time)) {
+						i++;
+					} else {
+						_tweens.splice(i, 1);
+					}
+
+				}
+
+				return true;
+
+			}
+		};
+
+	})();
+
+	TWEEN.Tween = function (object) {
+
+		var _object = object;
+		var _valuesStart = {};
+		var _valuesEnd = {};
+		var _valuesStartRepeat = {};
+		var _duration = 1000;
+		var _repeat = 0;
+		var _yoyo = false;
+		var _isPlaying = false;
+		var _reversed = false;
+		var _delayTime = 0;
+		var _startTime = null;
+		var _easingFunction = TWEEN.Easing.Linear.None;
+		var _interpolationFunction = TWEEN.Interpolation.Linear;
+		var _chainedTweens = [];
+		var _onStartCallback = null;
+		var _onStartCallbackFired = false;
+		var _onUpdateCallback = null;
+		var _onCompleteCallback = null;
+		var _onStopCallback = null;
+
+		// Set all starting values present on the target object
+		for (var field in object) {
+			_valuesStart[field] = parseFloat(object[field], 10);
+		}
+
+		this.to = function (properties, duration) {
+
+			if (duration !== undefined) {
+				_duration = duration;
+			}
+
+			_valuesEnd = properties;
+
+			return this;
+
+		};
+
+		this.start = function (time) {
+
+			TWEEN.add(this);
+
+			_isPlaying = true;
+
+			_onStartCallbackFired = false;
+
+			_startTime = time !== undefined ? time : window.performance.now();
+			_startTime += _delayTime;
+
+			for (var property in _valuesEnd) {
+
+				// Check if an Array was provided as property value
+				if (_valuesEnd[property] instanceof Array) {
+
+					if (_valuesEnd[property].length === 0) {
+						continue;
+					}
+
+					// Create a local copy of the Array with the start value at the front
+					_valuesEnd[property] = [_object[property]].concat(_valuesEnd[property]);
+
+				}
+
+				// If `to()` specifies a property that doesn't exist in the source object,
+				// we should not set that property in the object
+				if (_valuesStart[property] === undefined) {
+					continue;
+				}
+
+				_valuesStart[property] = _object[property];
+
+				if ((_valuesStart[property] instanceof Array) === false) {
+					_valuesStart[property] *= 1.0; // Ensures we're using numbers, not strings
+				}
+
+				_valuesStartRepeat[property] = _valuesStart[property] || 0;
+
+			}
+
+			return this;
+
+		};
+
+		this.stop = function () {
+
+			if (!_isPlaying) {
+				return this;
+			}
+
+			TWEEN.remove(this);
+			_isPlaying = false;
+
+			if (_onStopCallback !== null) {
+				_onStopCallback.call(_object);
+			}
+
+			this.stopChainedTweens();
+			return this;
+
+		};
+
+		this.stopChainedTweens = function () {
+
+			for (var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++) {
+				_chainedTweens[i].stop();
+			}
+
+		};
+
+		this.delay = function (amount) {
+
+			_delayTime = amount;
+			return this;
+
+		};
+
+		this.repeat = function (times) {
+
+			_repeat = times;
+			return this;
+
+		};
+
+		this.yoyo = function (yoyo) {
+
+			_yoyo = yoyo;
+			return this;
+
+		};
+
+
+		this.easing = function (easing) {
+
+			_easingFunction = easing;
+			return this;
+
+		};
+
+		this.interpolation = function (interpolation) {
+
+			_interpolationFunction = interpolation;
+			return this;
+
+		};
+
+		this.chain = function () {
+
+			_chainedTweens = arguments;
+			return this;
+
+		};
+
+		this.onStart = function (callback) {
+
+			_onStartCallback = callback;
+			return this;
+
+		};
+
+		this.onUpdate = function (callback) {
+
+			_onUpdateCallback = callback;
+			return this;
+
+		};
+
+		this.onComplete = function (callback) {
+
+			_onCompleteCallback = callback;
+			return this;
+
+		};
+
+		this.onStop = function (callback) {
+
+			_onStopCallback = callback;
+			return this;
+
+		};
+
+		this.update = function (time) {
+
+			var property;
+			var elapsed;
+			var value;
+
+			if (time < _startTime) {
+				return true;
+			}
+
+			if (_onStartCallbackFired === false) {
+
+				if (_onStartCallback !== null) {
+					_onStartCallback.call(_object);
+				}
+
+				_onStartCallbackFired = true;
+
+			}
+
+			elapsed = (time - _startTime) / _duration;
+			elapsed = elapsed > 1 ? 1 : elapsed;
+
+			value = _easingFunction(elapsed);
+
+			for (property in _valuesEnd) {
+
+				// Don't update properties that do not exist in the source object
+				if (_valuesStart[property] === undefined) {
+					continue;
+				}
+
+				var start = _valuesStart[property] || 0;
+				var end = _valuesEnd[property];
+
+				if (end instanceof Array) {
+
+					_object[property] = _interpolationFunction(end, value);
+
+				} else {
+
+					// Parses relative end values with start as base (e.g.: +10, -3)
+					if (typeof (end) === 'string') {
+
+						if (end.startsWith('+') || end.startsWith('-')) {
+							end = start + parseFloat(end, 10);
+						} else {
+							end = parseFloat(end, 10);
+						}
+					}
+
+					// Protect against non numeric properties.
+					if (typeof (end) === 'number') {
+						_object[property] = start + (end - start) * value;
+					}
+
+				}
+
+			}
+
+			if (_onUpdateCallback !== null) {
+				_onUpdateCallback.call(_object, value);
+			}
+
+			if (elapsed === 1) {
+
+				if (_repeat > 0) {
+
+					if (isFinite(_repeat)) {
+						_repeat--;
+					}
+
+					// Reassign starting values, restart by making startTime = now
+					for (property in _valuesStartRepeat) {
+
+						if (typeof (_valuesEnd[property]) === 'string') {
+							_valuesStartRepeat[property] = _valuesStartRepeat[property] + parseFloat(_valuesEnd[property], 10);
+						}
+
+						if (_yoyo) {
+							var tmp = _valuesStartRepeat[property];
+
+							_valuesStartRepeat[property] = _valuesEnd[property];
+							_valuesEnd[property] = tmp;
+						}
+
+						_valuesStart[property] = _valuesStartRepeat[property];
+
+					}
+
+					if (_yoyo) {
+						_reversed = !_reversed;
+					}
+
+					_startTime = time + _delayTime;
+
+					return true;
+
+				} else {
+
+					if (_onCompleteCallback !== null) {
+						_onCompleteCallback.call(_object);
+					}
+
+					for (var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++) {
+						// Make the chained tweens start exactly at the time they should,
+						// even if the `update()` method was called way past the duration of the tween
+						_chainedTweens[i].start(_startTime + _duration);
+					}
+
+					return false;
+
+				}
+
+			}
+
+			return true;
+
+		};
+
+	};
+
+
+	TWEEN.Easing = {
+
+		Linear: {
+
+			None: function (k) {
+
+				return k;
+
+			}
+
+		},
+
+		Quadratic: {
+
+			In: function (k) {
+
+				return k * k;
+
+			},
+
+			Out: function (k) {
+
+				return k * (2 - k);
+
+			},
+
+			InOut: function (k) {
+
+				if ((k *= 2) < 1) {
+					return 0.5 * k * k;
+				}
+
+				return - 0.5 * (--k * (k - 2) - 1);
+
+			}
+
+		},
+
+		Cubic: {
+
+			In: function (k) {
+
+				return k * k * k;
+
+			},
+
+			Out: function (k) {
+
+				return --k * k * k + 1;
+
+			},
+
+			InOut: function (k) {
+
+				if ((k *= 2) < 1) {
+					return 0.5 * k * k * k;
+				}
+
+				return 0.5 * ((k -= 2) * k * k + 2);
+
+			}
+
+		},
+
+		Quartic: {
+
+			In: function (k) {
+
+				return k * k * k * k;
+
+			},
+
+			Out: function (k) {
+
+				return 1 - (--k * k * k * k);
+
+			},
+
+			InOut: function (k) {
+
+				if ((k *= 2) < 1) {
+					return 0.5 * k * k * k * k;
+				}
+
+				return - 0.5 * ((k -= 2) * k * k * k - 2);
+
+			}
+
+		},
+
+		Quintic: {
+
+			In: function (k) {
+
+				return k * k * k * k * k;
+
+			},
+
+			Out: function (k) {
+
+				return --k * k * k * k * k + 1;
+
+			},
+
+			InOut: function (k) {
+
+				if ((k *= 2) < 1) {
+					return 0.5 * k * k * k * k * k;
+				}
+
+				return 0.5 * ((k -= 2) * k * k * k * k + 2);
+
+			}
+
+		},
+
+		Sinusoidal: {
+
+			In: function (k) {
+
+				return 1 - Math.cos(k * Math.PI / 2);
+
+			},
+
+			Out: function (k) {
+
+				return Math.sin(k * Math.PI / 2);
+
+			},
+
+			InOut: function (k) {
+
+				return 0.5 * (1 - Math.cos(Math.PI * k));
+
+			}
+
+		},
+
+		Exponential: {
+
+			In: function (k) {
+
+				return k === 0 ? 0 : Math.pow(1024, k - 1);
+
+			},
+
+			Out: function (k) {
+
+				return k === 1 ? 1 : 1 - Math.pow(2, - 10 * k);
+
+			},
+
+			InOut: function (k) {
+
+				if (k === 0) {
+					return 0;
+				}
+
+				if (k === 1) {
+					return 1;
+				}
+
+				if ((k *= 2) < 1) {
+					return 0.5 * Math.pow(1024, k - 1);
+				}
+
+				return 0.5 * (- Math.pow(2, - 10 * (k - 1)) + 2);
+
+			}
+
+		},
+
+		Circular: {
+
+			In: function (k) {
+
+				return 1 - Math.sqrt(1 - k * k);
+
+			},
+
+			Out: function (k) {
+
+				return Math.sqrt(1 - (--k * k));
+
+			},
+
+			InOut: function (k) {
+
+				if ((k *= 2) < 1) {
+					return - 0.5 * (Math.sqrt(1 - k * k) - 1);
+				}
+
+				return 0.5 * (Math.sqrt(1 - (k -= 2) * k) + 1);
+
+			}
+
+		},
+
+		Elastic: {
+
+			In: function (k) {
+
+				var s;
+				var a = 0.1;
+				var p = 0.4;
+
+				if (k === 0) {
+					return 0;
+				}
+
+				if (k === 1) {
+					return 1;
+				}
+
+				if (!a || a < 1) {
+					a = 1;
+					s = p / 4;
+				} else {
+					s = p * Math.asin(1 / a) / (2 * Math.PI);
+				}
+
+				return - (a * Math.pow(2, 10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p));
+
+			},
+
+			Out: function (k) {
+
+				var s;
+				var a = 0.1;
+				var p = 0.4;
+
+				if (k === 0) {
+					return 0;
+				}
+
+				if (k === 1) {
+					return 1;
+				}
+
+				if (!a || a < 1) {
+					a = 1;
+					s = p / 4;
+				} else {
+					s = p * Math.asin(1 / a) / (2 * Math.PI);
+				}
+
+				return (a * Math.pow(2, - 10 * k) * Math.sin((k - s) * (2 * Math.PI) / p) + 1);
+
+			},
+
+			InOut: function (k) {
+
+				var s;
+				var a = 0.1;
+				var p = 0.4;
+
+				if (k === 0) {
+					return 0;
+				}
+
+				if (k === 1) {
+					return 1;
+				}
+
+				if (!a || a < 1) {
+					a = 1;
+					s = p / 4;
+				} else {
+					s = p * Math.asin(1 / a) / (2 * Math.PI);
+				}
+
+				if ((k *= 2) < 1) {
+					return - 0.5 * (a * Math.pow(2, 10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p));
+				}
+
+				return a * Math.pow(2, -10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p) * 0.5 + 1;
+
+			}
+
+		},
+
+		Back: {
+
+			In: function (k) {
+
+				var s = 1.70158;
+
+				return k * k * ((s + 1) * k - s);
+
+			},
+
+			Out: function (k) {
+
+				var s = 1.70158;
+
+				return --k * k * ((s + 1) * k + s) + 1;
+
+			},
+
+			InOut: function (k) {
+
+				var s = 1.70158 * 1.525;
+
+				if ((k *= 2) < 1) {
+					return 0.5 * (k * k * ((s + 1) * k - s));
+				}
+
+				return 0.5 * ((k -= 2) * k * ((s + 1) * k + s) + 2);
+
+			}
+
+		},
+
+		Bounce: {
+
+			In: function (k) {
+
+				return 1 - TWEEN.Easing.Bounce.Out(1 - k);
+
+			},
+
+			Out: function (k) {
+
+				if (k < (1 / 2.75)) {
+					return 7.5625 * k * k;
+				} else if (k < (2 / 2.75)) {
+					return 7.5625 * (k -= (1.5 / 2.75)) * k + 0.75;
+				} else if (k < (2.5 / 2.75)) {
+					return 7.5625 * (k -= (2.25 / 2.75)) * k + 0.9375;
+				} else {
+					return 7.5625 * (k -= (2.625 / 2.75)) * k + 0.984375;
+				}
+
+			},
+
+			InOut: function (k) {
+
+				if (k < 0.5) {
+					return TWEEN.Easing.Bounce.In(k * 2) * 0.5;
+				}
+
+				return TWEEN.Easing.Bounce.Out(k * 2 - 1) * 0.5 + 0.5;
+
+			}
+
+		}
+
+	};
+
+	TWEEN.Interpolation = {
+
+		Linear: function (v, k) {
+
+			var m = v.length - 1;
+			var f = m * k;
+			var i = Math.floor(f);
+			var fn = TWEEN.Interpolation.Utils.Linear;
+
+			if (k < 0) {
+				return fn(v[0], v[1], f);
+			}
+
+			if (k > 1) {
+				return fn(v[m], v[m - 1], m - f);
+			}
+
+			return fn(v[i], v[i + 1 > m ? m : i + 1], f - i);
+
+		},
+
+		Bezier: function (v, k) {
+
+			var b = 0;
+			var n = v.length - 1;
+			var pw = Math.pow;
+			var bn = TWEEN.Interpolation.Utils.Bernstein;
+
+			for (var i = 0; i <= n; i++) {
+				b += pw(1 - k, n - i) * pw(k, i) * v[i] * bn(n, i);
+			}
+
+			return b;
+
+		},
+
+		CatmullRom: function (v, k) {
+
+			var m = v.length - 1;
+			var f = m * k;
+			var i = Math.floor(f);
+			var fn = TWEEN.Interpolation.Utils.CatmullRom;
+
+			if (v[0] === v[m]) {
+
+				if (k < 0) {
+					i = Math.floor(f = m * (1 + k));
+				}
+
+				return fn(v[(i - 1 + m) % m], v[i], v[(i + 1) % m], v[(i + 2) % m], f - i);
+
+			} else {
+
+				if (k < 0) {
+					return v[0] - (fn(v[0], v[0], v[1], v[1], -f) - v[0]);
+				}
+
+				if (k > 1) {
+					return v[m] - (fn(v[m], v[m], v[m - 1], v[m - 1], f - m) - v[m]);
+				}
+
+				return fn(v[i ? i - 1 : 0], v[i], v[m < i + 1 ? m : i + 1], v[m < i + 2 ? m : i + 2], f - i);
+
+			}
+
+		},
+
+		Utils: {
+
+			Linear: function (p0, p1, t) {
+
+				return (p1 - p0) * t + p0;
+
+			},
+
+			Bernstein: function (n, i) {
+
+				var fc = TWEEN.Interpolation.Utils.Factorial;
+
+				return fc(n) / fc(i) / fc(n - i);
+
+			},
+
+			Factorial: (function () {
+
+				var a = [1];
+
+				return function (n) {
+
+					var s = 1;
+
+					if (a[n]) {
+						return a[n];
+					}
+
+					for (var i = n; i > 1; i--) {
+						s *= i;
+					}
+
+					a[n] = s;
+					return s;
+
+				};
+
+			})(),
+
+			CatmullRom: function (p0, p1, p2, p3, t) {
+
+				var v0 = (p2 - p0) * 0.5;
+				var v1 = (p3 - p1) * 0.5;
+				var t2 = t * t;
+				var t3 = t * t2;
+
+				return (2 * p1 - 2 * p2 + v0 + v1) * t3 + (- 3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 + v0 * t + p1;
+
+			}
+
+		}
+
+	};
+
+	// UMD (Universal Module Definition)
+	(function (root) {
+
+		if (true) {
+
+			// AMD
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () {
+				return TWEEN;
+			}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+		} else if (typeof module !== 'undefined' && typeof exports === 'object') {
+
+			// Node.js
+			module.exports = TWEEN;
+
+		} else if (root !== undefined) {
+
+			// Global variable
+			root.TWEEN = TWEEN;
+
+		}
+
+	})(this);
+
+
+/***/ },
+/* 8 */
 /***/ function(module, exports) {
 
 	// stats.js - http://github.com/mrdoob/stats.js
@@ -42336,11 +43237,11 @@
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var OrbitControls = __webpack_require__(9)(THREE)
+	var OrbitControls = __webpack_require__(10)(THREE)
 
 	var renderer, scene, camera, controls;
 	var box = {
@@ -42348,9 +43249,7 @@
 		height: window.innerHeight
 	}
 
-	renderer = new THREE.WebGLRenderer({
-	//	alpha: true,
-	});
+	renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
 
 	renderer.autoClear = false;
 
@@ -42361,16 +43260,16 @@
 
 	scene.fog = new THREE.FogExp2( 0x000000, 0.0025 );
 
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 30000 );
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 	camera.position.z = 500;
 
-	bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 30000 );
+	bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 	bgCamera.position.z = 500;
 
 	bgScene.add(bgCamera);
 	scene.add(camera);
 
-	// controls = new OrbitControls(camera);
+	controls = new OrbitControls(camera);
 
 	module.exports = {
 		renderer: renderer,
@@ -42382,7 +43281,7 @@
 	}
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	module.exports = function(THREE) {
@@ -43507,12 +44406,12 @@
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(8);
-	var gui = __webpack_require__(11).addFolder('Lights');
+	var threeEnv = __webpack_require__(9);
+	var gui = __webpack_require__(12).addFolder('Lights');
 
 
 	var params = {
@@ -43524,6 +44423,10 @@
 	gui.add(params, 'randomPositions');
 
 	var ambientLight = new THREE.AmbientLight( 0xffffff, 0.2 );
+	var directionalLight = new THREE.DirectionalLight( 0x333333 );
+
+	directionalLight.position.set( 0.5, 0.5, 0.5 );
+
 
 	var lights = [];
 
@@ -43540,6 +44443,7 @@
 	threeEnv.scene.add( lights[ 2 ] );
 
 	threeEnv.scene.add( ambientLight );
+	threeEnv.scene.add( directionalLight );
 
 	var randomPositions = function() {
 
@@ -43552,10 +44456,10 @@
 	}
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var dat = __webpack_require__(12);
+	var dat = __webpack_require__(13);
 
 	var gui = new dat.GUI();
 
@@ -43563,14 +44467,14 @@
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(13)
-	module.exports.color = __webpack_require__(14)
+	module.exports = __webpack_require__(14)
+	module.exports.color = __webpack_require__(15)
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports) {
 
 	/**
@@ -47235,7 +48139,7 @@
 	dat.utils.common);
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports) {
 
 	/**
@@ -47995,11 +48899,12 @@
 	dat.utils.common);
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Freq = __webpack_require__(16);
-	var gui = __webpack_require__(11).addFolder('Frequencies');
+	var Freq = __webpack_require__(17);
+	var gui = __webpack_require__(12);
+	var guiFolder = gui.addFolder('Frequencies');
 
 	var audioContext, analyser, source, stream, freqs;
 
@@ -48029,12 +48934,13 @@
 		'smoothing': 0.85
 	}
 
+	gui.remember(params);
 
-	var a0 = gui.add(params, 'a0', 0, 1);
-	var a1 = gui.add(params, 'a1', 0, 1);
-	var b0 = gui.add(params, 'b0', 0, 1);
-	var b1 = gui.add(params, 'b1', 0, 1);
-	var smoothing = gui.add(params, 'smoothing', 0, 1);
+	var a0 = guiFolder.add(params, 'a0', 0, 1);
+	var a1 = guiFolder.add(params, 'a1', 0, 1);
+	var b0 = guiFolder.add(params, 'b0', 0, 1);
+	var b1 = guiFolder.add(params, 'b1', 0, 1);
+	var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
 
 
 	a0.onChange(function(value) {
@@ -48085,7 +48991,7 @@
 	}
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports) {
 
 	// Overwrite properties of one object with another
@@ -48345,16 +49251,17 @@
 	module.exports = Freq;
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(8);
-	var audioAnalyser = __webpack_require__(15);
-	var gui = __webpack_require__(11).addFolder('Background');
+	var threeEnv = __webpack_require__(9);
+	var audioAnalyser = __webpack_require__(16);
+	var gui = __webpack_require__(12);
+	var guiFolder = gui.addFolder('Background');
 	var shaders = {
-		vertex: __webpack_require__(18),
-		fragment: __webpack_require__(19)
+		vertex: __webpack_require__(19),
+		fragment: __webpack_require__(20)
 	}
 
 	var swampMaterial, swampGeometry, swampMesh;
@@ -48365,11 +49272,13 @@
 		scale: 1.0
 	}
 
-	gui.add(params, 'bounceAmp', 0, 1);
-	gui.add(params, 'pulseAmp', 0, 1);
-	gui.add(params, 'scale', 1, 10);
+	gui.remember(params);
 
-	swampGeometry = new THREE.PlaneGeometry( window.innerWidth, window.innerHeight);
+	guiFolder.add(params, 'bounceAmp', 0, 1);
+	guiFolder.add(params, 'pulseAmp', 0, 1);
+	guiFolder.add(params, 'scale', 1, 10);
+
+	swampGeometry = new THREE.PlaneGeometry( window.innerWidth * 1.1, window.innerHeight * 1.1);
 
 	swampMaterial = new THREE.ShaderMaterial( {
 
@@ -48418,26 +49327,27 @@
 	}
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0., 0.1 + f, 0.),.1);\n}"
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(21);
-	var threeEnv = __webpack_require__(8);
+	var TWEEN = __webpack_require__(7);
+	var threeEnv = __webpack_require__(9);
 
-	var gui = __webpack_require__(11).addFolder('Leaves');
+	var gui = __webpack_require__(12);
+	var guiFolder = gui.addFolder('Leaves');
 
 	var loader = new THREE.JSONLoader();
 	var leafModel;
@@ -48457,9 +49367,11 @@
 		}
 	}
 
-	gui.add(params, 'speed', -10, 10);
-	gui.add(params, 'groupRotSpeed', 0, 0.05);
-	gui.add(params, 'gotoCircle');
+	gui.remember(params);
+
+	guiFolder.add(params, 'speed', -10, 10);
+	guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
+	guiFolder.add(params, 'gotoCircle');
 
 
 	loader.load('leaf.js', function ( geometry ) {
@@ -48565,8 +49477,6 @@
 
 	var draw = function(timePassed) {
 
-		TWEEN.update();
-
 		leafGroup.rotation.z += params.groupRotSpeed;
 
 		for (var i = 0; i < particles.length; i++) {
@@ -48599,899 +49509,216 @@
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
-	 * Tween.js - Licensed under the MIT license
-	 * https://github.com/tweenjs/tween.js
-	 * ----------------------------------------------
-	 *
-	 * See https://github.com/tweenjs/tween.js/graphs/contributors for the full list of contributors.
-	 * Thank you all, you're awesome!
-	 */
+	var THREE = __webpack_require__(6);
+	var TWEEN = __webpack_require__(7);
+	var threeEnv = __webpack_require__(9);
 
-	// Include a performance.now polyfill
-	(function () {
+	var gui = __webpack_require__(12);
+	var guiFolder = gui.addFolder('Mask');
 
-		if ('performance' in window === false) {
-			window.performance = {};
+	var loader = new THREE.XHRLoader();
+	loader.setResponseType( 'json' );
+
+	var mainMask;
+
+	var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
+
+	threeEnv.scene.add(cubeCamera);
+
+
+	var params = {
+		randomFlash: function() {
+			mainMask.randomFlash('flash');
+		},
+		randomEdgeFlash: function() {
+			mainMask.randomFlash('edges');
 		}
+	}
 
-		// IE 8
-		Date.now = (Date.now || function () {
-			return new Date().getTime();
-		});
 
-		if ('now' in window.performance === false) {
-			var offset = window.performance.timing && window.performance.timing.navigationStart ? window.performance.timing.navigationStart
-			                                                                                    : Date.now();
+	guiFolder.add(params, 'randomFlash');
+	guiFolder.add(params, 'randomEdgeFlash');
 
-			window.performance.now = function () {
-				return Date.now() - offset;
-			};
-		}
 
-	})();
 
-	var TWEEN = TWEEN || (function () {
+	var outerMaterial = new THREE.MeshPhongMaterial({
+		transparent: true,
+		opacity: 0.8,
+		side: THREE.DoubleSide,
+		color: 0x2F8582
+	});
 
-		var _tweens = [];
+	var flashMaterial = new THREE.MeshBasicMaterial({
+		transparent: true,
+		opacity: 0,
+		side: THREE.DoubleSide,
+		color: 0xffffff,
+		fog: false
+	});
 
-		return {
+	// var coreMaterial = new THREE.MeshPhongMaterial( { 
+	// 	color: 0x111111,
+	// 	shininess: 100,
+	// 	envMap: cubeCamera.renderTarget.texture,
+	// 	combine: THREE.AddOperation,
+	// 	side: THREE.DoubleSide
+	// } );
 
-			getAll: function () {
 
-				return _tweens;
+	var coreMaterial = new THREE.MeshPhongMaterial( { 
+		//side: THREE.DoubleSide,
+		shininess: 50,
+		color: 0xffffff
+	} );
 
-			},
 
-			removeAll: function () {
+	var modelIds = {
+		outer: [
+			'feather_1',
+			'feather_2',
+			'feather_3',
+			'feather_4',
+			'feather_5',
+			'feather_6',
+			'paint_1',
+			'paint_2',
+			'paint_3',
+			'paint_4',
+			'paint_5',
+			'paint_6',
+			'nose'
+		]
+	}
 
-				_tweens = [];
+	loader.load('mask.json', function (data) {
 
-			},
+		var loader = new THREE.ObjectLoader();
 
-			add: function (tween) {
+		var mask = loader.parse(data)
 
-				_tweens.push(tween);
+		threeEnv.scene.add(mask);
 
-			},
+		mainMask = new Mask(mask)
 
-			remove: function (tween) {
+	});
 
-				var i = _tweens.indexOf(tween);
 
-				if (i !== -1) {
-					_tweens.splice(i, 1);
-				}
+	var Mask = function(mask) {
 
-			},
+		var that = this;
 
-			update: function (time) {
+		var outerObjs = [];
 
-				if (_tweens.length === 0) {
-					return false;
-				}
+		var groupMesh = mask.children[0];
 
-				var i = 0;
+		groupMesh.position.y -= 10;
 
-				time = time !== undefined ? time : window.performance.now();
+		var mainMesh = mask.getObjectByName( 'head' );
 
-				while (i < _tweens.length) {
+		// Give main head material
+		mainMesh.material = coreMaterial;
 
-					if (_tweens[i].update(time)) {
-						i++;
-					} else {
-						_tweens.splice(i, 1);
-					}
 
-				}
+		for (var i = 0; i < modelIds.outer.length; i++) {
 
-				return true;
+			var mesh = mask.getObjectByName( modelIds.outer[i] );
 
-			}
-		};
+			// Give outer decorations materials
+			mesh.material = outerMaterial;
 
-	})();
 
-	TWEEN.Tween = function (object) {
+			// Give each outer decoration a "flash" clone
+			var flash = mesh.clone();
 
-		var _object = object;
-		var _valuesStart = {};
-		var _valuesEnd = {};
-		var _valuesStartRepeat = {};
-		var _duration = 1000;
-		var _repeat = 0;
-		var _yoyo = false;
-		var _isPlaying = false;
-		var _reversed = false;
-		var _delayTime = 0;
-		var _startTime = null;
-		var _easingFunction = TWEEN.Easing.Linear.None;
-		var _interpolationFunction = TWEEN.Interpolation.Linear;
-		var _chainedTweens = [];
-		var _onStartCallback = null;
-		var _onStartCallbackFired = false;
-		var _onUpdateCallback = null;
-		var _onCompleteCallback = null;
-		var _onStopCallback = null;
+			flash.name = "flash";
 
-		// Set all starting values present on the target object
-		for (var field in object) {
-			_valuesStart[field] = parseFloat(object[field], 10);
-		}
+			mesh.add(flash);
 
-		this.to = function (properties, duration) {
+			flash.rotation.x = 0;
+			flash.rotation.y = 0;
+			flash.rotation.z = 0;
+			flash.position.z = 0.1;
+			flash.material = flashMaterial.clone();
 
-			if (duration !== undefined) {
-				_duration = duration;
-			}
+			var edges = new THREE.EdgesHelper( flash, 0xffffff, 55 );
 
-			_valuesEnd = properties;
+			edges.matrix = flash.matrix;
+			edges.matrixAutoUpdate = true;
+			edges.position.z = 0.2;
+			edges.name = "edges";
+			mesh.add(edges);
 
-			return this;
+			edges.material.lineWidth = 10;
+			edges.material.transparent = true;
+			edges.material.opacity = 0;
 
-		};
 
-		this.start = function (time) {
-
-			TWEEN.add(this);
-
-			_isPlaying = true;
-
-			_onStartCallbackFired = false;
-
-			_startTime = time !== undefined ? time : window.performance.now();
-			_startTime += _delayTime;
-
-			for (var property in _valuesEnd) {
-
-				// Check if an Array was provided as property value
-				if (_valuesEnd[property] instanceof Array) {
-
-					if (_valuesEnd[property].length === 0) {
-						continue;
-					}
-
-					// Create a local copy of the Array with the start value at the front
-					_valuesEnd[property] = [_object[property]].concat(_valuesEnd[property]);
-
-				}
-
-				// If `to()` specifies a property that doesn't exist in the source object,
-				// we should not set that property in the object
-				if (_valuesStart[property] === undefined) {
-					continue;
-				}
-
-				_valuesStart[property] = _object[property];
-
-				if ((_valuesStart[property] instanceof Array) === false) {
-					_valuesStart[property] *= 1.0; // Ensures we're using numbers, not strings
-				}
-
-				_valuesStartRepeat[property] = _valuesStart[property] || 0;
-
-			}
-
-			return this;
-
-		};
-
-		this.stop = function () {
-
-			if (!_isPlaying) {
-				return this;
-			}
-
-			TWEEN.remove(this);
-			_isPlaying = false;
-
-			if (_onStopCallback !== null) {
-				_onStopCallback.call(_object);
-			}
-
-			this.stopChainedTweens();
-			return this;
-
-		};
-
-		this.stopChainedTweens = function () {
-
-			for (var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++) {
-				_chainedTweens[i].stop();
-			}
-
-		};
-
-		this.delay = function (amount) {
-
-			_delayTime = amount;
-			return this;
-
-		};
-
-		this.repeat = function (times) {
-
-			_repeat = times;
-			return this;
-
-		};
-
-		this.yoyo = function (yoyo) {
-
-			_yoyo = yoyo;
-			return this;
-
-		};
-
-
-		this.easing = function (easing) {
-
-			_easingFunction = easing;
-			return this;
-
-		};
-
-		this.interpolation = function (interpolation) {
-
-			_interpolationFunction = interpolation;
-			return this;
-
-		};
-
-		this.chain = function () {
-
-			_chainedTweens = arguments;
-			return this;
-
-		};
-
-		this.onStart = function (callback) {
-
-			_onStartCallback = callback;
-			return this;
-
-		};
-
-		this.onUpdate = function (callback) {
-
-			_onUpdateCallback = callback;
-			return this;
-
-		};
-
-		this.onComplete = function (callback) {
-
-			_onCompleteCallback = callback;
-			return this;
-
-		};
-
-		this.onStop = function (callback) {
-
-			_onStopCallback = callback;
-			return this;
-
-		};
-
-		this.update = function (time) {
-
-			var property;
-			var elapsed;
-			var value;
-
-			if (time < _startTime) {
-				return true;
-			}
-
-			if (_onStartCallbackFired === false) {
-
-				if (_onStartCallback !== null) {
-					_onStartCallback.call(_object);
-				}
-
-				_onStartCallbackFired = true;
-
-			}
-
-			elapsed = (time - _startTime) / _duration;
-			elapsed = elapsed > 1 ? 1 : elapsed;
-
-			value = _easingFunction(elapsed);
-
-			for (property in _valuesEnd) {
-
-				// Don't update properties that do not exist in the source object
-				if (_valuesStart[property] === undefined) {
-					continue;
-				}
-
-				var start = _valuesStart[property] || 0;
-				var end = _valuesEnd[property];
-
-				if (end instanceof Array) {
-
-					_object[property] = _interpolationFunction(end, value);
-
-				} else {
-
-					// Parses relative end values with start as base (e.g.: +10, -3)
-					if (typeof (end) === 'string') {
-
-						if (end.startsWith('+') || end.startsWith('-')) {
-							end = start + parseFloat(end, 10);
-						} else {
-							end = parseFloat(end, 10);
-						}
-					}
-
-					// Protect against non numeric properties.
-					if (typeof (end) === 'number') {
-						_object[property] = start + (end - start) * value;
-					}
-
-				}
-
-			}
-
-			if (_onUpdateCallback !== null) {
-				_onUpdateCallback.call(_object, value);
-			}
-
-			if (elapsed === 1) {
-
-				if (_repeat > 0) {
-
-					if (isFinite(_repeat)) {
-						_repeat--;
-					}
-
-					// Reassign starting values, restart by making startTime = now
-					for (property in _valuesStartRepeat) {
-
-						if (typeof (_valuesEnd[property]) === 'string') {
-							_valuesStartRepeat[property] = _valuesStartRepeat[property] + parseFloat(_valuesEnd[property], 10);
-						}
-
-						if (_yoyo) {
-							var tmp = _valuesStartRepeat[property];
-
-							_valuesStartRepeat[property] = _valuesEnd[property];
-							_valuesEnd[property] = tmp;
-						}
-
-						_valuesStart[property] = _valuesStartRepeat[property];
-
-					}
-
-					if (_yoyo) {
-						_reversed = !_reversed;
-					}
-
-					_startTime = time + _delayTime;
-
-					return true;
-
-				} else {
-
-					if (_onCompleteCallback !== null) {
-						_onCompleteCallback.call(_object);
-					}
-
-					for (var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++) {
-						// Make the chained tweens start exactly at the time they should,
-						// even if the `update()` method was called way past the duration of the tween
-						_chainedTweens[i].start(_startTime + _duration);
-					}
-
-					return false;
-
-				}
-
-			}
-
-			return true;
-
-		};
-
-	};
-
-
-	TWEEN.Easing = {
-
-		Linear: {
-
-			None: function (k) {
-
-				return k;
-
-			}
-
-		},
-
-		Quadratic: {
-
-			In: function (k) {
-
-				return k * k;
-
-			},
-
-			Out: function (k) {
-
-				return k * (2 - k);
-
-			},
-
-			InOut: function (k) {
-
-				if ((k *= 2) < 1) {
-					return 0.5 * k * k;
-				}
-
-				return - 0.5 * (--k * (k - 2) - 1);
-
-			}
-
-		},
-
-		Cubic: {
-
-			In: function (k) {
-
-				return k * k * k;
-
-			},
-
-			Out: function (k) {
-
-				return --k * k * k + 1;
-
-			},
-
-			InOut: function (k) {
-
-				if ((k *= 2) < 1) {
-					return 0.5 * k * k * k;
-				}
-
-				return 0.5 * ((k -= 2) * k * k + 2);
-
-			}
-
-		},
-
-		Quartic: {
-
-			In: function (k) {
-
-				return k * k * k * k;
-
-			},
-
-			Out: function (k) {
-
-				return 1 - (--k * k * k * k);
-
-			},
-
-			InOut: function (k) {
-
-				if ((k *= 2) < 1) {
-					return 0.5 * k * k * k * k;
-				}
-
-				return - 0.5 * ((k -= 2) * k * k * k - 2);
-
-			}
-
-		},
-
-		Quintic: {
-
-			In: function (k) {
-
-				return k * k * k * k * k;
-
-			},
-
-			Out: function (k) {
-
-				return --k * k * k * k * k + 1;
-
-			},
-
-			InOut: function (k) {
-
-				if ((k *= 2) < 1) {
-					return 0.5 * k * k * k * k * k;
-				}
-
-				return 0.5 * ((k -= 2) * k * k * k * k + 2);
-
-			}
-
-		},
-
-		Sinusoidal: {
-
-			In: function (k) {
-
-				return 1 - Math.cos(k * Math.PI / 2);
-
-			},
-
-			Out: function (k) {
-
-				return Math.sin(k * Math.PI / 2);
-
-			},
-
-			InOut: function (k) {
-
-				return 0.5 * (1 - Math.cos(Math.PI * k));
-
-			}
-
-		},
-
-		Exponential: {
-
-			In: function (k) {
-
-				return k === 0 ? 0 : Math.pow(1024, k - 1);
-
-			},
-
-			Out: function (k) {
-
-				return k === 1 ? 1 : 1 - Math.pow(2, - 10 * k);
-
-			},
-
-			InOut: function (k) {
-
-				if (k === 0) {
-					return 0;
-				}
-
-				if (k === 1) {
-					return 1;
-				}
-
-				if ((k *= 2) < 1) {
-					return 0.5 * Math.pow(1024, k - 1);
-				}
-
-				return 0.5 * (- Math.pow(2, - 10 * (k - 1)) + 2);
-
-			}
-
-		},
-
-		Circular: {
-
-			In: function (k) {
-
-				return 1 - Math.sqrt(1 - k * k);
-
-			},
-
-			Out: function (k) {
-
-				return Math.sqrt(1 - (--k * k));
-
-			},
-
-			InOut: function (k) {
-
-				if ((k *= 2) < 1) {
-					return - 0.5 * (Math.sqrt(1 - k * k) - 1);
-				}
-
-				return 0.5 * (Math.sqrt(1 - (k -= 2) * k) + 1);
-
-			}
-
-		},
-
-		Elastic: {
-
-			In: function (k) {
-
-				var s;
-				var a = 0.1;
-				var p = 0.4;
-
-				if (k === 0) {
-					return 0;
-				}
-
-				if (k === 1) {
-					return 1;
-				}
-
-				if (!a || a < 1) {
-					a = 1;
-					s = p / 4;
-				} else {
-					s = p * Math.asin(1 / a) / (2 * Math.PI);
-				}
-
-				return - (a * Math.pow(2, 10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p));
-
-			},
-
-			Out: function (k) {
-
-				var s;
-				var a = 0.1;
-				var p = 0.4;
-
-				if (k === 0) {
-					return 0;
-				}
-
-				if (k === 1) {
-					return 1;
-				}
-
-				if (!a || a < 1) {
-					a = 1;
-					s = p / 4;
-				} else {
-					s = p * Math.asin(1 / a) / (2 * Math.PI);
-				}
-
-				return (a * Math.pow(2, - 10 * k) * Math.sin((k - s) * (2 * Math.PI) / p) + 1);
-
-			},
-
-			InOut: function (k) {
-
-				var s;
-				var a = 0.1;
-				var p = 0.4;
-
-				if (k === 0) {
-					return 0;
-				}
-
-				if (k === 1) {
-					return 1;
-				}
-
-				if (!a || a < 1) {
-					a = 1;
-					s = p / 4;
-				} else {
-					s = p * Math.asin(1 / a) / (2 * Math.PI);
-				}
-
-				if ((k *= 2) < 1) {
-					return - 0.5 * (a * Math.pow(2, 10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p));
-				}
-
-				return a * Math.pow(2, -10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p) * 0.5 + 1;
-
-			}
-
-		},
-
-		Back: {
-
-			In: function (k) {
-
-				var s = 1.70158;
-
-				return k * k * ((s + 1) * k - s);
-
-			},
-
-			Out: function (k) {
-
-				var s = 1.70158;
-
-				return --k * k * ((s + 1) * k + s) + 1;
-
-			},
-
-			InOut: function (k) {
-
-				var s = 1.70158 * 1.525;
-
-				if ((k *= 2) < 1) {
-					return 0.5 * (k * k * ((s + 1) * k - s));
-				}
-
-				return 0.5 * ((k -= 2) * k * ((s + 1) * k + s) + 2);
-
-			}
-
-		},
-
-		Bounce: {
-
-			In: function (k) {
-
-				return 1 - TWEEN.Easing.Bounce.Out(1 - k);
-
-			},
-
-			Out: function (k) {
-
-				if (k < (1 / 2.75)) {
-					return 7.5625 * k * k;
-				} else if (k < (2 / 2.75)) {
-					return 7.5625 * (k -= (1.5 / 2.75)) * k + 0.75;
-				} else if (k < (2.5 / 2.75)) {
-					return 7.5625 * (k -= (2.25 / 2.75)) * k + 0.9375;
-				} else {
-					return 7.5625 * (k -= (2.625 / 2.75)) * k + 0.984375;
-				}
-
-			},
-
-			InOut: function (k) {
-
-				if (k < 0.5) {
-					return TWEEN.Easing.Bounce.In(k * 2) * 0.5;
-				}
-
-				return TWEEN.Easing.Bounce.Out(k * 2 - 1) * 0.5 + 0.5;
-
-			}
+			outerObjs.push(mesh);
 
 		}
 
-	};
+		groupMesh.position.z = 400;
 
-	TWEEN.Interpolation = {
+		this.mesh = mainMesh;
 
-		Linear: function (v, k) {
+		this.flashOuter = function(index, name) {
 
-			var m = v.length - 1;
-			var f = m * k;
-			var i = Math.floor(f);
-			var fn = TWEEN.Interpolation.Utils.Linear;
-
-			if (k < 0) {
-				return fn(v[0], v[1], f);
+			if (!name) {
+				name = 'flash';
 			}
 
-			if (k > 1) {
-				return fn(v[m], v[m - 1], m - f);
+			var material = outerObjs[index].getObjectByName( name ).material;
+
+			var target = {
+				opacity: 1
 			}
 
-			return fn(v[i], v[i + 1 > m ? m : i + 1], f - i);
+			material.opacity = target.opacity;
 
-		},
+			var tween = new TWEEN.Tween(target)
+		    .to({opacity: 0}, 800)
+		    .easing(TWEEN.Easing.Quintic.Out)
+		    .start();
 
-		Bezier: function (v, k) {
-
-			var b = 0;
-			var n = v.length - 1;
-			var pw = Math.pow;
-			var bn = TWEEN.Interpolation.Utils.Bernstein;
-
-			for (var i = 0; i <= n; i++) {
-				b += pw(1 - k, n - i) * pw(k, i) * v[i] * bn(n, i);
-			}
-
-			return b;
-
-		},
-
-		CatmullRom: function (v, k) {
-
-			var m = v.length - 1;
-			var f = m * k;
-			var i = Math.floor(f);
-			var fn = TWEEN.Interpolation.Utils.CatmullRom;
-
-			if (v[0] === v[m]) {
-
-				if (k < 0) {
-					i = Math.floor(f = m * (1 + k));
-				}
-
-				return fn(v[(i - 1 + m) % m], v[i], v[(i + 1) % m], v[(i + 2) % m], f - i);
-
-			} else {
-
-				if (k < 0) {
-					return v[0] - (fn(v[0], v[0], v[1], v[1], -f) - v[0]);
-				}
-
-				if (k > 1) {
-					return v[m] - (fn(v[m], v[m], v[m - 1], v[m - 1], f - m) - v[m]);
-				}
-
-				return fn(v[i ? i - 1 : 0], v[i], v[m < i + 1 ? m : i + 1], v[m < i + 2 ? m : i + 2], f - i);
-
-			}
-
-		},
-
-		Utils: {
-
-			Linear: function (p0, p1, t) {
-
-				return (p1 - p0) * t + p0;
-
-			},
-
-			Bernstein: function (n, i) {
-
-				var fc = TWEEN.Interpolation.Utils.Factorial;
-
-				return fc(n) / fc(i) / fc(n - i);
-
-			},
-
-			Factorial: (function () {
-
-				var a = [1];
-
-				return function (n) {
-
-					var s = 1;
-
-					if (a[n]) {
-						return a[n];
-					}
-
-					for (var i = n; i > 1; i--) {
-						s *= i;
-					}
-
-					a[n] = s;
-					return s;
-
-				};
-
-			})(),
-
-			CatmullRom: function (p0, p1, p2, p3, t) {
-
-				var v0 = (p2 - p0) * 0.5;
-				var v1 = (p3 - p1) * 0.5;
-				var t2 = t * t;
-				var t3 = t * t2;
-
-				return (2 * p1 - 2 * p2 + v0 + v1) * t3 + (- 3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 + v0 * t + p1;
-
-			}
+		    tween.onUpdate(function(){
+			    material.opacity = target.opacity;
+			});
 
 		}
 
-	};
-
-	// UMD (Universal Module Definition)
-	(function (root) {
-
-		if (true) {
-
-			// AMD
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () {
-				return TWEEN;
-			}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-		} else if (typeof module !== 'undefined' && typeof exports === 'object') {
-
-			// Node.js
-			module.exports = TWEEN;
-
-		} else if (root !== undefined) {
-
-			// Global variable
-			root.TWEEN = TWEEN;
+		this.randomFlash = function(name) {
+			that.flashOuter(parseInt(Math.random() * outerObjs.length), name);
 
 		}
 
-	})(this);
+	}
+
+
+	var draw = function() {
+
+		if (mainMask) {
+
+			mainMask.mesh.visible = false;
+
+			cubeCamera.position.copy( mainMask.mesh.position );
+
+			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+
+			mainMask.mesh.visible = true;
+
+		}
+		
+	}
+
+	module.exports = {
+		draw: draw
+	}
+
+
+
 
 
 /***/ }

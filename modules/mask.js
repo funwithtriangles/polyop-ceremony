@@ -16,6 +16,10 @@ threeEnv.scene.add(cubeCamera);
 
 
 var params = {
+	sweep: function() {
+		mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
+		mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
+	},
 	randomFlash: function() {
 		mainMask.randomFlash('flash');
 	},
@@ -27,8 +31,7 @@ var params = {
 
 guiFolder.add(params, 'randomFlash');
 guiFolder.add(params, 'randomEdgeFlash');
-
-
+guiFolder.add(params, 'sweep');
 
 var outerMaterial = new THREE.MeshPhongMaterial({
 	transparent: true,
@@ -76,6 +79,16 @@ var modelIds = {
 		'paint_5',
 		'paint_6',
 		'nose'
+	],
+	paintLeft: [
+		'paint_1',
+		'paint_2',
+		'paint_3'
+	],
+	paintRight: [
+		'paint_4',
+		'paint_5',
+		'paint_6'
 	]
 }
 
@@ -141,22 +154,21 @@ var Mask = function(mask) {
 		edges.material.transparent = true;
 		edges.material.opacity = 0;
 
-
-		outerObjs.push(mesh);
-
 	}
 
 	groupMesh.position.z = 400;
 
 	this.mesh = mainMesh;
 
-	this.flashOuter = function(index, name) {
+	this.flashOuter = function(name, type) {
 
-		if (!name) {
-			name = 'flash';
+		if (!type) {
+			type = 'flash';
 		}
 
-		var material = outerObjs[index].getObjectByName( name ).material;
+		var mesh = mask.getObjectByName( name );
+
+		var material = mesh.getObjectByName( type ).material;
 
 		var target = {
 			opacity: 1
@@ -175,8 +187,32 @@ var Mask = function(mask) {
 
 	}
 
-	this.randomFlash = function(name) {
-		that.flashOuter(parseInt(Math.random() * outerObjs.length), name);
+	this.randomFlash = function(type) {
+		that.flashOuter(modelIds.outer[parseInt(Math.random() * modelIds.outer.length)], type);
+	}
+
+	this.sweepFlash = function(array, type, reverse) {
+
+		if (reverse) {
+			var array = array.slice().reverse();
+		}
+
+		function timedFlash(i) {
+
+			setTimeout(function() {
+
+				that.flashOuter(array[i], type);
+
+			}, 50 * i);
+
+		}
+
+		for (var i = 0; i < array.length; i++) {
+
+			timedFlash(i);
+
+		}
+
 
 	}
 
