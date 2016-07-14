@@ -32,8 +32,9 @@ function loop() {
 
 	background.draw(timePassed);
 	leaves.draw(timePassed);
+	mask.draw(timePassed);
 
-	//threeEnv.renderer.clear();
+	threeEnv.renderer.clear();
 	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
 	threeEnv.renderer.clearDepth();
 	threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );

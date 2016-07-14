@@ -7,9 +7,7 @@ var box = {
 	height: window.innerHeight
 }
 
-renderer = new THREE.WebGLRenderer({
-//	alpha: true,
-});
+renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
 
 renderer.autoClear = false;
 
@@ -20,10 +18,10 @@ bgScene = new THREE.Scene();
 
 scene.fog = new THREE.FogExp2( 0x000000, 0.0025 );
 
-camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 30000 );
+camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 camera.position.z = 500;
 
-bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 30000 );
+bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 bgCamera.position.z = 500;
 
 bgScene.add(bgCamera);
