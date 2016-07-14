@@ -12,6 +12,10 @@ var params = {
 gui.add(params, 'randomPositions');
 
 var ambientLight = new THREE.AmbientLight( 0xffffff, 0.2 );
+var directionalLight = new THREE.DirectionalLight( 0x333333 );
+
+directionalLight.position.set( 0.5, 0.5, 0.5 );
+
 
 var lights = [];
 
@@ -28,6 +32,7 @@ threeEnv.scene.add( lights[ 1 ] );
 threeEnv.scene.add( lights[ 2 ] );
 
 threeEnv.scene.add( ambientLight );
+threeEnv.scene.add( directionalLight );
 
 var randomPositions = function() {
 

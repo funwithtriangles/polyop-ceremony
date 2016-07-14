@@ -17,11 +17,17 @@ threeEnv.scene.add(cubeCamera);
 
 var params = {
 	randomFlash: function() {
-		mainMask.randomFlash();
+		mainMask.randomFlash('flash');
+	},
+	randomEdgeFlash: function() {
+		mainMask.randomFlash('edges');
 	}
 }
 
+
 guiFolder.add(params, 'randomFlash');
+guiFolder.add(params, 'randomEdgeFlash');
+
 
 
 var outerMaterial = new THREE.MeshPhongMaterial({
@@ -39,12 +45,21 @@ var flashMaterial = new THREE.MeshBasicMaterial({
 	fog: false
 });
 
+// var coreMaterial = new THREE.MeshPhongMaterial( { 
+// 	color: 0x111111,
+// 	shininess: 100,
+// 	envMap: cubeCamera.renderTarget.texture,
+// 	combine: THREE.AddOperation,
+// 	side: THREE.DoubleSide
+// } );
+
+
 var coreMaterial = new THREE.MeshPhongMaterial( { 
-	color: 0x111111,
-	shininess: 100,
-	envMap: cubeCamera.renderTarget.texture,
-	combine: THREE.AddOperation
+	//side: THREE.DoubleSide,
+	shininess: 50,
+	color: 0xffffff
 } );
+
 
 var modelIds = {
 	outer: [
@@ -85,7 +100,9 @@ var Mask = function(mask) {
 
 	var groupMesh = mask.children[0];
 
-	var mainMesh = mask.getObjectByName( 'head', true );
+	groupMesh.position.y -= 10;
+
+	var mainMesh = mask.getObjectByName( 'head' );
 
 	// Give main head material
 	mainMesh.material = coreMaterial;
@@ -93,14 +110,16 @@ var Mask = function(mask) {
 
 	for (var i = 0; i < modelIds.outer.length; i++) {
 
-		var mesh = mask.getObjectByName( modelIds.outer[i], true );
+		var mesh = mask.getObjectByName( modelIds.outer[i] );
 
 		// Give outer decorations materials
 		mesh.material = outerMaterial;
-		outerObjs.push(mesh);
+
 
 		// Give each outer decoration a "flash" clone
 		var flash = mesh.clone();
+
+		flash.name = "flash";
 
 		mesh.add(flash);
 
@@ -110,17 +129,34 @@ var Mask = function(mask) {
 		flash.position.z = 0.1;
 		flash.material = flashMaterial.clone();
 
+		var edges = new THREE.EdgesHelper( flash, 0xffffff, 55 );
+
+		edges.matrix = flash.matrix;
+		edges.matrixAutoUpdate = true;
+		edges.position.z = 0.2;
+		edges.name = "edges";
+		mesh.add(edges);
+
+		edges.material.lineWidth = 10;
+		edges.material.transparent = true;
+		edges.material.opacity = 0;
+
+
+		outerObjs.push(mesh);
+
 	}
 
 	groupMesh.position.z = 400;
 
 	this.mesh = mainMesh;
 
-	this.flashOuter = function(index) {
+	this.flashOuter = function(index, name) {
 
-		console.log(index);
+		if (!name) {
+			name = 'flash';
+		}
 
-		var material = outerObjs[index].children[0].material;
+		var material = outerObjs[index].getObjectByName( name ).material;
 
 		var target = {
 			opacity: 1
@@ -139,8 +175,8 @@ var Mask = function(mask) {
 
 	}
 
-	this.randomFlash = function() {
-		that.flashOuter(parseInt(Math.random() * outerObjs.length));
+	this.randomFlash = function(name) {
+		that.flashOuter(parseInt(Math.random() * outerObjs.length), name);
 
 	}
 
