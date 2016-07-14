@@ -14,11 +14,29 @@ var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
 
 threeEnv.scene.add(cubeCamera);
 
+
+var params = {
+	randomFlash: function() {
+		mainMask.randomFlash();
+	}
+}
+
+guiFolder.add(params, 'randomFlash');
+
+
 var outerMaterial = new THREE.MeshPhongMaterial({
 	transparent: true,
 	opacity: 0.8,
 	side: THREE.DoubleSide,
 	color: 0x2F8582
+});
+
+var flashMaterial = new THREE.MeshBasicMaterial({
+	transparent: true,
+	opacity: 0,
+	side: THREE.DoubleSide,
+	color: 0xffffff,
+	fog: false
 });
 
 var coreMaterial = new THREE.MeshPhongMaterial( { 
@@ -61,23 +79,56 @@ loader.load('mask.json', function (data) {
 
 var Mask = function(mask) {
 
+	var that = this;
+
 	var outerObjs = [];
 
-	var mesh;
+	var groupMesh = mask.children[0];
+
 	var mainMesh = mask.getObjectByName( 'head', true );
 
+	// Give main head material
 	mainMesh.material = coreMaterial;
+
 
 	for (var i = 0; i < modelIds.outer.length; i++) {
 
-		mesh = mask.getObjectByName( modelIds.outer[i], true );
+		var mesh = mask.getObjectByName( modelIds.outer[i], true );
 
+		// Give outer decorations materials
 		mesh.material = outerMaterial;
 		outerObjs.push(mesh);
 
+		// Give each outer decoration a "flash" clone
+		var flash = mesh.clone();
+
+		mesh.add(flash);
+
+		flash.rotation.x = 0;
+		flash.rotation.y = 0;
+		flash.rotation.z = 0;
+		flash.position.z = 0.1;
+		flash.material = flashMaterial.clone();
+
 	}
 
-	return mainMesh;
+	groupMesh.position.z = 400;
+
+	this.mesh = mainMesh;
+
+	this.flashOuter = function(index) {
+
+		console.log(index);
+
+		console.log(outerObjs[index]);
+
+		outerObjs[index].children[0].material.opacity = 1;
+
+	}
+
+	this.randomFlash = function() {
+		that.flashOuter(parseInt(Math.random() * outerObjs.length));
+	}
 
 }
 
@@ -86,15 +137,13 @@ var draw = function() {
 
 	if (mainMask) {
 
-		mainMask.visible = false;
+		mainMask.mesh.visible = false;
 
-
-
-		cubeCamera.position.copy( mainMask.position );
+		cubeCamera.position.copy( mainMask.mesh.position );
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 
-		mainMask.visible = true;
+		mainMask.mesh.visible = true;
 
 	}
 	
