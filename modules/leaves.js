@@ -133,8 +133,6 @@ var init = function() {
 
 var draw = function(timePassed) {
 
-	TWEEN.update();
-
 	leafGroup.rotation.z += params.groupRotSpeed;
 
 	for (var i = 0; i < particles.length; i++) {

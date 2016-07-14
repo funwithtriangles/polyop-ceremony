@@ -120,14 +120,28 @@ var Mask = function(mask) {
 
 		console.log(index);
 
-		console.log(outerObjs[index]);
+		var material = outerObjs[index].children[0].material;
 
-		outerObjs[index].children[0].material.opacity = 1;
+		var target = {
+			opacity: 1
+		}
+
+		material.opacity = target.opacity;
+
+		var tween = new TWEEN.Tween(target)
+	    .to({opacity: 0}, 800)
+	    .easing(TWEEN.Easing.Quintic.Out)
+	    .start();
+
+	    tween.onUpdate(function(){
+		    material.opacity = target.opacity;
+		});
 
 	}
 
 	this.randomFlash = function() {
 		that.flashOuter(parseInt(Math.random() * outerObjs.length));
+
 	}
 
 }

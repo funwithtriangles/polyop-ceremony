@@ -1,4 +1,5 @@
 var THREE = require('three');
+var TWEEN = require('tween.js');
 var Stats = require('stats.js');
 var threeEnv = require('./threeEnv');
 var lights = require('./lights');
@@ -25,6 +26,8 @@ function init() {
 function loop() {
 
 	stats.begin();
+
+	TWEEN.update();
 
 	timePassed = Date.now() - start;
 
