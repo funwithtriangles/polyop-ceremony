@@ -32,12 +32,13 @@ guiFolder.add(params, 'gotoCircle');
 
 loader.load('leaf.js', function ( geometry ) {
 
-		var material = new THREE.MeshLambertMaterial(
+		var material = new THREE.MeshPhongMaterial(
 			{
 				side: THREE.DoubleSide,
-				color: 0x00ff00,
+				color: 0x789404,
 				transparent: true,
-				blending: THREE.AdditiveBlending
+				blending: THREE.AdditiveBlending,
+				shading: THREE.FlatShading
 			});
 
 		

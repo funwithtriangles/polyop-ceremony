@@ -35,10 +35,16 @@ function loop() {
 
 	background.draw(timePassed);
 	leaves.draw(timePassed);
-	mask.draw(timePassed);
 
-	threeEnv.renderer.clear();
+	// Auto clear must be on for the cubemap to render (mask reflections)
+	threeEnv.renderer.autoClear = true;
+
+	mask.draw(timePassed);
 	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
+
+	// Turn autoclear back off again before rendering top layer
+	threeEnv.renderer.autoClear = false;
+
 	threeEnv.renderer.clearDepth();
 	threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
 

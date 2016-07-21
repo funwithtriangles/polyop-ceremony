@@ -10,10 +10,11 @@ loader.setResponseType( 'json' );
 
 var mainMask;
 
+var light;
+
 var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
 
 threeEnv.scene.add(cubeCamera);
-
 
 var params = {
 	sweep: function() {
@@ -28,14 +29,14 @@ var params = {
 	}
 }
 
-
 guiFolder.add(params, 'randomFlash');
 guiFolder.add(params, 'randomEdgeFlash');
 guiFolder.add(params, 'sweep');
 
 var outerMaterial = new THREE.MeshPhongMaterial({
 	transparent: true,
-	opacity: 0.8,
+	opacity: 0.0,
+	shininess: 50,
 	side: THREE.DoubleSide,
 	color: 0x2F8582
 });
@@ -48,20 +49,16 @@ var flashMaterial = new THREE.MeshBasicMaterial({
 	fog: false
 });
 
-// var coreMaterial = new THREE.MeshPhongMaterial( { 
-// 	color: 0x111111,
-// 	shininess: 100,
-// 	envMap: cubeCamera.renderTarget.texture,
-// 	combine: THREE.AddOperation,
-// 	side: THREE.DoubleSide
-// } );
-
-
 var coreMaterial = new THREE.MeshPhongMaterial( { 
-	//side: THREE.DoubleSide,
+	color: 0x555555, 
+	specular: 0x111111,
 	shininess: 50,
-	color: 0xffffff
+	shading: THREE.FlatShading,
+	envMap: cubeCamera.renderTarget.texture,
+	combine: THREE.AddOperation
 } );
+
+// var coreMaterial = new THREE.MeshNormalMaterial();
 
 
 var modelIds = {
@@ -115,10 +112,12 @@ var Mask = function(mask) {
 
 	groupMesh.position.y -= 10;
 
-	var mainMesh = mask.getObjectByName( 'head' );
+	var headTop = mask.getObjectByName( 'head_top' );
+	var headBottom = mask.getObjectByName( 'head_bottom' );
 
 	// Give main head material
-	mainMesh.material = coreMaterial;
+	headTop.material = coreMaterial;
+	headBottom.material = coreMaterial;
 
 
 	for (var i = 0; i < modelIds.outer.length; i++) {
@@ -156,9 +155,21 @@ var Mask = function(mask) {
 
 	}
 
-	groupMesh.position.z = 400;
+//	 groupMesh.position.z = 400;
 
-	this.mesh = mainMesh;
+
+	var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
+
+	light = new THREE.PointLight( 0xffffff, 1, 0 );
+
+	light.position.set(20,40,50);
+
+	groupMesh.add(light);
+
+	light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
+
+
+	this.mesh = groupMesh;
 
 	this.flashOuter = function(name, type) {
 
@@ -219,17 +230,24 @@ var Mask = function(mask) {
 }
 
 
-var draw = function() {
+var draw = function(time) {
 
 	if (mainMask) {
 
-		mainMask.mesh.visible = false;
+		var time = time * 0.001;
+
+	//	mainMask.mesh.visible = false;
+
+
+		light.position.x = Math.sin( time * 0.7 ) * 50;
+		light.position.y = Math.cos( time * 0.5 ) * 50;
+		light.position.z = Math.cos( time * 0.3 ) * 50;
 
 		cubeCamera.position.copy( mainMask.mesh.position );
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 
-		mainMask.mesh.visible = true;
+	//	mainMask.mesh.visible = true;
 
 	}
 	
