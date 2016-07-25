@@ -42,6 +42,7 @@ function loop() {
 
 	audioAnalyser.updateLevels();
 
+	lights.draw(timePassed);
 	background.draw(timePassed);
 	leaves.draw(timePassed);
 	mask.draw(timePassed);

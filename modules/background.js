@@ -16,7 +16,7 @@ var params = {
 	scale: 1.0
 }
 
-gui.remember(params);
+// gui.remember(params);
 
 guiFolder.add(params, 'bounceAmp', 0, 1);
 guiFolder.add(params, 'pulseAmp', 0, 1);

@@ -1,6 +1,6 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
-var gui = require('./gui');
+var gui = require('./gui').addFolder('vLight');
 var vLight = require('./lights').vLight;
 var shaders = {
 	vertex: require('../shaders/simple_vertex.glsl'),

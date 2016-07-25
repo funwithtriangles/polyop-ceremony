@@ -40,19 +40,25 @@ var randomPositions = function() {
 
 // Volumetric light
 var vLight = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(50, 3),
+    new THREE.IcosahedronGeometry(70, 3),
     new THREE.MeshBasicMaterial({
         color: 0xffffff
     })
 );
 
-vLight.position.y = 40;
+vLight.position.y = 500;
 
 threeEnv.oclScene.add( vLight );
 
+var draw = function(timePassed) {
+
+	vLight.position.y = 250 * (Math.sin(timePassed / 1000)) + 250;
+
+}
 
 randomPositions();
 
 module.exports = {
-	vLight: vLight
+	vLight: vLight,
+	draw: draw
 }

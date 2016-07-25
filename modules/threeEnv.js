@@ -36,7 +36,8 @@ scene.add(camera);
 bgScene.add(bgCamera);
 oclScene.add(oclCamera);
 
-// controls = new OrbitControls(camera);
+controls = new OrbitControls(camera);
+controls = new OrbitControls(oclCamera);
 
 module.exports = {
 	renderer: renderer,

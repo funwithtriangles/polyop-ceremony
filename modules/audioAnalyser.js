@@ -30,7 +30,7 @@ var params = {
 	'smoothing': 0.85
 }
 
-gui.remember(params);
+// gui.remember(params);
 
 var a0 = guiFolder.add(params, 'a0', 0, 1);
 var a1 = guiFolder.add(params, 'a1', 0, 1);

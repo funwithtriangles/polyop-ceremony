@@ -23,7 +23,7 @@ var params = {
 	}
 }
 
-gui.remember(params);
+// gui.remember(params);
 
 guiFolder.add(params, 'speed', -10, 10);
 guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
