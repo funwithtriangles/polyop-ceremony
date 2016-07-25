@@ -8,9 +8,9 @@ var guiFolder = gui.addFolder('Leaves');
 var loader = new THREE.JSONLoader();
 var leafModel;
 var particles = [];
-var numLeafs = 100;
+var numLeafs = 50;
 
-var radius = threeEnv.box.height*0.1;
+var radius = window.innerHeight/3;
 
 var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);

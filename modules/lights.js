@@ -27,7 +27,7 @@ threeEnv.scene.add( lights[ 0 ] );
 threeEnv.scene.add( lights[ 1 ] );
 threeEnv.scene.add( lights[ 2 ] );
 
-// threeEnv.scene.add( ambientLight );
+threeEnv.scene.add( ambientLight );
 threeEnv.scene.add( directionalLight );
 
 var randomPositions = function() {
@@ -38,4 +38,21 @@ var randomPositions = function() {
 
 }
 
-randomPositions(); 
+// Volumetric light
+var vLight = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(50, 3),
+    new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    })
+);
+
+vLight.position.y = 40;
+
+threeEnv.oclScene.add( vLight );
+
+
+randomPositions();
+
+module.exports = {
+	vLight: vLight
+}

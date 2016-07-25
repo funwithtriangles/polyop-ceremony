@@ -58,7 +58,7 @@ var coreMaterial = new THREE.MeshPhongMaterial( {
 	combine: THREE.AddOperation
 } );
 
-// var coreMaterial = new THREE.MeshNormalMaterial();
+var oclMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } );
 
 
 var modelIds = {
@@ -95,8 +95,6 @@ loader.load('mask.json', function (data) {
 
 	var mask = loader.parse(data)
 
-	threeEnv.scene.add(mask);
-
 	mainMask = new Mask(mask)
 
 });
@@ -106,11 +104,12 @@ var Mask = function(mask) {
 
 	var that = this;
 
+	var oclMask = new THREE.Object3D();
+
 	var outerObjs = [];
 
-	var groupMesh = mask.children[0];
-
-	groupMesh.position.y -= 10;
+	mask.position.y = -100;
+	oclMask.position.y = -100;
 
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
@@ -118,6 +117,15 @@ var Mask = function(mask) {
 	// Give main head material
 	headTop.material = coreMaterial;
 	headBottom.material = coreMaterial;
+
+	var oclHeadTop = headTop.clone();
+	oclHeadTop.material = oclMaterial;
+
+	var oclHeadBottom = headBottom.clone();
+	oclHeadBottom.material = oclMaterial;
+
+	oclMask.add(oclHeadTop);
+	oclMask.add(oclHeadBottom);
 
 
 	for (var i = 0; i < modelIds.outer.length; i++) {
@@ -155,8 +163,6 @@ var Mask = function(mask) {
 
 	}
 
-//	 groupMesh.position.z = 400;
-
 
 	var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
 
@@ -164,12 +170,9 @@ var Mask = function(mask) {
 
 	light.position.set(20,40,50);
 
-	groupMesh.add(light);
+	mask.add(light);
 
 	light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
-
-
-	this.mesh = groupMesh;
 
 	this.flashOuter = function(name, type) {
 
@@ -227,6 +230,10 @@ var Mask = function(mask) {
 
 	}
 
+	threeEnv.scene.add(mask);
+	threeEnv.oclScene.add(oclMask);
+
+	return mask;
 }
 
 
@@ -239,11 +246,11 @@ var draw = function(time) {
 	//	mainMask.mesh.visible = false;
 
 
-		light.position.x = Math.sin( time * 0.7 ) * 50;
-		light.position.y = Math.cos( time * 0.5 ) * 50;
-		light.position.z = Math.cos( time * 0.3 ) * 50;
+		light.position.x = Math.sin( time * 0.7 ) * 150;
+		light.position.y = Math.cos( time * 0.5 ) * 150;
+		light.position.z = Math.cos( time * 0.3 ) * 150;
 
-		cubeCamera.position.copy( mainMask.mesh.position );
+		cubeCamera.position.copy( mainMask.position );
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 

@@ -1,7 +1,16 @@
 var THREE = require('three');
+
+// These will get added to the THREE namespace
+require('../threeExtras/CopyShader');
+require('../threeExtras/EffectComposer');
+require('../threeExtras/ShaderPass');
+require('../threeExtras/RenderPass');
+
+
 var TWEEN = require('tween.js');
 var Stats = require('stats.js');
 var threeEnv = require('./threeEnv');
+var composers = require('./composers');
 var lights = require('./lights');
 var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
@@ -35,19 +44,18 @@ function loop() {
 
 	background.draw(timePassed);
 	leaves.draw(timePassed);
+	mask.draw(timePassed);
 
 	// Auto clear must be on for the cubemap to render (mask reflections)
-	threeEnv.renderer.autoClear = true;
-
-	mask.draw(timePassed);
-	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
+//	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
 
 	// Turn autoclear back off again before rendering top layer
-	threeEnv.renderer.autoClear = false;
+	// threeEnv.renderer.autoClear = false;
 
-	threeEnv.renderer.clearDepth();
-	threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
+	composers.draw();
 
+//	threeEnv.renderer.clearDepth();
+	
 	stats.end();
 
   	requestAnimationFrame( loop );
