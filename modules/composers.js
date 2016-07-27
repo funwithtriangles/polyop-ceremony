@@ -123,6 +123,7 @@ renderTarget = new THREE.WebGLRenderTarget(
 finalComposer = new THREE.EffectComposer( threeEnv.renderer, renderTarget );
 finalComposer.addPass( renderBg );
 // finalComposer.addPass( copyPass );
+
 finalComposer.addPass( renderModel );
 finalComposer.addPass( finalPass );
 
@@ -147,7 +148,9 @@ var draw = function(timePassed) {
 	grPass.uniforms["fX"].value = lPos.x;
 	grPass.uniforms["fY"].value = lPos.y;
 
+	threeEnv.renderer.setClearColor(0x000000, 0);
  	oclComposer.render( 0.1 );
+ 	threeEnv.renderer.setClearColor(0x4f6ab1);
 	finalComposer.render( 0.1 );
 
 }

@@ -48,6 +48,7 @@ swampMaterial = new THREE.ShaderMaterial( {
 			value: new THREE.Vector2(window.innerWidth, window.innerHeight)
 		}
 	},
+	transparent: true,
     vertexShader: shaders.vertex,
     fragmentShader: shaders.fragment
 
@@ -55,6 +56,7 @@ swampMaterial = new THREE.ShaderMaterial( {
 
 swampMesh = new THREE.Mesh( swampGeometry, swampMaterial );
 
+ 
 threeEnv.bgScene.add( swampMesh );
 
 exports.draw = function(timePassed) {

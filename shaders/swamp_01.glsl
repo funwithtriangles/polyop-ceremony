@@ -22,5 +22,5 @@ void main() {
   float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);
   vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);
 
-  gl_FragColor = vec4(vec3(0., 0.1 + f, 0.),.1);
+  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);
 }

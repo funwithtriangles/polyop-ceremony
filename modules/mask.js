@@ -58,7 +58,7 @@ var coreMaterial = new THREE.MeshPhongMaterial( {
 	combine: THREE.AddOperation
 } );
 
-var oclMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } );
+var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
 
 
 var modelIds = {
