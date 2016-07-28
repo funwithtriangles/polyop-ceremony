@@ -16,6 +16,7 @@ var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
 var mask = require('./mask');
+var ribbons = require('./ribbons');
 
 var stats;
 var start, timePassed;
@@ -46,6 +47,7 @@ function loop() {
 	background.draw(timePassed);
 	leaves.draw(timePassed);
 	mask.draw(timePassed);
+	ribbons.draw(timePassed);
 
 	// Auto clear must be on for the cubemap to render (mask reflections)
 //	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
