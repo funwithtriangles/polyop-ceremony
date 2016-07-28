@@ -5,11 +5,11 @@ var threeEnv = require('./threeEnv');
 var ribbons			= [];
 var targets			= [];
 
-var amount			= 50;
+var amount			= 1;
 var counter			= 0;
-var friction		= .01;
-var spring			= .9;
-var speed			= 30;
+var friction		= 1;
+var spring			= 1;
+var speed			= 10;
 var movement		= 10;
 var camPos			= new THREE.Vector3();
 
@@ -36,9 +36,14 @@ function getNextRandomPosition()
 {
 	for (var i=0; i<amount; i++)
 	{
-		var dx		= Math.cos(ribbons[i].ax * theta) * speed;
-		var dy		= Math.sin(ribbons[i].ay * theta) * speed;
-		var dz		= Math.sin(ribbons[i].az * theta) * speed;
+		// var dx		= Math.cos(ribbons[i].ax * theta) * speed;
+		// var dy		= Math.sin(ribbons[i].ay * theta) * speed;
+		// var dz		= Math.sin(ribbons[i].az * theta) * speed;
+
+		var dx		= (Math.random() * 10) - 5;
+		var dy		= (Math.random() * 10) - 5;
+		var dz		= -1;
+		
 		
 		targets[i*3]	+= dx;
 		targets[i*3+1]	+= dy;
@@ -67,13 +72,18 @@ function Ribbon()
 	this.y					= 0;
 	this.z					= 0;
 	
-	this.velX				= 0;
-	this.velY				= 0;
-	this.velZ				= 0;
+	this.velX				= 1;
+	this.velY				= 1;
+	this.velZ				= 1;
 	
-	this.ax					= randomRange(-movement, movement);
-	this.ay					= randomRange(-movement, movement);
-	this.az					= randomRange(-movement, movement);
+	// this.ax					= randomRange(-movement, movement);
+	// this.ay					= randomRange(-movement, movement);
+	// this.az					= randomRange(-movement, movement);
+
+
+	this.ax					= 1;
+	this.ay					= 1;
+	this.az					= 1;
 	
 	this.width				= randomRange(5, 30);
 	this.length				= randomRange(80, 140);
@@ -101,12 +111,17 @@ function Ribbon()
 	this.update = function(x, y, z)
 	{
 		
+
 		this.velY	+= (y - this.velY) * friction;
 		this.velZ	+= (z - this.velZ) * friction;
 		
-		this.x		+= this.velX	= (this.velX + (x - this.x) * friction) * spring;
-		this.y		+= this.velY	= (this.velY + (y - this.y) * friction) * spring;
-		this.z		+= this.velZ	= (this.velZ + (z - this.z) * friction) * spring;
+		// this.x		+= this.velX	= (this.velX + (x - this.x) * friction) * spring;
+		// this.y		+= this.velY	= (this.velY + (y - this.y) * friction) * spring;
+		// this.z		+= this.velZ	= (this.velZ + (z - this.z) * friction) * spring;
+
+		this.x += x;
+		this.y += y;
+		this.z += z;
 		
 		this.positions.pop();
 		this.positions.pop();
@@ -117,19 +132,20 @@ function Ribbon()
 		this.rotations.pop();
 		
 		this.positions.unshift(this.x, this.y, this.z);
-		this.rotations.unshift(Math.cos(counter*.1)*this.width, Math.sin(counter*.25)*this.width, 0);
+		// this.rotations.unshift(Math.cos(counter*.1)*this.width, Math.sin(counter*.25)*this.width, 0);
+		this.rotations.unshift(this.width, this.width, 0);
 		
 		for (var i=0; i<this.length; i++)
 		{
 			var v1				= this.geom.vertices[i*2];
 			var v2				= this.geom.vertices[i*2+1];
 			
-			v1.x		= this.positions[i*3] + this.rotations[i*3];
-			v1.y		= this.positions[i*3+1] + this.rotations[i*3+1];
-			v1.z		= this.positions[i*3+2] + this.rotations[i*3+2];
-			v2.x		= this.positions[i*3] - this.rotations[i*3];
-			v2.y		= this.positions[i*3+1] - this.rotations[i*3+1];
-			v2.z		= this.positions[i*3+2] - this.rotations[i*3+2];
+			v1.x		= this.positions[i*3]   + 	this.rotations[i*3];
+			v1.y		= this.positions[i*3+1] + 	this.rotations[i*3+1];
+			v1.z		= this.positions[i*3+2] + 	this.rotations[i*3+2];
+			v2.x		= this.positions[i*3]   - 	this.rotations[i*3];
+			v2.y		= this.positions[i*3+1] - 	this.rotations[i*3+1];
+			v2.z		= this.positions[i*3+2] - 	this.rotations[i*3+2];
 		}
 		
 		this.geom.computeFaceNormals();
@@ -152,11 +168,10 @@ var draw = function() {
 		py			= targets[i*3+1];
 		pz			= targets[i*3+2];
 		
-		
 		var ribbon	= ribbons[i];
 		ribbon.update(px, py, pz);
 		
-		if (counter%10 == 0)	getNextRandomPosition();
+		if (counter%30 == 0)	getNextRandomPosition();
 	}
 
 	theta += 1;
