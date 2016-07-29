@@ -11,11 +11,17 @@ var positions = [];
 
 var Ribbon = function() {
 
+	this.tick = 0;
+
 	this.length = 100;
 
 	this.positions = [];
 
 	this.width = 100;
+
+	this.dx = 0;
+	this.dy = 1;
+	this.dz = 0;
 
 	this.x = 0;
 	this.y = 0;
@@ -37,7 +43,11 @@ var Ribbon = function() {
 
 	this.update = function() {
 
-		this.y += 1;
+		this.x += this.dx;
+		this.y += this.dy;
+		this.z += this.dz;
+
+		this.tick++;
 
 		// Remove last XYZ
 		this.positions.pop();
@@ -61,10 +71,15 @@ var Ribbon = function() {
 
 		}
 
-		// this.geom.computeFaceNormals();
+		//this.geom.computeFaceNormals();
 		//this.geom.computeVertexNormals();
 		this.geom.verticesNeedUpdate	= true;
 		this.geom.normalsNeedUpdate 	= true;
+
+		if (this.tick > 100) {
+			this.dz = 1;
+			this.dx = 1;
+		}
 
 	}
 
