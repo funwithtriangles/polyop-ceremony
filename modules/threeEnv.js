@@ -1,7 +1,7 @@
 var THREE = require("three");
 var OrbitControls = require('three-orbit-controls')(THREE)
 
-var renderer, scene, camera, controls;
+var renderer, scene, camera, controls, axes;
 var box = {
 	width: window.innerWidth,
 	height: window.innerHeight
@@ -40,6 +40,10 @@ oclScene.add(oclCamera);
 
 controls = new OrbitControls(camera);
 controls = new OrbitControls(oclCamera);
+
+var axes = new THREE.AxisHelper(50);
+
+// scene.add(axes);
 
 module.exports = {
 	renderer: renderer,
