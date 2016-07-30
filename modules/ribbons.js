@@ -1,5 +1,16 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
+var gui = require('./gui').addFolder('Ribbons');
+
+var params = {
+	ribbonCount: 3,
+	ribbonFreq: 50,
+	ribbonRot: 0.005
+}
+
+gui.add(params, 'ribbonCount', 0, 20);
+gui.add(params, 'ribbonFreq', 0, 200);
+gui.add(params, 'ribbonRot', 0, 0.03);
 
 var ribbon;
 
@@ -13,7 +24,11 @@ var group = new THREE.Object3D();
 
 var ribbons = [];
 
+var radius = 200;
+
 threeEnv.scene.add(group);
+
+group.position.z = -100;
 
 var Ribbon = function(id) {
 
@@ -29,7 +44,7 @@ var Ribbon = function(id) {
 
 	var speed = 3;
 
-	var radius = 100;
+
 
 	var ry = width * 2;
 
@@ -44,7 +59,7 @@ var Ribbon = function(id) {
 
 	var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 	
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshLambertMaterial({
 		//wireframe: true,
 		side: THREE.DoubleSide,
 		shading: THREE.FlatShading
@@ -162,14 +177,17 @@ var draw = function(timePassed) {
 
 	mainTick++;
 
-	if (mainTick > 100) {
-		fireRibbon();
+	if (mainTick > params.ribbonFreq) {
+
+		for (var i = 0; i < params.ribbonCount; i++) {
+			fireRibbon();
+		}
 
 		mainTick = 0;
 	}
 
 	updateRibbons();
-	group.rotation.z += 0.005;
+	group.rotation.z += params.ribbonRot;
 	
 }
 

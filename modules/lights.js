@@ -46,7 +46,7 @@ var vLight = new THREE.Mesh(
     })
 );
 
-vLight.position.y = 500;
+// vLight.position.y = 500;
 
 threeEnv.oclScene.add( vLight );
 
