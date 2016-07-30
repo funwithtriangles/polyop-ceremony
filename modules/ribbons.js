@@ -3,13 +3,21 @@ var threeEnv = require('./threeEnv');
 
 var ribbon;
 
+var mainTick = 0;
+
 var y = 0;
 
 var positions = [];
 
+var group = new THREE.Object3D();
 
+var ribbons = [];
 
-var Ribbon = function() {
+threeEnv.scene.add(group);
+
+var Ribbon = function(id) {
+
+	this.container = new THREE.Object3D();
 
 	var tick = 0;
 
@@ -21,9 +29,8 @@ var Ribbon = function() {
 
 	var speed = 3;
 
-	var dx = 1;
-	var dy = 1;
-	var dz = 1;
+	var radius = 100;
+
 	var ry = width * 2;
 
 	var x = 0;
@@ -43,8 +50,13 @@ var Ribbon = function() {
 		shading: THREE.FlatShading
 	});
 		
-	this.mesh = new THREE.Mesh(geom, material);
+	var mesh = new THREE.Mesh(geom, material);
 
+	mesh.position.x = radius;
+
+	this.container.add(mesh);
+
+	this.container.rotation.z = Math.random() * Math.PI * 2;
 
 	for (var i=0; i<length*2; i++) {
 		positions.push(0);
@@ -55,17 +67,20 @@ var Ribbon = function() {
 		var isNegative = i % 2 ? -1 : 1;
 
 		sequence.push({
-			dx: (Math.random() + 1 * speed) * isNegative,
+			dx: (Math.random() * speed) * isNegative,
 			dy: ((Math.random() * 2) - 1) * speed,
-			dz: 1
+			dz: 2
 		});
 
+		// Ensure first part of ribbon is pointing away from center
+		if (i == 0) {
+			sequence[i].dy = 0;
+		}
+
 		if (i !== sequenceLength-1) {
-			sequence[i].nextZ = (i+1) * 50;
+			sequence[i].nextZ = (i+1) * 100;
 		}
 	}
-
-	console.log(sequence);
 
 	this.update = function() {
 
@@ -99,7 +114,7 @@ var Ribbon = function() {
 
 		}
 
-		// geom.computeFaceNormals();
+		geom.computeFaceNormals();
 		// geom.computeVertexNormals();
 		geom.verticesNeedUpdate	= true;
 		geom.normalsNeedUpdate 	= true;
@@ -108,25 +123,55 @@ var Ribbon = function() {
 			sequenceIndex++
 		}
 
+		// Destroy ribbons when almost certainly out of view
+		if (z > 500 + length * speed) {
+			this.destroy();
+		}
+
+	}
+
+	// Remove object from scene and array
+	this.destroy = function() {
+		group.remove(this.container);
+		ribbons.splice(ribbons.indexOf(this), 1);
 	}
 
 }
 
-var createRibbons = function() {
+var fireRibbon = function() {
 
-	ribbon = new Ribbon();
-	threeEnv.scene.add(ribbon.mesh);
+	var ribbon = new Ribbon();
+	group.add(ribbon.container);
+
+	ribbons.push(ribbon);
+
+}
+
+var updateRibbons = function() {
+
+	for (var i = 0; i < ribbons.length; i++) {
+
+		ribbons[i].update();
+
+	}
 
 }
 
 
-var draw = function() {
+var draw = function(timePassed) {
 
-	ribbon.update();
+	mainTick++;
 
+	if (mainTick > 100) {
+		fireRibbon();
+
+		mainTick = 0;
+	}
+
+	updateRibbons();
+	group.rotation.z += 0.005;
+	
 }
-
-createRibbons();
 
 module.exports = {
 	draw: draw

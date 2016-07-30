@@ -39,8 +39,6 @@ Freq.prototype.Stream = function( source, settings ) {
 		smoothing: 0.85
 	}
 
-	console.log(settings);
-
 	// Extend the defaults with any settings defined
 	this.settings = extend(this.defaults, settings);
 

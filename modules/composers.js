@@ -109,10 +109,8 @@ oclComposer.addPass( hBlur );
 oclComposer.addPass( vBlur );
 oclComposer.addPass( grPass );
 
-console.log(oclComposer);
 
 finalPass.uniforms.tAdd.value = oclComposer.renderTarget1.texture;
-console.log(finalPass);
 
 renderTarget = new THREE.WebGLRenderTarget( 
 	threeEnv.box.width, 
