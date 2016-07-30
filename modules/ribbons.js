@@ -11,74 +11,101 @@ var positions = [];
 
 var Ribbon = function() {
 
-	this.tick = 0;
+	var tick = 0;
 
-	this.length = 100;
+	var length = 100;
 
-	this.positions = [];
+	var positions = [];
 
-	this.width = 100;
+	var width = 15;
 
-	this.dx = 0;
-	this.dy = 1;
-	this.dz = 0;
+	var speed = 3;
 
-	this.x = 0;
-	this.y = 0;
-	this.z = 0;
+	var dx = 1;
+	var dy = 1;
+	var dz = 1;
+	var ry = width * 2;
 
-	this.geom = new THREE.PlaneGeometry(30, 30, 1, this.length);
+	var x = 0;
+	var y = 0;
+	var z = 0;
+
+	var sequenceLength = 3;
+	var sequenceIndex = 0;
+	var sequence = [];
+
+
+	var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 	
-	this.material = new THREE.MeshNormalMaterial({
-		wireframe: true,
-		side: THREE.DoubleSide
+	var material = new THREE.MeshPhongMaterial({
+		//wireframe: true,
+		side: THREE.DoubleSide,
+		shading: THREE.FlatShading
 	});
 		
-	this.mesh = new THREE.Mesh(this.geom, this.material);
+	this.mesh = new THREE.Mesh(geom, material);
 
 
-	for (var i=0; i<this.length*2; i++) {
-		this.positions.push(0);
+	for (var i=0; i<length*2; i++) {
+		positions.push(0);
 	}
+
+	for (var i=0; i<sequenceLength; i++) {
+
+		var isNegative = i % 2 ? -1 : 1;
+
+		sequence.push({
+			dx: (Math.random() + 1 * speed) * isNegative,
+			dy: ((Math.random() * 2) - 1) * speed,
+			dz: 1
+		});
+
+		if (i !== sequenceLength-1) {
+			sequence[i].nextZ = (i+1) * 50;
+		}
+	}
+
+	console.log(sequence);
 
 	this.update = function() {
 
-		this.x += this.dx;
-		this.y += this.dy;
-		this.z += this.dz;
+		var sequenceItem = sequence[sequenceIndex];
 
-		this.tick++;
+		x += sequenceItem.dx * speed;
+		y += sequenceItem.dy * speed;
+		z += sequenceItem.dz * speed;
+
+		tick++;
 
 		// Remove last XYZ
-		this.positions.pop();
-		this.positions.pop();
-		this.positions.pop();
+		positions.pop();
+		positions.pop();
+		positions.pop();
 
 		// Add new XYZ
-		this.positions.unshift(this.x, this.y, this.z);
+		positions.unshift(x, y, z);
 
-		for (var i = 0; i < this.length + 1; i++) {
+		for (var i = 0; i < length + 1; i++) {
 
-			var v1	= this.geom.vertices[i*2];
-			var v2	= this.geom.vertices[i*2+1];
+			var v1	= geom.vertices[i*2];
+			var v2	= geom.vertices[i*2+1];
 		
-			v1.x = this.positions[i*3] - this.width/2;
-			v2.x = this.positions[i*3] + this.width/2;
-			v1.y = this.positions[i*3+1];
-			v2.y = this.positions[i*3+1];
-			v1.z = this.positions[i*3+2];
-			v2.z = this.positions[i*3+2];
+			v1.x = positions[i*3] 	- width;
+			v2.x = positions[i*3] 	+ width;
+			v1.y = positions[i*3+1] - ry;
+			v2.y = positions[i*3+1] + ry;
+			v1.z = positions[i*3+2];
+			v2.z = positions[i*3+2];
 
 		}
 
-		//this.geom.computeFaceNormals();
-		//this.geom.computeVertexNormals();
-		this.geom.verticesNeedUpdate	= true;
-		this.geom.normalsNeedUpdate 	= true;
+		// geom.computeFaceNormals();
+		// geom.computeVertexNormals();
+		geom.verticesNeedUpdate	= true;
+		geom.normalsNeedUpdate 	= true;
 
-		if (this.tick > 100) {
-			this.dz = 1;
-			this.dx = 1;
+		if (sequenceItem.nextZ && z > sequenceItem.nextZ) {
+			sequenceIndex++
 		}
 
 	}
