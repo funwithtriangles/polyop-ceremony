@@ -46,8 +46,6 @@ var vLight = new THREE.Mesh(
     })
 );
 
-// vLight.position.y = 500;
-
 threeEnv.oclScene.add( vLight );
 
 var draw = function(timePassed) {

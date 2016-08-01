@@ -230,8 +230,8 @@ var Mask = function(mask) {
 
 	}
 
-	// threeEnv.scene.add(mask);
-	// threeEnv.oclScene.add(oclMask);
+	threeEnv.scene.add(mask);
+	threeEnv.oclScene.add(oclMask);
 
 	return mask;
 }

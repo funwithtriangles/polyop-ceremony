@@ -400,14 +400,24 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(7);
-	var Stats = __webpack_require__(8);
-	var threeEnv = __webpack_require__(9);
-	var lights = __webpack_require__(11);
-	var audioAnalyser = __webpack_require__(16);
-	var background = __webpack_require__(18);
-	var leaves = __webpack_require__(21);
-	var mask = __webpack_require__(22);
+
+	// These will get added to the THREE namespace
+	__webpack_require__(7);
+	__webpack_require__(8);
+	__webpack_require__(9);
+	__webpack_require__(10);
+
+
+	var TWEEN = __webpack_require__(11);
+	var Stats = __webpack_require__(12);
+	var threeEnv = __webpack_require__(13);
+	var composers = __webpack_require__(15);
+	var lights = __webpack_require__(20);
+	var audioAnalyser = __webpack_require__(26);
+	var background = __webpack_require__(28);
+	var leaves = __webpack_require__(30);
+	var mask = __webpack_require__(31);
+	var ribbons = __webpack_require__(32);
 
 	var stats;
 	var start, timePassed;
@@ -434,15 +444,22 @@
 
 		audioAnalyser.updateLevels();
 
+		lights.draw(timePassed);
 		background.draw(timePassed);
 		leaves.draw(timePassed);
 		mask.draw(timePassed);
+		ribbons.draw(timePassed);
 
-		threeEnv.renderer.clear();
-		threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
-		threeEnv.renderer.clearDepth();
-		threeEnv.renderer.render( threeEnv.scene, threeEnv.camera );
+		// Auto clear must be on for the cubemap to render (mask reflections)
+	//	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
 
+		// Turn autoclear back off again before rendering top layer
+		// threeEnv.renderer.autoClear = false;
+
+		composers.draw();
+
+	//	threeEnv.renderer.clearDepth();
+		
 		stats.end();
 
 	  	requestAnimationFrame( loop );
@@ -42333,6 +42350,381 @@
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author alteredq / http://alteredqualia.com/
+	 *
+	 * Full-screen textured quad shader
+	 */
+
+	THREE.CopyShader = {
+
+		uniforms: {
+
+			"tDiffuse": { value: null },
+			"opacity":  { value: 1.0 }
+
+		},
+
+		vertexShader: [
+
+			"varying vec2 vUv;",
+
+			"void main() {",
+
+				"vUv = uv;",
+				"gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+
+			"}"
+
+		].join( "\n" ),
+
+		fragmentShader: [
+
+			"uniform float opacity;",
+
+			"uniform sampler2D tDiffuse;",
+
+			"varying vec2 vUv;",
+
+			"void main() {",
+
+				"vec4 texel = texture2D( tDiffuse, vUv );",
+				"gl_FragColor = opacity * texel;",
+
+			"}"
+
+		].join( "\n" )
+
+	};
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author alteredq / http://alteredqualia.com/
+	 */
+
+	THREE.EffectComposer = function ( renderer, renderTarget ) {
+
+		this.renderer = renderer;
+
+		if ( renderTarget === undefined ) {
+
+			var parameters = {
+				minFilter: THREE.LinearFilter,
+				magFilter: THREE.LinearFilter,
+				format: THREE.RGBAFormat,
+				stencilBuffer: false
+			};
+			var size = renderer.getSize();
+			renderTarget = new THREE.WebGLRenderTarget( size.width, size.height, parameters );
+
+		}
+
+		this.renderTarget1 = renderTarget;
+		this.renderTarget2 = renderTarget.clone();
+
+		this.writeBuffer = this.renderTarget1;
+		this.readBuffer = this.renderTarget2;
+
+		this.passes = [];
+
+		if ( THREE.CopyShader === undefined )
+			console.error( "THREE.EffectComposer relies on THREE.CopyShader" );
+
+		this.copyPass = new THREE.ShaderPass( THREE.CopyShader );
+
+	};
+
+	Object.assign( THREE.EffectComposer.prototype, {
+
+		swapBuffers: function() {
+
+			var tmp = this.readBuffer;
+			this.readBuffer = this.writeBuffer;
+			this.writeBuffer = tmp;
+
+		},
+
+		addPass: function ( pass ) {
+
+			this.passes.push( pass );
+
+			var size = this.renderer.getSize();
+			pass.setSize( size.width, size.height );
+
+		},
+
+		insertPass: function ( pass, index ) {
+
+			this.passes.splice( index, 0, pass );
+
+		},
+
+		render: function ( delta ) {
+
+			var maskActive = false;
+
+			var pass, i, il = this.passes.length;
+
+			for ( i = 0; i < il; i ++ ) {
+
+				pass = this.passes[ i ];
+
+				if ( pass.enabled === false ) continue;
+
+				pass.render( this.renderer, this.writeBuffer, this.readBuffer, delta, maskActive );
+
+				if ( pass.needsSwap ) {
+
+					if ( maskActive ) {
+
+						var context = this.renderer.context;
+
+						context.stencilFunc( context.NOTEQUAL, 1, 0xffffffff );
+
+						this.copyPass.render( this.renderer, this.writeBuffer, this.readBuffer, delta );
+
+						context.stencilFunc( context.EQUAL, 1, 0xffffffff );
+
+					}
+
+					this.swapBuffers();
+
+				}
+
+				if ( THREE.MaskPass !== undefined ) {
+
+					if ( pass instanceof THREE.MaskPass ) {
+
+						maskActive = true;
+
+					} else if ( pass instanceof THREE.ClearMaskPass ) {
+
+						maskActive = false;
+
+					}
+
+				}
+
+			}
+
+		},
+
+		reset: function ( renderTarget ) {
+
+			if ( renderTarget === undefined ) {
+
+				var size = this.renderer.getSize();
+
+				renderTarget = this.renderTarget1.clone();
+				renderTarget.setSize( size.width, size.height );
+
+			}
+
+			this.renderTarget1.dispose();
+			this.renderTarget2.dispose();
+			this.renderTarget1 = renderTarget;
+			this.renderTarget2 = renderTarget.clone();
+
+			this.writeBuffer = this.renderTarget1;
+			this.readBuffer = this.renderTarget2;
+
+		},
+
+		setSize: function ( width, height ) {
+
+			this.renderTarget1.setSize( width, height );
+			this.renderTarget2.setSize( width, height );
+
+			for ( var i = 0; i < this.passes.length; i ++ ) {
+
+				this.passes[i].setSize( width, height );
+
+			}
+
+		}
+
+	} );
+
+
+	THREE.Pass = function () {
+
+		// if set to true, the pass is processed by the composer
+		this.enabled = true;
+
+		// if set to true, the pass indicates to swap read and write buffer after rendering
+		this.needsSwap = true;
+
+		// if set to true, the pass clears its buffer before rendering
+		this.clear = false;
+
+		// if set to true, the result of the pass is rendered to screen
+		this.renderToScreen = false;
+
+	};
+
+	Object.assign( THREE.Pass.prototype, {
+
+		setSize: function( width, height ) {},
+
+		render: function ( renderer, writeBuffer, readBuffer, delta, maskActive ) {
+
+			console.error( "THREE.Pass: .render() must be implemented in derived pass." );
+
+		}
+
+	} );
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author alteredq / http://alteredqualia.com/
+	 */
+
+	THREE.ShaderPass = function ( shader, textureID ) {
+
+		THREE.Pass.call( this );
+
+		this.textureID = ( textureID !== undefined ) ? textureID : "tDiffuse";
+
+		if ( shader instanceof THREE.ShaderMaterial ) {
+
+			this.uniforms = shader.uniforms;
+
+			this.material = shader;
+
+		} else if ( shader ) {
+
+			this.uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+			this.material = new THREE.ShaderMaterial( {
+
+				defines: shader.defines || {},
+				uniforms: this.uniforms,
+				vertexShader: shader.vertexShader,
+				fragmentShader: shader.fragmentShader
+
+			} );
+
+		}
+
+		this.camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+		this.scene = new THREE.Scene();
+
+		this.quad = new THREE.Mesh( new THREE.PlaneBufferGeometry( 2, 2 ), null );
+		this.scene.add( this.quad );
+
+	};
+
+	THREE.ShaderPass.prototype = Object.assign( Object.create( THREE.Pass.prototype ), {
+
+		constructor: THREE.ShaderPass,
+
+		render: function( renderer, writeBuffer, readBuffer, delta, maskActive ) {
+
+			if ( this.uniforms[ this.textureID ] ) {
+
+				this.uniforms[ this.textureID ].value = readBuffer.texture;
+
+			}
+
+			this.quad.material = this.material;
+
+			if ( this.renderToScreen ) {
+
+				renderer.render( this.scene, this.camera );
+
+			} else {
+
+				renderer.render( this.scene, this.camera, writeBuffer, this.clear );
+
+			}
+
+		}
+
+	} );
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author alteredq / http://alteredqualia.com/
+	 */
+
+	THREE.RenderPass = function ( scene, camera, overrideMaterial, clearColor, clearAlpha ) {
+
+		THREE.Pass.call( this );
+
+		this.scene = scene;
+		this.camera = camera;
+
+		this.overrideMaterial = overrideMaterial;
+
+		this.clearColor = clearColor;
+		this.clearAlpha = ( clearAlpha !== undefined ) ? clearAlpha : 0;
+
+		this.clear = true;
+		this.needsSwap = false;
+
+	};
+
+	THREE.RenderPass.prototype = Object.assign( Object.create( THREE.Pass.prototype ), {
+
+		constructor: THREE.RenderPass,
+
+		render: function ( renderer, writeBuffer, readBuffer, delta, maskActive ) {
+
+			var oldAutoClear = renderer.autoClear;
+			renderer.autoClear = false;
+
+			this.scene.overrideMaterial = this.overrideMaterial;
+
+			var oldClearColor, oldClearAlpha;
+
+			if ( this.clearColor ) {
+
+				oldClearColor = renderer.getClearColor().getHex();
+				oldClearAlpha = renderer.getClearAlpha();
+
+				renderer.setClearColor( this.clearColor, this.clearAlpha );
+
+			}
+
+			if (this.clearDepth) {
+				renderer.clearDepth();
+			}
+			
+			renderer.render( this.scene, this.camera, this.renderToScreen ? null : readBuffer, this.clear );
+
+			if ( this.clearColor ) {
+
+				renderer.setClearColor( oldClearColor, oldClearAlpha );
+
+			}
+
+			this.scene.overrideMaterial = null;
+			renderer.autoClear = oldAutoClear;
+		}
+
+	} );
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
 	 * Tween.js - Licensed under the MIT license
 	 * https://github.com/tweenjs/tween.js
@@ -43226,7 +43618,7 @@
 
 
 /***/ },
-/* 8 */
+/* 12 */
 /***/ function(module, exports) {
 
 	// stats.js - http://github.com/mrdoob/stats.js
@@ -43237,51 +43629,69 @@
 
 
 /***/ },
-/* 9 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var OrbitControls = __webpack_require__(10)(THREE)
+	var OrbitControls = __webpack_require__(14)(THREE)
 
-	var renderer, scene, camera, controls;
+	var renderer, scene, camera, controls, axes;
 	var box = {
 		width: window.innerWidth,
 		height: window.innerHeight
 	}
 
-	renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
+	renderer = new THREE.WebGLRenderer({
+		preserveDrawingBuffer: true,
+		// alpha: true,
+		premultipliedAlpha: true
+	});
 
-	renderer.autoClear = false;
+
+
+	// renderer.autoClear = false;
 
 	document.body.appendChild( renderer.domElement );
 
 	scene = new THREE.Scene();
 	bgScene = new THREE.Scene();
+	oclScene = new THREE.Scene();
 
-	scene.fog = new THREE.FogExp2( 0x000000, 0.0025 );
+	scene.fog = new THREE.FogExp2( 0x4f6ab1, 0.0015 );
 
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 	camera.position.z = 500;
 
-	bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+	bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 	bgCamera.position.z = 500;
 
-	bgScene.add(bgCamera);
+	oclCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+	oclCamera.position.z = 500;
+
 	scene.add(camera);
+	bgScene.add(bgCamera);
+	oclScene.add(oclCamera);
 
 	controls = new OrbitControls(camera);
+	controls = new OrbitControls(oclCamera);
+
+	var axes = new THREE.AxisHelper(50);
+
+	// scene.add(axes);
 
 	module.exports = {
 		renderer: renderer,
 		scene: scene,
 		bgScene: bgScene,
+		oclScene: oclScene,
 		camera: camera,
 		bgCamera: bgCamera,
+		oclCamera: oclCamera,
 		box: box
 	}
 
 /***/ },
-/* 10 */
+/* 14 */
 /***/ function(module, exports) {
 
 	module.exports = function(THREE) {
@@ -44406,60 +44816,180 @@
 
 
 /***/ },
-/* 11 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(9);
-	var gui = __webpack_require__(12).addFolder('Lights');
-
-
-	var params = {
-		randomPositions: function() {
-			randomPositions();
-		}
+	var threeEnv = __webpack_require__(13);
+	var gui = __webpack_require__(16).addFolder('vLight');
+	var vLight = __webpack_require__(20).vLight;
+	var shaders = {
+		vertex: __webpack_require__(21),
+		godRays: __webpack_require__(22),
+		hBlur: __webpack_require__(23),
+		vBlur: __webpack_require__(24),
+		additive: __webpack_require__(25)
 	}
 
-	gui.add(params, 'randomPositions');
+	var hBlur, vBlur;
+	var bluriness = 3;
+	var renderModel;
+	var renderModelOcl;
+	var oclComposer;
+	var renderTarget;
 
-	var ambientLight = new THREE.AmbientLight( 0xffffff, 0.2 );
-	var directionalLight = new THREE.DirectionalLight( 0x333333 );
+	var grPass;
+	var finalPass;
+	var copyPass;
 
-	directionalLight.position.set( 0.5, 0.5, 0.5 );
+	var renderTargetParams = {
+		minFilter: THREE.LinearFilter, 
+		magFilter: THREE.LinearFilter, 
+		format: THREE.RGBAFormat, 
+		stencilBuffer: false
+	}
 
 
-	var lights = [];
+	// Prepare the main and occlusion scene render pass
+	renderBg = new THREE.RenderPass( threeEnv.bgScene, threeEnv.bgCamera );
+	renderModelOcl = new THREE.RenderPass( threeEnv.oclScene, threeEnv.oclCamera );
+	renderModel = new THREE.RenderPass( threeEnv.scene, threeEnv.camera );
 
-	lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	// renderBg.clear = false;
 
-	lights[ 0 ].position.set( 0, 20, 0 );
-	lights[ 1 ].position.set( 20, 20, 20 );
-	lights[ 2 ].position.set( - 20, - 20, - 20 );
+	 renderModel.clearDepth = true;
+	 renderModel.clear = false;
 
-	threeEnv.scene.add( lights[ 0 ] );
-	threeEnv.scene.add( lights[ 1 ] );
-	threeEnv.scene.add( lights[ 2 ] );
+	// Prepare the simple blur shader passes
+	hBlur = new THREE.ShaderPass({
+		uniforms: {
+			tDiffuse: { type: "t", value: null} ,
+			h:  { type: "f", value: bluriness / threeEnv.box.width }
+		},
+		vertexShader: shaders.vertex,
+		fragmentShader: shaders.hBlur 
+	});
 
-	threeEnv.scene.add( ambientLight );
-	threeEnv.scene.add( directionalLight );
+	vBlur = new THREE.ShaderPass({
+		uniforms: {
+			tDiffuse: { type: "t", value: null },
+			v:  { type: "f", value: bluriness / threeEnv.box.height }
+		},
+		vertexShader: shaders.vertex,
+		fragmentShader: shaders.hBlur 
+	});
+	 
+	// Prepare the godray shader pass
+	grPass = new THREE.ShaderPass({
+		uniforms: {
+			tDiffuse: {type: "t", value: null},
+			fX: {type: "f", value: 0.5},
+			fY: {type: "f", value: 0.5},
+			fExposure: {type: "f", value: 0.6},
+			fDecay: {type: "f", value: 0.93},
+			fDensity: {type: "f", value: 0.96},
+			fWeight: {type: "f", value: 0.4},
+			fClamp: {type: "f", value: 1.0}
+		},
+		vertexShader: shaders.vertex,
+		fragmentShader: shaders.godRays
+	});
 
-	var randomPositions = function() {
+	grPass.needsSwap = false;
+	grPass.renderToScreen = false;
 
-		console.log('l');
+	// copyPass = new THREE.ShaderPass( THREE.CopyShader );
+	// copyPass.renderToScreen = true;
 
-		lights[ 0 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
-		lights[ 1 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
-		lights[ 2 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+	finalPass = new THREE.ShaderPass({
+		uniforms: {
+			tDiffuse: { type: "t", value: null },
+			tAdd: { type: "t", value: null },
+			fCoeff: { type: "f", value: 1.0 }
+		},
+		vertexShader: shaders.vertex,
+		fragmentShader: shaders.additive
+	});
+
+	finalPass.needsSwap = true;
+	finalPass.renderToScreen = true;
+	 
+	// Prepare the occlusion composer's render target
+	renderTargetOcl = new THREE.WebGLRenderTarget( 
+		threeEnv.box.width/2, 
+		threeEnv.box.height/2, 
+		renderTargetParams
+	);
+
+	// Prepare the composer
+	oclComposer = new THREE.EffectComposer( threeEnv.renderer, renderTargetOcl );
+	oclComposer.addPass( renderModelOcl );
+	oclComposer.addPass( hBlur );
+	oclComposer.addPass( vBlur );
+	oclComposer.addPass( hBlur );
+	oclComposer.addPass( vBlur );
+	oclComposer.addPass( grPass );
+
+
+	finalPass.uniforms.tAdd.value = oclComposer.renderTarget1.texture;
+
+	renderTarget = new THREE.WebGLRenderTarget( 
+		threeEnv.box.width, 
+		threeEnv.box.height, 
+		renderTargetParams 
+	);
+
+	finalComposer = new THREE.EffectComposer( threeEnv.renderer, renderTarget );
+	finalComposer.addPass( renderBg );
+	// finalComposer.addPass( copyPass );
+
+	finalComposer.addPass( renderModel );
+	finalComposer.addPass( finalPass );
+
+	// Projects object origin into screen space coordinates using provided camera
+	var projectOnScreen = function(object, camera) {
+
+		var mat = new THREE.Matrix4();
+		mat.multiplyMatrices( camera.matrixWorldInverse, object.matrixWorld);
+		mat.multiplyMatrices( camera.projectionMatrix , mat);
+
+		var c = mat.n44;
+		var lPos = new THREE.Vector3(mat.n14/c, mat.n24/c, mat.n34/c);
+		lPos.multiplyScalar(0.5);
+		lPos.addScalar(0.5);
+
+		return lPos;
+	}
+
+	var draw = function(timePassed) {
+
+		var lPos = projectOnScreen(vLight, threeEnv.camera);
+		grPass.uniforms["fX"].value = lPos.x;
+		grPass.uniforms["fY"].value = lPos.y;
+
+		threeEnv.renderer.setClearColor(0x000000, 0);
+	 	oclComposer.render( 0.1 );
+	 	threeEnv.renderer.setClearColor(0x4f6ab1);
+		finalComposer.render( 0.1 );
 
 	}
+
+	gui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
+	gui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
+	gui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
+	gui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
+	gui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+
+	module.exports = {
+		draw: draw
+	}
+
 
 /***/ },
-/* 12 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var dat = __webpack_require__(13);
+	var dat = __webpack_require__(17);
 
 	var gui = new dat.GUI();
 
@@ -44467,14 +44997,14 @@
 
 
 /***/ },
-/* 13 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(14)
-	module.exports.color = __webpack_require__(15)
+	module.exports = __webpack_require__(18)
+	module.exports.color = __webpack_require__(19)
 
 /***/ },
-/* 14 */
+/* 18 */
 /***/ function(module, exports) {
 
 	/**
@@ -48139,7 +48669,7 @@
 	dat.utils.common);
 
 /***/ },
-/* 15 */
+/* 19 */
 /***/ function(module, exports) {
 
 	/**
@@ -48899,11 +49429,108 @@
 	dat.utils.common);
 
 /***/ },
-/* 16 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Freq = __webpack_require__(17);
-	var gui = __webpack_require__(12);
+	var THREE = __webpack_require__(6);
+	var threeEnv = __webpack_require__(13);
+	var gui = __webpack_require__(16).addFolder('Lights');
+
+
+	var params = {
+		randomPositions: function() {
+			randomPositions();
+		}
+	}
+
+	gui.add(params, 'randomPositions');
+
+	var ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
+	var directionalLight = new THREE.DirectionalLight( 0x333333 );
+
+	directionalLight.position.set( 0, 0.5, -0.5 );
+
+
+	var lights = [];
+
+	lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+
+	threeEnv.scene.add( lights[ 0 ] );
+	threeEnv.scene.add( lights[ 1 ] );
+	threeEnv.scene.add( lights[ 2 ] );
+
+	threeEnv.scene.add( ambientLight );
+	threeEnv.scene.add( directionalLight );
+
+	var randomPositions = function() {
+
+		lights[ 0 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+		lights[ 1 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+		lights[ 2 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+
+	}
+
+	// Volumetric light
+	var vLight = new THREE.Mesh(
+	    new THREE.IcosahedronGeometry(70, 3),
+	    new THREE.MeshBasicMaterial({
+	        color: 0xffffff
+	    })
+	);
+
+	threeEnv.oclScene.add( vLight );
+
+	var draw = function(timePassed) {
+
+		vLight.position.y = 250 * (Math.sin(timePassed / 1000)) + 250;
+
+	}
+
+	randomPositions();
+
+	module.exports = {
+		vLight: vLight,
+		draw: draw
+	}
+
+/***/ },
+/* 21 */
+/***/ function(module, exports) {
+
+	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
+
+/***/ },
+/* 22 */
+/***/ function(module, exports) {
+
+	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSamples) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
+
+/***/ },
+/* 23 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+
+/***/ },
+/* 24 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+
+/***/ },
+/* 25 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Freq = __webpack_require__(27);
+	var gui = __webpack_require__(16);
 	var guiFolder = gui.addFolder('Frequencies');
 
 	var audioContext, analyser, source, stream, freqs;
@@ -48934,7 +49561,7 @@
 		'smoothing': 0.85
 	}
 
-	gui.remember(params);
+	// gui.remember(params);
 
 	var a0 = guiFolder.add(params, 'a0', 0, 1);
 	var a1 = guiFolder.add(params, 'a1', 0, 1);
@@ -48991,7 +49618,7 @@
 	}
 
 /***/ },
-/* 17 */
+/* 27 */
 /***/ function(module, exports) {
 
 	// Overwrite properties of one object with another
@@ -49034,8 +49661,6 @@
 			],
 			smoothing: 0.85
 		}
-
-		console.log(settings);
 
 		// Extend the defaults with any settings defined
 		this.settings = extend(this.defaults, settings);
@@ -49251,17 +49876,17 @@
 	module.exports = Freq;
 
 /***/ },
-/* 18 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(9);
-	var audioAnalyser = __webpack_require__(16);
-	var gui = __webpack_require__(12);
+	var threeEnv = __webpack_require__(13);
+	var audioAnalyser = __webpack_require__(26);
+	var gui = __webpack_require__(16);
 	var guiFolder = gui.addFolder('Background');
 	var shaders = {
-		vertex: __webpack_require__(19),
-		fragment: __webpack_require__(20)
+		vertex: __webpack_require__(21),
+		fragment: __webpack_require__(29)
 	}
 
 	var swampMaterial, swampGeometry, swampMesh;
@@ -49272,7 +49897,7 @@
 		scale: 1.0
 	}
 
-	gui.remember(params);
+	// gui.remember(params);
 
 	guiFolder.add(params, 'bounceAmp', 0, 1);
 	guiFolder.add(params, 'pulseAmp', 0, 1);
@@ -49304,6 +49929,7 @@
 				value: new THREE.Vector2(window.innerWidth, window.innerHeight)
 			}
 		},
+		transparent: true,
 	    vertexShader: shaders.vertex,
 	    fragmentShader: shaders.fragment
 
@@ -49311,6 +49937,7 @@
 
 	swampMesh = new THREE.Mesh( swampGeometry, swampMaterial );
 
+	 
 	threeEnv.bgScene.add( swampMesh );
 
 	exports.draw = function(timePassed) {
@@ -49327,34 +49954,28 @@
 	}
 
 /***/ },
-/* 19 */
+/* 29 */
 /***/ function(module, exports) {
 
-	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
+	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);\n}"
 
 /***/ },
-/* 20 */
-/***/ function(module, exports) {
-
-	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0., 0.1 + f, 0.),.1);\n}"
-
-/***/ },
-/* 21 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(7);
-	var threeEnv = __webpack_require__(9);
+	var TWEEN = __webpack_require__(11);
+	var threeEnv = __webpack_require__(13);
 
-	var gui = __webpack_require__(12);
+	var gui = __webpack_require__(16);
 	var guiFolder = gui.addFolder('Leaves');
 
 	var loader = new THREE.JSONLoader();
 	var leafModel;
 	var particles = [];
-	var numLeafs = 100;
+	var numLeafs = 50;
 
-	var radius = threeEnv.box.height*0.1;
+	var radius = window.innerHeight/3;
 
 	var leafGroup = new THREE.Object3D();
 	threeEnv.scene.add(leafGroup);
@@ -49367,7 +49988,7 @@
 		}
 	}
 
-	gui.remember(params);
+	// gui.remember(params);
 
 	guiFolder.add(params, 'speed', -10, 10);
 	guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
@@ -49376,12 +49997,13 @@
 
 	loader.load('leaf.js', function ( geometry ) {
 
-			var material = new THREE.MeshLambertMaterial(
+			var material = new THREE.MeshBasicMaterial(
 				{
 					side: THREE.DoubleSide,
-					color: 0x00ff00,
-					transparent: true,
-					blending: THREE.AdditiveBlending
+					color: 0x73be73,
+					// transparent: true,
+					// blending: THREE.AdditiveBlending,
+					shading: THREE.FlatShading
 				});
 
 			
@@ -49509,14 +50131,14 @@
 
 
 /***/ },
-/* 22 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(7);
-	var threeEnv = __webpack_require__(9);
+	var TWEEN = __webpack_require__(11);
+	var threeEnv = __webpack_require__(13);
 
-	var gui = __webpack_require__(12);
+	var gui = __webpack_require__(16);
 	var guiFolder = gui.addFolder('Mask');
 
 	var loader = new THREE.XHRLoader();
@@ -49524,12 +50146,17 @@
 
 	var mainMask;
 
+	var light;
+
 	var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
 
 	threeEnv.scene.add(cubeCamera);
 
-
 	var params = {
+		sweep: function() {
+			mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
+			mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
+		},
 		randomFlash: function() {
 			mainMask.randomFlash('flash');
 		},
@@ -49538,15 +50165,14 @@
 		}
 	}
 
-
 	guiFolder.add(params, 'randomFlash');
 	guiFolder.add(params, 'randomEdgeFlash');
-
-
+	guiFolder.add(params, 'sweep');
 
 	var outerMaterial = new THREE.MeshPhongMaterial({
 		transparent: true,
-		opacity: 0.8,
+		opacity: 0.0,
+		shininess: 50,
 		side: THREE.DoubleSide,
 		color: 0x2F8582
 	});
@@ -49559,20 +50185,16 @@
 		fog: false
 	});
 
-	// var coreMaterial = new THREE.MeshPhongMaterial( { 
-	// 	color: 0x111111,
-	// 	shininess: 100,
-	// 	envMap: cubeCamera.renderTarget.texture,
-	// 	combine: THREE.AddOperation,
-	// 	side: THREE.DoubleSide
-	// } );
-
-
 	var coreMaterial = new THREE.MeshPhongMaterial( { 
-		//side: THREE.DoubleSide,
+		color: 0x555555, 
+		specular: 0x111111,
 		shininess: 50,
-		color: 0xffffff
+		shading: THREE.FlatShading,
+		envMap: cubeCamera.renderTarget.texture,
+		combine: THREE.AddOperation
 	} );
+
+	var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
 
 
 	var modelIds = {
@@ -49590,6 +50212,16 @@
 			'paint_5',
 			'paint_6',
 			'nose'
+		],
+		paintLeft: [
+			'paint_1',
+			'paint_2',
+			'paint_3'
+		],
+		paintRight: [
+			'paint_4',
+			'paint_5',
+			'paint_6'
 		]
 	}
 
@@ -49598,8 +50230,6 @@
 		var loader = new THREE.ObjectLoader();
 
 		var mask = loader.parse(data)
-
-		threeEnv.scene.add(mask);
 
 		mainMask = new Mask(mask)
 
@@ -49610,16 +50240,28 @@
 
 		var that = this;
 
+		var oclMask = new THREE.Object3D();
+
 		var outerObjs = [];
 
-		var groupMesh = mask.children[0];
+		mask.position.y = -100;
+		oclMask.position.y = -100;
 
-		groupMesh.position.y -= 10;
-
-		var mainMesh = mask.getObjectByName( 'head' );
+		var headTop = mask.getObjectByName( 'head_top' );
+		var headBottom = mask.getObjectByName( 'head_bottom' );
 
 		// Give main head material
-		mainMesh.material = coreMaterial;
+		headTop.material = coreMaterial;
+		headBottom.material = coreMaterial;
+
+		var oclHeadTop = headTop.clone();
+		oclHeadTop.material = oclMaterial;
+
+		var oclHeadBottom = headBottom.clone();
+		oclHeadBottom.material = oclMaterial;
+
+		oclMask.add(oclHeadTop);
+		oclMask.add(oclHeadBottom);
 
 
 		for (var i = 0; i < modelIds.outer.length; i++) {
@@ -49655,22 +50297,28 @@
 			edges.material.transparent = true;
 			edges.material.opacity = 0;
 
-
-			outerObjs.push(mesh);
-
 		}
 
-		groupMesh.position.z = 400;
 
-		this.mesh = mainMesh;
+		var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
 
-		this.flashOuter = function(index, name) {
+		light = new THREE.PointLight( 0xffffff, 1, 0 );
 
-			if (!name) {
-				name = 'flash';
+		light.position.set(20,40,50);
+
+		mask.add(light);
+
+		light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
+
+		this.flashOuter = function(name, type) {
+
+			if (!type) {
+				type = 'flash';
 			}
 
-			var material = outerObjs[index].getObjectByName( name ).material;
+			var mesh = mask.getObjectByName( name );
+
+			var material = mesh.getObjectByName( type ).material;
 
 			var target = {
 				opacity: 1
@@ -49689,25 +50337,60 @@
 
 		}
 
-		this.randomFlash = function(name) {
-			that.flashOuter(parseInt(Math.random() * outerObjs.length), name);
+		this.randomFlash = function(type) {
+			that.flashOuter(modelIds.outer[parseInt(Math.random() * modelIds.outer.length)], type);
+		}
+
+		this.sweepFlash = function(array, type, reverse) {
+
+			if (reverse) {
+				var array = array.slice().reverse();
+			}
+
+			function timedFlash(i) {
+
+				setTimeout(function() {
+
+					that.flashOuter(array[i], type);
+
+				}, 50 * i);
+
+			}
+
+			for (var i = 0; i < array.length; i++) {
+
+				timedFlash(i);
+
+			}
+
 
 		}
 
+		threeEnv.scene.add(mask);
+		threeEnv.oclScene.add(oclMask);
+
+		return mask;
 	}
 
 
-	var draw = function() {
+	var draw = function(time) {
 
 		if (mainMask) {
 
-			mainMask.mesh.visible = false;
+			var time = time * 0.001;
 
-			cubeCamera.position.copy( mainMask.mesh.position );
+		//	mainMask.mesh.visible = false;
+
+
+			light.position.x = Math.sin( time * 0.7 ) * 150;
+			light.position.y = Math.cos( time * 0.5 ) * 150;
+			light.position.z = Math.cos( time * 0.3 ) * 150;
+
+			cubeCamera.position.copy( mainMask.position );
 
 			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 
-			mainMask.mesh.visible = true;
+		//	mainMask.mesh.visible = true;
 
 		}
 		
@@ -49720,6 +50403,207 @@
 
 
 
+
+/***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+	var threeEnv = __webpack_require__(13);
+	var gui = __webpack_require__(16).addFolder('Ribbons');
+
+	var params = {
+		ribbonCount: 3,
+		ribbonFreq: 50,
+		ribbonRot: 0.005
+	}
+
+	gui.add(params, 'ribbonCount', 0, 20);
+	gui.add(params, 'ribbonFreq', 0, 200);
+	gui.add(params, 'ribbonRot', 0, 0.03);
+
+	var ribbon;
+
+	var mainTick = 0;
+
+	var y = 0;
+
+	var positions = [];
+
+	var group = new THREE.Object3D();
+
+	var ribbons = [];
+
+	var radius = 200;
+
+	threeEnv.scene.add(group);
+
+	group.position.z = -100;
+
+	var Ribbon = function(id) {
+
+		this.container = new THREE.Object3D();
+
+		var tick = 0;
+
+		var length = 100;
+
+		var positions = [];
+
+		var width = 15;
+
+		var speed = 3;
+
+
+
+		var ry = width * 2;
+
+		var x = 0;
+		var y = 0;
+		var z = 0;
+
+		var sequenceLength = 3;
+		var sequenceIndex = 0;
+		var sequence = [];
+
+
+		var geom = new THREE.PlaneGeometry(30, 30, 1, length);
+		
+		var material = new THREE.MeshLambertMaterial({
+			//wireframe: true,
+			side: THREE.DoubleSide,
+			shading: THREE.FlatShading
+		});
+			
+		var mesh = new THREE.Mesh(geom, material);
+
+		mesh.position.x = radius;
+
+		this.container.add(mesh);
+
+		this.container.rotation.z = Math.random() * Math.PI * 2;
+
+		for (var i=0; i<length*2; i++) {
+			positions.push(0);
+		}
+
+		for (var i=0; i<sequenceLength; i++) {
+
+			var isNegative = i % 2 ? -1 : 1;
+
+			sequence.push({
+				dx: (Math.random() * speed) * isNegative,
+				dy: ((Math.random() * 2) - 1) * speed,
+				dz: 2
+			});
+
+			// Ensure first part of ribbon is pointing away from center
+			if (i == 0) {
+				sequence[i].dy = 0;
+			}
+
+			if (i !== sequenceLength-1) {
+				sequence[i].nextZ = (i+1) * 100;
+			}
+		}
+
+		this.update = function() {
+
+			var sequenceItem = sequence[sequenceIndex];
+
+			x += sequenceItem.dx * speed;
+			y += sequenceItem.dy * speed;
+			z += sequenceItem.dz * speed;
+
+			tick++;
+
+			// Remove last XYZ
+			positions.pop();
+			positions.pop();
+			positions.pop();
+
+			// Add new XYZ
+			positions.unshift(x, y, z);
+
+			for (var i = 0; i < length + 1; i++) {
+
+				var v1	= geom.vertices[i*2];
+				var v2	= geom.vertices[i*2+1];
+			
+				v1.x = positions[i*3] 	- width;
+				v2.x = positions[i*3] 	+ width;
+				v1.y = positions[i*3+1] - ry;
+				v2.y = positions[i*3+1] + ry;
+				v1.z = positions[i*3+2];
+				v2.z = positions[i*3+2];
+
+			}
+
+			geom.computeFaceNormals();
+			// geom.computeVertexNormals();
+			geom.verticesNeedUpdate	= true;
+			geom.normalsNeedUpdate 	= true;
+
+			if (sequenceItem.nextZ && z > sequenceItem.nextZ) {
+				sequenceIndex++
+			}
+
+			// Destroy ribbons when almost certainly out of view
+			if (z > 500 + length * speed) {
+				this.destroy();
+			}
+
+		}
+
+		// Remove object from scene and array
+		this.destroy = function() {
+			group.remove(this.container);
+			ribbons.splice(ribbons.indexOf(this), 1);
+		}
+
+	}
+
+	var fireRibbon = function() {
+
+		var ribbon = new Ribbon();
+		group.add(ribbon.container);
+
+		ribbons.push(ribbon);
+
+	}
+
+	var updateRibbons = function() {
+
+		for (var i = 0; i < ribbons.length; i++) {
+
+			ribbons[i].update();
+
+		}
+
+	}
+
+
+	var draw = function(timePassed) {
+
+		mainTick++;
+
+		if (mainTick > params.ribbonFreq) {
+
+			for (var i = 0; i < params.ribbonCount; i++) {
+				fireRibbon();
+			}
+
+			mainTick = 0;
+		}
+
+		updateRibbons();
+		group.rotation.z += params.ribbonRot;
+		
+	}
+
+	module.exports = {
+		draw: draw
+	}
 
 /***/ }
 /******/ ]);
