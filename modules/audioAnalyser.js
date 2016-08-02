@@ -7,7 +7,7 @@ var audioContext, analyser, source, stream, freqs;
 var audio = new Audio();
 audio.src = 'ceremony.mp3';
 audio.controls = true;
-audio.autoplay = true;
+// audio.autoplay = true;
 document.body.appendChild(audio);
 
 var elVisualiser = document.createElement("div");
@@ -29,6 +29,7 @@ var params = {
 	'b1': 0.5,
 	'smoothing': 0.85
 }
+
 
 // gui.remember(params);
 
@@ -71,6 +72,7 @@ stream = analyser.createStream(source, {
 // Create a new visualiser from stream passing in an empty div
 stream.visualiser(elVisualiser);
 
+
 // Should only happen once per tick
 var updateLevels = function() {
 	stream.update();
@@ -81,7 +83,12 @@ var getLevels = function() {
 	return stream.read();
 }
 
+var getTime = function() {
+	return audio.currentTime
+}
+
 module.exports = {
 	getLevels: getLevels,
-	updateLevels: updateLevels
+	updateLevels: updateLevels,
+	getTime: getTime
 }

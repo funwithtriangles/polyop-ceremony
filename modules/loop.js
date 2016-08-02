@@ -17,6 +17,7 @@ var background = require('./background');
 var leaves = require('./leaves');
 var mask = require('./mask');
 var ribbons = require('./ribbons');
+var sequencer = require('./sequencer');
 
 var stats;
 var start, timePassed;
@@ -42,6 +43,8 @@ function loop() {
 	timePassed = Date.now() - start;
 
 	audioAnalyser.updateLevels();
+
+	sequencer.run();
 
 	lights.draw(timePassed);
 	background.draw(timePassed);
