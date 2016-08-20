@@ -5,12 +5,14 @@ var gui = require('./gui').addFolder('Ribbons');
 var params = {
 	ribbonCount: 3,
 	ribbonFreq: 50,
-	ribbonRot: 0.005
+	ribbonRot: 0.005,
+	ribbonOpacity: 1
 }
 
 gui.add(params, 'ribbonCount', 0, 20);
 gui.add(params, 'ribbonFreq', 0, 200);
 gui.add(params, 'ribbonRot', 0, 0.03);
+gui.add(params, 'ribbonOpacity', 0, 1);
 
 var ribbon;
 
@@ -62,7 +64,8 @@ var Ribbon = function(id) {
 	var material = new THREE.MeshLambertMaterial({
 		//wireframe: true,
 		side: THREE.DoubleSide,
-		shading: THREE.FlatShading
+		shading: THREE.FlatShading,
+		transparent: true
 	});
 		
 	var mesh = new THREE.Mesh(geom, material);
@@ -98,6 +101,8 @@ var Ribbon = function(id) {
 	}
 
 	this.update = function() {
+
+		material.opacity = params.ribbonOpacity;
 
 		var sequenceItem = sequence[sequenceIndex];
 

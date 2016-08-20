@@ -38,8 +38,8 @@ scene.add(camera);
 bgScene.add(bgCamera);
 oclScene.add(oclCamera);
 
-controls = new OrbitControls(camera);
-controls = new OrbitControls(oclCamera);
+// controls = new OrbitControls(camera);
+// controls = new OrbitControls(oclCamera);
 
 var axes = new THREE.AxisHelper(50);
 

@@ -18,6 +18,7 @@ threeEnv.scene.add(leafGroup);
 var params = {
 	groupRotSpeed: 0.01,
 	speed: 1,
+	leafOpacity: 1,
 	gotoCircle: function() {
 		gotoCircle();
 	}
@@ -28,6 +29,7 @@ var params = {
 guiFolder.add(params, 'speed', -10, 10);
 guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
 guiFolder.add(params, 'gotoCircle');
+guiFolder.add(params, 'leafOpacity', 0, 1);
 
 
 loader.load('leaf.js', function ( geometry ) {
@@ -38,7 +40,8 @@ loader.load('leaf.js', function ( geometry ) {
 				color: 0x73be73,
 				// transparent: true,
 				// blending: THREE.AdditiveBlending,
-				shading: THREE.FlatShading
+				shading: THREE.FlatShading,
+				transparent: true
 			});
 
 		
@@ -140,6 +143,7 @@ var draw = function(timePassed) {
 
 		var particle = particles[i];
 
+		particle.mesh.material.opacity = params.leafOpacity;
 		particle.mesh.position.z += particle.vz * params.speed;
 		particle.mesh.rotation.x += 0.01;
 		particle.mesh.rotation.y += 0.01;
