@@ -10,6 +10,8 @@ var leafModel;
 var particles = [];
 var numLeafs = 50;
 
+var zLimit = 2000;
+
 var radius = window.innerHeight/3;
 
 var leafGroup = new THREE.Object3D();
@@ -62,7 +64,7 @@ var Leaf = function(i) {
 	this.index = i;
 	this.mesh.position.x = (Math.random() * 1000) - 500;
 	this.mesh.position.y = (Math.random() * 1000) - 500;
-	this.mesh.position.z = (Math.random() * 1000) - 500;
+	this.mesh.position.z = (Math.random() * zLimit) - (zLimit*1.3);
 
 	this.vz = Math.random() + 0.5;
 
@@ -149,11 +151,13 @@ var draw = function(timePassed) {
 		particle.mesh.rotation.y += 0.01;
 		particle.mesh.rotation.z += 0.01;
 
-		if (particle.mesh.position.z > 500) {
+
+
+		if (particle.mesh.position.z > 500 && params.speed > 0) {
 			particle.mesh.position.z = -500;
 		}
 		
-		if (particle.mesh.position.z < -500) {
+		if (particle.mesh.position.z < -500 && params.speed < 0) {
 			particle.mesh.position.z = 500;
 		}
 
