@@ -1,6 +1,7 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
-var gui = require('./gui').addFolder('vLight');
+var vLightGui = require('./gui').addFolder('vLight');
+var shaderGui = require('./gui').addFolder('Shaders');
 var vLight = require('./lights').vLight;
 var shaders = {
 	vertex: require('../shaders/simple_vertex.glsl'),
@@ -91,7 +92,13 @@ finalPass = new THREE.ShaderPass({
 });
 
 finalPass.needsSwap = true;
-finalPass.renderToScreen = true;
+// finalPass.renderToScreen = true;
+
+rgbPass = new THREE.ShaderPass(THREE.RGBShiftShader);
+
+filmPass = new THREE.ShaderPass(THREE.FilmShader);
+
+filmPass.renderToScreen = true;
  
 // Prepare the occlusion composer's render target
 renderTargetOcl = new THREE.WebGLRenderTarget( 
@@ -124,6 +131,8 @@ finalComposer.addPass( renderBg );
 
 finalComposer.addPass( renderModel );
 finalComposer.addPass( finalPass );
+finalComposer.addPass( rgbPass );
+finalComposer.addPass( filmPass );
 
 // Projects object origin into screen space coordinates using provided camera
 var projectOnScreen = function(object, camera) {
@@ -146,6 +155,8 @@ var draw = function(timePassed) {
 	grPass.uniforms["fX"].value = lPos.x;
 	grPass.uniforms["fY"].value = lPos.y;
 
+	filmPass.uniforms[ 'time' ].value  = .00025 * ( timePassed );
+
 	threeEnv.renderer.setClearColor(0x000000, 0);
  	oclComposer.render( 0.1 );
  	threeEnv.renderer.setClearColor(0x4f6ab1);
@@ -153,11 +164,21 @@ var draw = function(timePassed) {
 
 }
 
-gui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
-gui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
-gui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
-gui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
-gui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
+vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
+vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
+vLightGui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
+vLightGui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+
+shaderGui.add(filmPass.uniforms.grayscale, 'value').name("grayscale");
+shaderGui.add(filmPass.uniforms.nIntensity, 'value').min(0.0).max(1.0).name("nIntensity");
+shaderGui.add(filmPass.uniforms.sIntensity, 'value').min(0.0).max(1.0).name("sIntensity");
+shaderGui.add(filmPass.uniforms.sCount, 'value').min(0).max(4096).name("sCount");
+
+shaderGui.add(rgbPass.uniforms.amount, 'value').min(0).max(0.1).name("RGBAmount");
+shaderGui.add(rgbPass.uniforms.angle, 'value').min(0).max(Math.PI*2).name("RGBAngle");
+
+
 
 module.exports = {
 	draw: draw

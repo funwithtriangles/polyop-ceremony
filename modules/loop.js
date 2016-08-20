@@ -5,6 +5,8 @@ require('../threeExtras/CopyShader');
 require('../threeExtras/EffectComposer');
 require('../threeExtras/ShaderPass');
 require('../threeExtras/RenderPass');
+require('../threeExtras/FilmShader');
+require('../threeExtras/RGBShiftShader');
 
 
 var TWEEN = require('tween.js');
@@ -58,7 +60,7 @@ function loop() {
 	// Turn autoclear back off again before rendering top layer
 	// threeEnv.renderer.autoClear = false;
 
-	composers.draw();
+	composers.draw(timePassed);
 
 //	threeEnv.renderer.clearDepth();
 	
