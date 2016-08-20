@@ -1,7 +1,7 @@
 var audioAnalyser = require('./audioAnalyser');
 var bpm = 115;
-var ppb = 24; // pulses per beat
-var spp = (60/(bpm*ppb)); // seconds per pulse
+var ppq = 480; // pulses per quarter note (per beat)
+var spp = (60/(bpm*ppq)); // seconds per pulse
 var marker = audioAnalyser.getTime();
 var now;
 
@@ -14,16 +14,15 @@ var pulse = function() {
 	tick++;
 
 	// Every beat
-	if (tick % 24 == 0) {
+	if (tick % ppq == 0) {
 
 	}
 }
 
-
 var checkChannels = function(time) {
 
-	while (time >= cowbell[cowbellIndex]) {
-		// console.log(time);
+	while (time >= cowbell[cowbellIndex] * spp) {
+		console.log('b');
 		cowbellIndex++;
 	}
 }
@@ -31,7 +30,7 @@ var checkChannels = function(time) {
 var run = function() {
 	now = audioAnalyser.getTime();
 
-	checkChannels(now * 1000);
+	checkChannels(now);
 			
 	// Check to see if time passed is more than time per pulse
 	var result = now - marker;
