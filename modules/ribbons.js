@@ -6,13 +6,15 @@ var params = {
 	ribbonCount: 3,
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
-	ribbonOpacity: 1
+	ribbonOpacity: 1,
+	ribbonsActive: true
 }
 
 gui.add(params, 'ribbonCount', 0, 20);
 gui.add(params, 'ribbonFreq', 0, 200);
 gui.add(params, 'ribbonRot', 0, 0.03);
 gui.add(params, 'ribbonOpacity', 0, 1);
+gui.add(params, 'ribbonsActive');
 
 var ribbon;
 
@@ -182,7 +184,7 @@ var draw = function(timePassed) {
 
 	mainTick++;
 
-	if (mainTick > params.ribbonFreq) {
+	if (params.ribbonsActive && mainTick > params.ribbonFreq) {
 
 		for (var i = 0; i < params.ribbonCount; i++) {
 			fireRibbon();
