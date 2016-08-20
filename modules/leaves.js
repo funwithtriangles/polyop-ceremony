@@ -21,8 +21,12 @@ var params = {
 	groupRotSpeed: 0.01,
 	speed: 1,
 	leafOpacity: 1,
+	active: true,
 	gotoCircle: function() {
 		gotoCircle();
+	},
+	resetLeaves: function() {
+		resetAll();
 	}
 }
 
@@ -31,6 +35,8 @@ var params = {
 guiFolder.add(params, 'speed', -10, 10);
 guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
 guiFolder.add(params, 'gotoCircle');
+guiFolder.add(params, 'resetLeaves');
+guiFolder.add(params, 'active');
 guiFolder.add(params, 'leafOpacity', 0, 1);
 
 
@@ -62,17 +68,22 @@ var Leaf = function(i) {
 	this.mesh = leafModel.clone();
 
 	this.index = i;
-	this.mesh.position.x = (Math.random() * 1000) - 500;
-	this.mesh.position.y = (Math.random() * 1000) - 500;
-	this.mesh.position.z = (Math.random() * zLimit) - (zLimit*1.3);
-
-	this.vz = Math.random() + 0.5;
-
-	this.mesh.rotation.x = Math.random() * Math.PI*2;
-	this.mesh.rotation.y = Math.random() * Math.PI*2;
-	this.mesh.rotation.z = Math.random() * Math.PI*2;
-
+	
 	leafGroup.add(this.mesh);
+
+	this.reset = function() {
+
+		that.mesh.position.x = (Math.random() * 1000) - 500;
+		that.mesh.position.y = (Math.random() * 1000) - 500;
+		that.mesh.position.z = (Math.random() * zLimit) - (zLimit*1.3);
+
+		that.vz = Math.random() + 0.5;
+
+		that.mesh.rotation.x = Math.random() * Math.PI*2;
+		that.mesh.rotation.y = Math.random() * Math.PI*2;
+		that.mesh.rotation.z = Math.random() * Math.PI*2;
+
+	}
 
 	this.circleTween = function() {
 
@@ -113,7 +124,6 @@ var Leaf = function(i) {
 		});
 
 	}
-
 	
 }
 
@@ -135,6 +145,8 @@ var init = function() {
 		
 	}
 
+	resetAll();
+
 }
 
 var draw = function(timePassed) {
@@ -153,14 +165,22 @@ var draw = function(timePassed) {
 
 
 
-		if (particle.mesh.position.z > 500 && params.speed > 0) {
+		if (params.active && particle.mesh.position.z > 500 && params.speed > 0) {
 			particle.mesh.position.z = -500;
 		}
 		
-		if (particle.mesh.position.z < -500 && params.speed < 0) {
+		if (params.active && particle.mesh.position.z < -500 && params.speed < 0) {
 			particle.mesh.position.z = 500;
 		}
 
+	}
+
+}
+
+var resetAll = function() {
+
+	for (var i = 0; i < numLeafs; i++) {
+		particles[i].reset();
 	}
 
 }
