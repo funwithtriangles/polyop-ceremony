@@ -28,11 +28,11 @@ var group = new THREE.Object3D();
 
 var ribbons = [];
 
-var radius = 200;
+var radius = 0;
 
 threeEnv.scene.add(group);
 
-group.position.z = -100;
+group.position.z = -150;
 
 var Ribbon = function(id) {
 
@@ -95,10 +95,15 @@ var Ribbon = function(id) {
 		// Ensure first part of ribbon is pointing away from center
 		if (i == 0) {
 			sequence[i].dy = 0;
+			sequence[i].dz = 0.5;
+			sequence[i].dx = 1.5;
 		}
 
 		if (i !== sequenceLength-1) {
-			sequence[i].nextZ = (i+1) * 100;
+
+			sequence[i].nextZ = 100 + (i * 100);
+			
+			
 		}
 	}
 
