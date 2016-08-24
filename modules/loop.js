@@ -7,6 +7,7 @@ require('../threeExtras/ShaderPass');
 require('../threeExtras/RenderPass');
 require('../threeExtras/FilmShader');
 require('../threeExtras/RGBShiftShader');
+require('../threeExtras/ExplodeModifier');
 
 
 var TWEEN = require('tween.js');

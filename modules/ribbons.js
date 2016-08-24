@@ -7,7 +7,7 @@ var params = {
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
 	ribbonOpacity: 1,
-	ribbonsActive: true
+	ribbonsActive: false
 }
 
 gui.add(params, 'ribbonCount', 0, 20);

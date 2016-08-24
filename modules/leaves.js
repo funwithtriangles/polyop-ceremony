@@ -18,10 +18,10 @@ var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
 
 var params = {
-	groupRotSpeed: 0.01,
-	speed: 1,
+	groupRotSpeed: 0.00,
+	speed: 0,
 	leafOpacity: 1,
-	active: true,
+	active: false,
 	gotoCircle: function() {
 		gotoCircle();
 	},

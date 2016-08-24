@@ -54,7 +54,7 @@ var draw = function(timePassed) {
 
 }
 
-randomPositions();
+// randomPositions();
 
 module.exports = {
 	vLight: vLight,

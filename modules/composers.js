@@ -65,7 +65,7 @@ grPass = new THREE.ShaderPass({
 		tDiffuse: {type: "t", value: null},
 		fX: {type: "f", value: 0.5},
 		fY: {type: "f", value: 0.5},
-		fExposure: {type: "f", value: 0.6},
+		fExposure: {type: "f", value: 0.0},
 		fDecay: {type: "f", value: 0.93},
 		fDensity: {type: "f", value: 0.96},
 		fWeight: {type: "f", value: 0.4},

@@ -8,6 +8,14 @@ var guiFolder = gui.addFolder('Mask');
 var loader = new THREE.XHRLoader();
 loader.setResponseType( 'json' );
 
+var shaders = {
+	explode: require('../shaders/explode.glsl'),
+	simple: require('../shaders/simple_fragment.glsl'),
+	phong: require('../shaders/phong_fragment.glsl')
+}
+
+var explodeModifier = new THREE.ExplodeModifier();
+
 var mainMask;
 
 var light;
@@ -33,6 +41,8 @@ guiFolder.add(params, 'randomFlash');
 guiFolder.add(params, 'randomEdgeFlash');
 guiFolder.add(params, 'sweep');
 
+
+
 var outerMaterial = new THREE.MeshPhongMaterial({
 	transparent: true,
 	opacity: 0.0,
@@ -49,16 +59,51 @@ var flashMaterial = new THREE.MeshBasicMaterial({
 	fog: false
 });
 
-var coreMaterial = new THREE.MeshPhongMaterial( { 
-	color: 0x555555, 
-	specular: 0x111111,
-	shininess: 50,
-	shading: THREE.FlatShading,
-	envMap: cubeCamera.renderTarget.texture,
-	combine: THREE.AddOperation
-} );
 
-var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
+var shader = THREE.ShaderLib[ "phong" ];
+
+var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+console.log(uniforms);
+
+uniforms.diffuse.value = new THREE.Color( 0x555555 );
+uniforms.specular.value = new THREE.Color( 0x111111 );
+uniforms.shininess.value = 50;
+uniforms.envMap.value = cubeCamera.renderTarget.texture;
+
+var coreMaterial = new THREE.ShaderMaterial( {
+
+	uniforms:      uniforms,
+	lights: true,
+	fog: true,
+	shading: THREE.FlatShading,
+	vertexShader:   shaders.explode,
+	fragmentShader: shaders.phong
+
+});
+
+
+// var coreMaterial = new THREE.MeshPhongMaterial( { 
+// 	color: 0x555555, 
+// 	specular: 0x111111,
+// 	shininess: 50,
+// 	shading: THREE.FlatShading,
+// 	envMap: cubeCamera.renderTarget.texture,
+// 	//combine: THREE.AddOperation
+// } );
+
+var oclMaterial = new THREE.ShaderMaterial( {
+
+	uniforms:      {},
+	// color: 0x555555,
+//	lights: true,
+	vertexShader:   shaders.explode,
+	fragmentShader: shaders.simple
+
+});
+
+
+//var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
 
 
 var modelIds = {
@@ -113,6 +158,11 @@ var Mask = function(mask) {
 
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
+
+	console.log(headTop.geometry)
+	explodeModifier.modify( headTop.geometry );
+
+
 
 	// Give main head material
 	headTop.material = coreMaterial;
