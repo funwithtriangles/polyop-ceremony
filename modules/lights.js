@@ -46,15 +46,17 @@ var vLight = new THREE.Mesh(
     })
 );
 
+vLight.position.y = 150;
+
 threeEnv.oclScene.add( vLight );
 
 var draw = function(timePassed) {
 
-	vLight.position.y = 250 * (Math.sin(timePassed / 1000)) + 250;
+	//vLight.position.y = 250 * (Math.sin(timePassed / 1000)) + 250;
 
 }
 
-// randomPositions();
+randomPositions();
 
 module.exports = {
 	vLight: vLight,

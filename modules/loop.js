@@ -8,6 +8,7 @@ require('../threeExtras/RenderPass');
 require('../threeExtras/FilmShader');
 require('../threeExtras/RGBShiftShader');
 require('../threeExtras/ExplodeModifier');
+require('../threeExtras/TessellateModifier');
 
 
 var TWEEN = require('tween.js');

@@ -14,7 +14,14 @@
 #define USE_ENVMAP
 #define ENVMAP_TYPE_CUBE
 
+attribute vec3 displacement;
+
 varying vec3 vViewPosition;
+varying vec3 tempPosition;
+varying float noise;
+
+uniform float explodeAmount;
+uniform float time;
 
 #ifndef FLAT_SHADED
 
@@ -33,6 +40,21 @@ varying vec3 vViewPosition;
 #include <shadowmap_pars_vertex>
 #include <logdepthbuf_pars_vertex>
 #include <clipping_planes_pars_vertex>
+
+@import ./includes/perlin_noise;
+
+float turbulence( vec3 p ) {
+    float w = 100.0;
+    float t = -.5;
+    for (float f = 1.0 ; f <= 10.0 ; f++ ){
+        float power = pow( 2.0, f );
+        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );
+    }
+    return t;
+}
+
+
+
 
 void main() {
 
@@ -66,7 +88,16 @@ void main() {
 	#include <envmap_vertex>
 	#include <shadowmap_vertex>
 
-	vec3 newPosition = position + normal * 50.0;
+	 // get a turbulent 3d noise using the normal, normal to high freq
+	noise = 1.0 * .1 * turbulence( .5 * normal + time);
+
+	float b = pnoise( 0.05 * position, vec3( 1.0 ) );
+
+//	tempPosition = position + normal * b * noise * displacement * 10.;
+
+	vec3 newPosition = position + normal * noise * displacement * 100. * explodeAmount;
+	//vec3 newPosition = tempPosition;
+
 	gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
 
 }

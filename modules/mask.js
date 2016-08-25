@@ -16,7 +16,9 @@ var shaders = {
 
 var explodeModifier = new THREE.ExplodeModifier();
 
-var mainMask;
+var tessellateModifier = new THREE.TessellateModifier( 8 );
+
+var mainMask, oclMask;
 
 var light;
 
@@ -25,6 +27,7 @@ var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
 threeEnv.scene.add(cubeCamera);
 
 var params = {
+	zPos: 0,
 	sweep: function() {
 		mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
 		mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
@@ -37,6 +40,7 @@ var params = {
 	}
 }
 
+guiFolder.add(params, 'zPos').min(-800).max(800);
 guiFolder.add(params, 'randomFlash');
 guiFolder.add(params, 'randomEdgeFlash');
 guiFolder.add(params, 'sweep');
@@ -70,13 +74,18 @@ uniforms.diffuse.value = new THREE.Color( 0x555555 );
 uniforms.specular.value = new THREE.Color( 0x111111 );
 uniforms.shininess.value = 50;
 uniforms.envMap.value = cubeCamera.renderTarget.texture;
+uniforms.explodeAmount = {type: "f", value: 0.0};
+uniforms.time = {type: "f", value: 0.0};
+
+guiFolder.add(uniforms.explodeAmount, 'value').min(0.0).max(10.0).name("explodeAmount");
 
 var coreMaterial = new THREE.ShaderMaterial( {
 
-	uniforms:      uniforms,
+	uniforms: uniforms,
 	lights: true,
 	fog: true,
 	shading: THREE.FlatShading,
+	side: THREE.DoubleSide,
 	vertexShader:   shaders.explode,
 	fragmentShader: shaders.phong
 
@@ -94,11 +103,11 @@ var coreMaterial = new THREE.ShaderMaterial( {
 
 var oclMaterial = new THREE.ShaderMaterial( {
 
-	uniforms:      {},
+	uniforms:     uniforms,
 	// color: 0x555555,
 //	lights: true,
 	vertexShader:   shaders.explode,
-	fragmentShader: shaders.simple
+	fragmentShader: shaders.phong
 
 });
 
@@ -149,7 +158,9 @@ var Mask = function(mask) {
 
 	var that = this;
 
-	var oclMask = new THREE.Object3D();
+	
+
+	oclMask = new THREE.Object3D();
 
 	var outerObjs = [];
 
@@ -159,9 +170,38 @@ var Mask = function(mask) {
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
 
-	console.log(headTop.geometry)
 	explodeModifier.modify( headTop.geometry );
 
+	for ( var i = 0; i < 3; i ++ ) {
+
+		tessellateModifier.modify( headTop.geometry );
+
+	}
+
+	var numFaces = headTop.geometry.faces.length;
+	var displacement = new Float32Array( numFaces * 3 * 3 );
+
+	headTop.geometry = new THREE.BufferGeometry().fromGeometry( headTop.geometry );
+
+	for ( var f = 0; f < numFaces; f ++ ) {
+
+		var index = 9 * f;
+
+		var d = Math.random();
+
+		for ( var i = 0; i < 3; i ++ ) {
+
+			displacement[ index + ( 3 * i )     ] = d;
+			displacement[ index + ( 3 * i ) + 1 ] = d;
+			displacement[ index + ( 3 * i ) + 2 ] = d;
+
+		}
+
+
+	}
+
+	console.log(displacement);
+	headTop.geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
 
 
 	// Give main head material
@@ -291,10 +331,15 @@ var draw = function(time) {
 
 	if (mainMask) {
 
+
+		uniforms.time.value = time;
+
 		var time = time * 0.001;
 
 	//	mainMask.mesh.visible = false;
 
+		mainMask.position.z = params.zPos;
+		oclMask.position.z = params.zPos;
 
 		light.position.x = Math.sin( time * 0.7 ) * 150;
 		light.position.y = Math.cos( time * 0.5 ) * 150;
@@ -303,6 +348,8 @@ var draw = function(time) {
 		cubeCamera.position.copy( mainMask.position );
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+
+
 
 	//	mainMask.mesh.visible = true;
 
