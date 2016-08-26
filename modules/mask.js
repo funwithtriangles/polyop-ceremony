@@ -1,6 +1,7 @@
 var THREE = require('three');
 var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
+var clock = require('./clock');
 
 var gui = require('./gui');
 var guiFolder = gui.addFolder('Mask');
@@ -31,11 +32,15 @@ threeEnv.scene.add(cubeCamera);
 
 var params = {
 	zPos: -800,
+	yPos: -100,
+	xPos: 0,
+	dancing: false,
+	dancePower: 1,
 	enterScene: function() {
 
 	
 		var tween = new TWEEN.Tween(params)
-	    .to({zPos: 200}, 25000)
+	    .to({zPos: 100}, 25000)
 	    .easing(TWEEN.Easing.Sinusoidal.Out)
 	    .start();
 
@@ -60,6 +65,8 @@ guiFolder.add(params, 'zPos').min(-800).max(800);
 guiFolder.add(params, 'enterScene');
 guiFolder.add(params, 'randomEdgeFlash');
 guiFolder.add(params, 'sweep');
+guiFolder.add(params, 'dancing');
+guiFolder.add(params, 'dancePower', 1, 20);
 
 
 
@@ -171,8 +178,8 @@ var Mask = function(mask) {
 
 	var outerObjs = [];
 
-	mask.position.y = -100;
-	oclMask.position.y = -100;
+	mask.position.y = params.yPos;
+	oclMask.position.y = params.yPos;
 
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
@@ -336,6 +343,17 @@ var Mask = function(mask) {
 
 var draw = function(time) {
 
+
+	var wave = clock.lfo.sine; 
+	var waveHalf = clock.lfo.sineHalf;
+
+	if (params.dancing) {
+		params.xPos = 2.5 * wave * params.dancePower;
+		params.yPos = -100 + (1.5 * waveHalf) * params.dancePower;
+		params.zPos =  waveHalf * params.dancePower;
+	}
+	
+
 	if (mainMask) {
 
 
@@ -345,8 +363,16 @@ var draw = function(time) {
 
 	//	mainMask.mesh.visible = false;
 
+		mainMask.position.x = params.xPos;
+		oclMask.position.x = params.xPos;
+
+		mainMask.position.y = params.yPos;
+		oclMask.position.y = params.yPos;
+
 		mainMask.position.z = params.zPos;
 		oclMask.position.z = params.zPos;
+
+		
 
 		light.position.x = Math.sin( time * 0.7 ) * 150;
 		light.position.y = Math.cos( time * 0.5 ) * 150;
@@ -355,6 +381,8 @@ var draw = function(time) {
 		cubeCamera.position.copy( mainMask.position );
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+
+		
 
 
 

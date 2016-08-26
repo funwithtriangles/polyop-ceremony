@@ -7,7 +7,8 @@ var params = {
 }
 
 var lfo = {
-	sine: 0
+	sine: 0,
+	sineHalf: 0
 }
 
 var tick = 0;
@@ -26,6 +27,7 @@ var pulse = function() {
 	}
 
 	lfo.sine = Math.sin(deltaStep * tick);
+	lfo.sineHalf = Math.sin(deltaStep * 2 * tick);
 
 }
 
