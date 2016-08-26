@@ -5,8 +5,6 @@ var threeEnv = require('./threeEnv');
 var gui = require('./gui');
 var guiFolder = gui.addFolder('Mask');
 
-var loader = new THREE.XHRLoader();
-loader.setResponseType( 'json' );
 
 var shaders = {
 	explode: require('../shaders/explode.glsl'),
@@ -14,11 +12,16 @@ var shaders = {
 	phong: require('../shaders/phong_fragment.glsl')
 }
 
+var maskModel = require('../assets/mask.json');
+
+var loader = new THREE.ObjectLoader();
+
+var MainMask, oclMask;
+
+
 var explodeModifier = new THREE.ExplodeModifier();
 
 var tessellateModifier = new THREE.TessellateModifier( 8 );
-
-var mainMask, oclMask;
 
 var light;
 
@@ -27,7 +30,17 @@ var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
 threeEnv.scene.add(cubeCamera);
 
 var params = {
-	zPos: 0,
+	zPos: -800,
+	enterScene: function() {
+
+	
+		var tween = new TWEEN.Tween(params)
+	    .to({zPos: 0}, 20000)
+	    .easing(TWEEN.Easing.Sinusoidal.Out)
+	    .start();
+
+
+	},
 	sweep: function() {
 		mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
 		mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
@@ -41,7 +54,7 @@ var params = {
 }
 
 guiFolder.add(params, 'zPos').min(-800).max(800);
-guiFolder.add(params, 'randomFlash');
+guiFolder.add(params, 'enterScene');
 guiFolder.add(params, 'randomEdgeFlash');
 guiFolder.add(params, 'sweep');
 
@@ -143,22 +156,13 @@ var modelIds = {
 	]
 }
 
-loader.load('mask.json', function (data) {
 
-	var loader = new THREE.ObjectLoader();
-
-	var mask = loader.parse(data)
-
-	mainMask = new Mask(mask)
-
-});
 
 
 var Mask = function(mask) {
 
 	var that = this;
 
-	
 
 	oclMask = new THREE.Object3D();
 
@@ -357,8 +361,14 @@ var draw = function(time) {
 	
 }
 
+
+mainMask = new Mask(loader.parse(maskModel))
+
+
 module.exports = {
-	draw: draw
+	draw: draw,
+	mask: mainMask,
+	params: params
 }
 
 

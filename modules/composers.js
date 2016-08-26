@@ -32,7 +32,7 @@ var renderTargetParams = {
 
 // Prepare the main and occlusion scene render pass
 renderBg = new THREE.RenderPass( threeEnv.bgScene, threeEnv.bgCamera );
-renderModelOcl = new THREE.RenderPass( threeEnv.oclScene, threeEnv.oclCamera );
+renderModelOcl = new THREE.RenderPass( threeEnv.oclScene, threeEnv.camera );
 renderModel = new THREE.RenderPass( threeEnv.scene, threeEnv.camera );
 
 // renderBg.clear = false;

@@ -7,8 +7,47 @@ var now;
 
 var cowbell = require('../assets/cowbell.json');
 var cowbellIndex = 0;
+var timelineIndex = 0;
 
 var tick = 0;
+
+var mask = require('./mask');
+var camera = require('./camera');
+
+// Get time sig in seconds of specified bar / beat
+var barBeat = function(bar, beat) {
+
+	var beats = (bar * 4) + beat;
+	return beats * (60/bpm);
+
+}
+
+var timeline = [
+	{
+		time: 25,
+		event: mask.params.enterScene
+	},
+	{
+		time: barBeat(24, 0),
+		event: camera.params.startOrbit
+	},
+	{
+		time: barBeat(28, 0),
+		event: camera.params.startOrbit
+	},
+	{
+		time: barBeat(32, 0),
+		event: camera.params.startOrbit
+	},
+	{
+		time: barBeat(36, 0),
+		event: camera.params.startOrbit
+	},
+	{
+		time: barBeat(40, 0),
+		event: camera.params.stopOrbit
+	}
+]
 
 var pulse = function() {
 	tick++;
@@ -21,8 +60,17 @@ var pulse = function() {
 
 var checkChannels = function(time) {
 
+	// EVENTS
+	while (timeline[timelineIndex] && time >= timeline[timelineIndex].time) {
+		
+		timeline[timelineIndex].event();
+		timelineIndex++;
+	}
+
+
+	// MIDI
 	while (time >= cowbell[cowbellIndex] * spp) {
-		console.log('b');
+		//console.log('b');
 		cowbellIndex++;
 	}
 }

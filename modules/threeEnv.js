@@ -26,22 +26,17 @@ oclScene = new THREE.Scene();
 scene.fog = new THREE.FogExp2( 0x4f6ab1, 0.0015 );
 
 camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-camera.position.z = 500;
+
 
 bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 bgCamera.position.z = 500;
 
-oclCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-oclCamera.position.z = 500;
-
 scene.add(camera);
 bgScene.add(bgCamera);
-oclScene.add(oclCamera);
 
 // controls = new OrbitControls(camera);
-// controls = new OrbitControls(oclCamera);
 
-var axes = new THREE.AxisHelper(50);
+// var axes = new THREE.AxisHelper(50);
 
 // scene.add(axes);
 
@@ -52,6 +47,5 @@ module.exports = {
 	oclScene: oclScene,
 	camera: camera,
 	bgCamera: bgCamera,
-	oclCamera: oclCamera,
 	box: box
 }
