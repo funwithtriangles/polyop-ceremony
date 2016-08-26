@@ -1,26 +1,22 @@
 var audioAnalyser = require('./audioAnalyser');
-var bpm = 115;
-var ppq = 480; // pulses per quarter note (per beat)
-var spp = (60/(bpm*ppq)); // seconds per pulse
-var marker = audioAnalyser.getTime();
+var clock = require('./clock');
+
 var now;
 
 var cowbell = require('../assets/cowbell.json');
 var cowbellIndex = 0;
 var timelineIndex = 0;
 
-var tick = 0;
-
-
 var mask = require('./mask');
 var ribbons = require('./ribbons');
 var camera = require('./camera');
+
 
 // Get time sig in seconds of specified bar / beat
 var barBeat = function(bar, beat) {
 
 	var beats = (bar * 4) + beat;
-	return beats * (60/bpm);
+	return beats * (60/clock.params.bpm);
 
 }
 
@@ -28,6 +24,10 @@ var timeline = [
 	{
 		time: 25,
 		event: mask.params.enterScene
+	},
+	{
+		time: barBeat(24, 0),
+		event: mask.params.defaultPos
 	},
 	{
 		time: barBeat(24, 0),
@@ -52,17 +52,16 @@ var timeline = [
 	{
 		time: barBeat(40, 0),
 		event: ribbons.params.startRibbons
+	},
+	{
+		time: barBeat(56, 0),
+		event: function() {
+			ribbons.params.startRibbons(true)
+		}
 	}
 ]
 
-var pulse = function() {
-	tick++;
 
-	// Every beat
-	if (tick % ppq == 0) {
-
-	}
-}
 
 var checkChannels = function(time) {
 
@@ -75,7 +74,7 @@ var checkChannels = function(time) {
 
 
 	// MIDI
-	while (time >= cowbell[cowbellIndex] * spp) {
+	while (time >= cowbell[cowbellIndex] * clock.params.spp) {
 		//console.log('b');
 		cowbellIndex++;
 	}
@@ -85,18 +84,6 @@ var run = function() {
 	now = audioAnalyser.getTime();
 
 	checkChannels(now);
-			
-	// Check to see if time passed is more than time per pulse
-	var result = now - marker;
-
-	while (result > spp) {
-		// Pulse if so
-		pulse();
-		// Increase next time to check against by time per pulse
-		marker+=spp;
-		// Loop over in case missed more than one pulse
-		result-=spp;
-	}
 }
 
 module.exports = {

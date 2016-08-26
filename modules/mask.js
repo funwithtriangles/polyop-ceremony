@@ -35,11 +35,14 @@ var params = {
 
 	
 		var tween = new TWEEN.Tween(params)
-	    .to({zPos: 0}, 20000)
+	    .to({zPos: 200}, 25000)
 	    .easing(TWEEN.Easing.Sinusoidal.Out)
 	    .start();
 
 
+	},
+	defaultPos: function() {
+		params.zPos = 0;
 	},
 	sweep: function() {
 		mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);

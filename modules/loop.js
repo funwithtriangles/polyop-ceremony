@@ -22,7 +22,9 @@ var background = require('./background');
 var leaves = require('./leaves');
 var mask = require('./mask');
 var ribbons = require('./ribbons');
+var clock = require('./clock');
 var sequencer = require('./sequencer');
+
 
 var stats;
 var start, timePassed;
@@ -49,6 +51,7 @@ function loop() {
 
 	audioAnalyser.updateLevels();
 
+	clock.run();
 	sequencer.run();
 
 	lights.draw(timePassed);
@@ -57,6 +60,7 @@ function loop() {
 	mask.draw(timePassed);
 	ribbons.draw(timePassed);
 	camera.draw(timePassed);
+
 
 	// Auto clear must be on for the cubemap to render (mask reflections)
 //	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );

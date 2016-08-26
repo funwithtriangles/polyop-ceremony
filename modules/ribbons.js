@@ -1,6 +1,7 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var gui = require('./gui').addFolder('Ribbons');
+var clock = require('./clock');
 
 var params = {
 	ribbonCount: 3,
@@ -8,12 +9,20 @@ var params = {
 	ribbonRot: 0.005,
 	ribbonOpacity: 1,
 	ribbonsActive: false,
-	startRibbons: function() {
+	waveActive: false,
+	startRibbons: function(wave) {
 		params.ribbonsActive = true;
+
+		if (wave) {
+			params.waveActive = true;
+		} else {
+			params.waveActive = false
+		}
 	}
 }
 
 gui.add(params, 'ribbonCount', 0, 20);
+gui.add(params, 'waveActive');
 gui.add(params, 'ribbonFreq', 0, 200);
 gui.add(params, 'ribbonRot', 0, 0.03);
 gui.add(params, 'ribbonOpacity', 0, 1);
@@ -202,7 +211,9 @@ var draw = function(timePassed) {
 	}
 
 	updateRibbons();
-	group.rotation.z += params.ribbonRot;
+
+	var wave = params.waveActive ? (clock.lfo.sine + 0.9) : 1; // Convert sine wave to between 0 and 1
+	group.rotation.z += params.ribbonRot * wave;
 	
 }
 

@@ -406,19 +406,24 @@
 	__webpack_require__(8);
 	__webpack_require__(9);
 	__webpack_require__(10);
+	__webpack_require__(11);
+	__webpack_require__(12);
+	__webpack_require__(13);
+	__webpack_require__(14);
 
 
-	var TWEEN = __webpack_require__(11);
-	var Stats = __webpack_require__(12);
-	var threeEnv = __webpack_require__(13);
-	var composers = __webpack_require__(15);
-	var lights = __webpack_require__(20);
-	var audioAnalyser = __webpack_require__(26);
-	var background = __webpack_require__(28);
-	var leaves = __webpack_require__(30);
+	var TWEEN = __webpack_require__(15);
+	var Stats = __webpack_require__(16);
+	var threeEnv = __webpack_require__(17);
+	var composers = __webpack_require__(19);
+	var lights = __webpack_require__(24);
+	var camera = __webpack_require__(30);
+	var audioAnalyser = __webpack_require__(36);
+	var background = __webpack_require__(38);
+	var leaves = __webpack_require__(40);
 	var mask = __webpack_require__(31);
-	var ribbons = __webpack_require__(32);
-	var sequencer = __webpack_require__(33);
+	var ribbons = __webpack_require__(41);
+	var sequencer = __webpack_require__(42);
 
 	var stats;
 	var start, timePassed;
@@ -452,6 +457,7 @@
 		leaves.draw(timePassed);
 		mask.draw(timePassed);
 		ribbons.draw(timePassed);
+		camera.draw(timePassed);
 
 		// Auto clear must be on for the cubemap to render (mask reflections)
 	//	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
@@ -459,7 +465,7 @@
 		// Turn autoclear back off again before rendering top layer
 		// threeEnv.renderer.autoClear = false;
 
-		composers.draw();
+		composers.draw(timePassed);
 
 	//	threeEnv.renderer.clearDepth();
 		
@@ -42728,6 +42734,472 @@
 /* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author alteredq / http://alteredqualia.com/
+	 *
+	 * Film grain & scanlines shader
+	 *
+	 * - ported from HLSL to WebGL / GLSL
+	 * http://www.truevision3d.com/forums/showcase/staticnoise_colorblackwhite_scanline_shaders-t18698.0.html
+	 *
+	 * Screen Space Static Postprocessor
+	 *
+	 * Produces an analogue noise overlay similar to a film grain / TV static
+	 *
+	 * Original implementation and noise algorithm
+	 * Pat 'Hawthorne' Shearon
+	 *
+	 * Optimized scanlines + noise version with intensity scaling
+	 * Georg 'Leviathan' Steinrohder
+	 *
+	 * This version is provided under a Creative Commons Attribution 3.0 License
+	 * http://creativecommons.org/licenses/by/3.0/
+	 */
+
+	THREE.FilmShader = {
+
+		uniforms: {
+
+			"tDiffuse":   { value: null },
+			"time":       { value: 0.0 },
+			"nIntensity": { value: 0.1 },
+			"sIntensity": { value: 0.5 },
+			"sCount":     { value: 4096 },
+			"grayscale":  { value: false }
+
+		},
+
+		vertexShader: [
+
+			"varying vec2 vUv;",
+
+			"void main() {",
+
+				"vUv = uv;",
+				"gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+
+			"}"
+
+		].join( "\n" ),
+
+		fragmentShader: [
+
+			"#include <common>",
+			
+			// control parameter
+			"uniform float time;",
+
+			"uniform bool grayscale;",
+
+			// noise effect intensity value (0 = no effect, 1 = full effect)
+			"uniform float nIntensity;",
+
+			// scanlines effect intensity value (0 = no effect, 1 = full effect)
+			"uniform float sIntensity;",
+
+			// scanlines effect count value (0 = no effect, 4096 = full effect)
+			"uniform float sCount;",
+
+			"uniform sampler2D tDiffuse;",
+
+			"varying vec2 vUv;",
+
+			"void main() {",
+
+				// sample the source
+				"vec4 cTextureScreen = texture2D( tDiffuse, vUv );",
+
+				// make some noise
+				"float dx = rand( vUv + time );",
+
+				// add noise
+				"vec3 cResult = cTextureScreen.rgb + cTextureScreen.rgb * clamp( 0.1 + dx, 0.0, 1.0 );",
+
+				// get us a sine and cosine
+				"vec2 sc = vec2( sin( vUv.y * sCount ), cos( vUv.y * sCount ) );",
+
+				// add scanlines
+				"cResult += cTextureScreen.rgb * vec3( sc.x, sc.y, sc.x ) * sIntensity;",
+
+				// interpolate between source and result by intensity
+				"cResult = cTextureScreen.rgb + clamp( nIntensity, 0.0,1.0 ) * ( cResult - cTextureScreen.rgb );",
+
+				// convert to grayscale if desired
+				"if( grayscale ) {",
+
+					"cResult = vec3( cResult.r * 0.3 + cResult.g * 0.59 + cResult.b * 0.11 );",
+
+				"}",
+
+				"gl_FragColor =  vec4( cResult, cTextureScreen.a );",
+
+			"}"
+
+		].join( "\n" )
+
+	};
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author felixturner / http://airtight.cc/
+	 *
+	 * RGB Shift Shader
+	 * Shifts red and blue channels from center in opposite directions
+	 * Ported from http://kriss.cx/tom/2009/05/rgb-shift/
+	 * by Tom Butterworth / http://kriss.cx/tom/
+	 *
+	 * amount: shift distance (1 is width of input)
+	 * angle: shift angle in radians
+	 */
+
+	THREE.RGBShiftShader = {
+
+		uniforms: {
+
+			"tDiffuse": { value: null },
+			"amount":   { value: 0.002 },
+			"angle":    { value: 0.0 }
+
+		},
+
+		vertexShader: [
+
+			"varying vec2 vUv;",
+
+			"void main() {",
+
+				"vUv = uv;",
+				"gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+
+			"}"
+
+		].join( "\n" ),
+
+		fragmentShader: [
+
+			"uniform sampler2D tDiffuse;",
+			"uniform float amount;",
+			"uniform float angle;",
+
+			"varying vec2 vUv;",
+
+			"void main() {",
+
+				"vec2 offset = amount * vec2( cos(angle), sin(angle));",
+				"vec4 cr = texture2D(tDiffuse, vUv + offset);",
+				"vec4 cga = texture2D(tDiffuse, vUv);",
+				"vec4 cb = texture2D(tDiffuse, vUv - offset);",
+				"gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);",
+
+			"}"
+
+		].join( "\n" )
+
+	};
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * Make all faces use unique vertices
+	 * so that each face can be separated from others
+	 *
+	 * @author alteredq / http://alteredqualia.com/
+	 */
+
+	THREE.ExplodeModifier = function () {
+
+	};
+
+	THREE.ExplodeModifier.prototype.modify = function ( geometry ) {
+
+		var vertices = [];
+
+		for ( var i = 0, il = geometry.faces.length; i < il; i ++ ) {
+
+			var n = vertices.length;
+
+			var face = geometry.faces[ i ];
+
+			var a = face.a;
+			var b = face.b;
+			var c = face.c;
+
+			var va = geometry.vertices[ a ];
+			var vb = geometry.vertices[ b ];
+			var vc = geometry.vertices[ c ];
+
+			vertices.push( va.clone() );
+			vertices.push( vb.clone() );
+			vertices.push( vc.clone() );
+
+			face.a = n;
+			face.b = n + 1;
+			face.c = n + 2;
+
+		}
+
+		geometry.vertices = vertices;
+
+	};
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * Break faces with edges longer than maxEdgeLength
+	 * - not recursive
+	 *
+	 * @author alteredq / http://alteredqualia.com/
+	 */
+
+	THREE.TessellateModifier = function ( maxEdgeLength ) {
+
+		this.maxEdgeLength = maxEdgeLength;
+
+	};
+
+	THREE.TessellateModifier.prototype.modify = function ( geometry ) {
+
+		var edge;
+
+		var faces = [];
+		var faceVertexUvs = [];
+		var maxEdgeLengthSquared = this.maxEdgeLength * this.maxEdgeLength;
+
+		for ( var i = 0, il = geometry.faceVertexUvs.length; i < il; i ++ ) {
+
+			faceVertexUvs[ i ] = [];
+
+		}
+
+		for ( var i = 0, il = geometry.faces.length; i < il; i ++ ) {
+
+			var face = geometry.faces[ i ];
+
+			if ( face instanceof THREE.Face3 ) {
+
+				var a = face.a;
+				var b = face.b;
+				var c = face.c;
+
+				var va = geometry.vertices[ a ];
+				var vb = geometry.vertices[ b ];
+				var vc = geometry.vertices[ c ];
+
+				var dab = va.distanceToSquared( vb );
+				var dbc = vb.distanceToSquared( vc );
+				var dac = va.distanceToSquared( vc );
+
+				if ( dab > maxEdgeLengthSquared || dbc > maxEdgeLengthSquared || dac > maxEdgeLengthSquared ) {
+
+					var m = geometry.vertices.length;
+
+					var triA = face.clone();
+					var triB = face.clone();
+
+					if ( dab >= dbc && dab >= dac ) {
+
+						var vm = va.clone();
+						vm.lerp( vb, 0.5 );
+
+						triA.a = a;
+						triA.b = m;
+						triA.c = c;
+
+						triB.a = m;
+						triB.b = b;
+						triB.c = c;
+
+						if ( face.vertexNormals.length === 3 ) {
+
+							var vnm = face.vertexNormals[ 0 ].clone();
+							vnm.lerp( face.vertexNormals[ 1 ], 0.5 );
+
+							triA.vertexNormals[ 1 ].copy( vnm );
+							triB.vertexNormals[ 0 ].copy( vnm );
+
+						}
+
+						if ( face.vertexColors.length === 3 ) {
+
+							var vcm = face.vertexColors[ 0 ].clone();
+							vcm.lerp( face.vertexColors[ 1 ], 0.5 );
+
+							triA.vertexColors[ 1 ].copy( vcm );
+							triB.vertexColors[ 0 ].copy( vcm );
+
+						}
+
+						edge = 0;
+
+					} else if ( dbc >= dab && dbc >= dac ) {
+
+						var vm = vb.clone();
+						vm.lerp( vc, 0.5 );
+
+						triA.a = a;
+						triA.b = b;
+						triA.c = m;
+
+						triB.a = m;
+						triB.b = c;
+						triB.c = a;
+
+						if ( face.vertexNormals.length === 3 ) {
+
+							var vnm = face.vertexNormals[ 1 ].clone();
+							vnm.lerp( face.vertexNormals[ 2 ], 0.5 );
+
+							triA.vertexNormals[ 2 ].copy( vnm );
+
+							triB.vertexNormals[ 0 ].copy( vnm );
+							triB.vertexNormals[ 1 ].copy( face.vertexNormals[ 2 ] );
+							triB.vertexNormals[ 2 ].copy( face.vertexNormals[ 0 ] );
+
+						}
+
+						if ( face.vertexColors.length === 3 ) {
+
+							var vcm = face.vertexColors[ 1 ].clone();
+							vcm.lerp( face.vertexColors[ 2 ], 0.5 );
+
+							triA.vertexColors[ 2 ].copy( vcm );
+
+							triB.vertexColors[ 0 ].copy( vcm );
+							triB.vertexColors[ 1 ].copy( face.vertexColors[ 2 ] );
+							triB.vertexColors[ 2 ].copy( face.vertexColors[ 0 ] );
+
+						}
+
+						edge = 1;
+
+					} else {
+
+						var vm = va.clone();
+						vm.lerp( vc, 0.5 );
+
+						triA.a = a;
+						triA.b = b;
+						triA.c = m;
+
+						triB.a = m;
+						triB.b = b;
+						triB.c = c;
+
+						if ( face.vertexNormals.length === 3 ) {
+
+							var vnm = face.vertexNormals[ 0 ].clone();
+							vnm.lerp( face.vertexNormals[ 2 ], 0.5 );
+
+							triA.vertexNormals[ 2 ].copy( vnm );
+							triB.vertexNormals[ 0 ].copy( vnm );
+
+						}
+
+						if ( face.vertexColors.length === 3 ) {
+
+							var vcm = face.vertexColors[ 0 ].clone();
+							vcm.lerp( face.vertexColors[ 2 ], 0.5 );
+
+							triA.vertexColors[ 2 ].copy( vcm );
+							triB.vertexColors[ 0 ].copy( vcm );
+
+						}
+
+						edge = 2;
+
+					}
+
+					faces.push( triA, triB );
+					geometry.vertices.push( vm );
+
+					for ( var j = 0, jl = geometry.faceVertexUvs.length; j < jl; j ++ ) {
+
+						if ( geometry.faceVertexUvs[ j ].length ) {
+
+							var uvs = geometry.faceVertexUvs[ j ][ i ];
+
+							var uvA = uvs[ 0 ];
+							var uvB = uvs[ 1 ];
+							var uvC = uvs[ 2 ];
+
+							// AB
+
+							if ( edge === 0 ) {
+
+								var uvM = uvA.clone();
+								uvM.lerp( uvB, 0.5 );
+
+								var uvsTriA = [ uvA.clone(), uvM.clone(), uvC.clone() ];
+								var uvsTriB = [ uvM.clone(), uvB.clone(), uvC.clone() ];
+
+							// BC
+
+							} else if ( edge === 1 ) {
+
+								var uvM = uvB.clone();
+								uvM.lerp( uvC, 0.5 );
+
+								var uvsTriA = [ uvA.clone(), uvB.clone(), uvM.clone() ];
+								var uvsTriB = [ uvM.clone(), uvC.clone(), uvA.clone() ];
+
+							// AC
+
+							} else {
+
+								var uvM = uvA.clone();
+								uvM.lerp( uvC, 0.5 );
+
+								var uvsTriA = [ uvA.clone(), uvB.clone(), uvM.clone() ];
+								var uvsTriB = [ uvM.clone(), uvB.clone(), uvC.clone() ];
+
+							}
+
+							faceVertexUvs[ j ].push( uvsTriA, uvsTriB );
+
+						}
+
+					}
+
+				} else {
+
+					faces.push( face );
+
+					for ( var j = 0, jl = geometry.faceVertexUvs.length; j < jl; j ++ ) {
+
+						faceVertexUvs[ j ].push( geometry.faceVertexUvs[ j ][ i ] );
+
+					}
+
+				}
+
+			}
+
+		}
+
+		geometry.faces = faces;
+		geometry.faceVertexUvs = faceVertexUvs;
+
+	};
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
 	 * Tween.js - Licensed under the MIT license
 	 * https://github.com/tweenjs/tween.js
@@ -43621,7 +44093,7 @@
 
 
 /***/ },
-/* 12 */
+/* 16 */
 /***/ function(module, exports) {
 
 	// stats.js - http://github.com/mrdoob/stats.js
@@ -43632,11 +44104,11 @@
 
 
 /***/ },
-/* 13 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var OrbitControls = __webpack_require__(14)(THREE)
+	var OrbitControls = __webpack_require__(18)(THREE)
 
 	var renderer, scene, camera, controls, axes;
 	var box = {
@@ -43663,22 +44135,17 @@
 	scene.fog = new THREE.FogExp2( 0x4f6ab1, 0.0015 );
 
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-	camera.position.z = 500;
+
 
 	bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 	bgCamera.position.z = 500;
 
-	oclCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-	oclCamera.position.z = 500;
-
 	scene.add(camera);
 	bgScene.add(bgCamera);
-	oclScene.add(oclCamera);
 
-	controls = new OrbitControls(camera);
-	controls = new OrbitControls(oclCamera);
+	// controls = new OrbitControls(camera);
 
-	var axes = new THREE.AxisHelper(50);
+	// var axes = new THREE.AxisHelper(50);
 
 	// scene.add(axes);
 
@@ -43689,12 +44156,11 @@
 		oclScene: oclScene,
 		camera: camera,
 		bgCamera: bgCamera,
-		oclCamera: oclCamera,
 		box: box
 	}
 
 /***/ },
-/* 14 */
+/* 18 */
 /***/ function(module, exports) {
 
 	module.exports = function(THREE) {
@@ -44819,19 +45285,20 @@
 
 
 /***/ },
-/* 15 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(13);
-	var gui = __webpack_require__(16).addFolder('vLight');
-	var vLight = __webpack_require__(20).vLight;
+	var threeEnv = __webpack_require__(17);
+	var vLightGui = __webpack_require__(20).addFolder('vLight');
+	var shaderGui = __webpack_require__(20).addFolder('Shaders');
+	var vLight = __webpack_require__(24).vLight;
 	var shaders = {
-		vertex: __webpack_require__(21),
-		godRays: __webpack_require__(22),
-		hBlur: __webpack_require__(23),
-		vBlur: __webpack_require__(24),
-		additive: __webpack_require__(25)
+		vertex: __webpack_require__(25),
+		godRays: __webpack_require__(26),
+		hBlur: __webpack_require__(27),
+		vBlur: __webpack_require__(28),
+		additive: __webpack_require__(29)
 	}
 
 	var hBlur, vBlur;
@@ -44855,7 +45322,7 @@
 
 	// Prepare the main and occlusion scene render pass
 	renderBg = new THREE.RenderPass( threeEnv.bgScene, threeEnv.bgCamera );
-	renderModelOcl = new THREE.RenderPass( threeEnv.oclScene, threeEnv.oclCamera );
+	renderModelOcl = new THREE.RenderPass( threeEnv.oclScene, threeEnv.camera );
 	renderModel = new THREE.RenderPass( threeEnv.scene, threeEnv.camera );
 
 	// renderBg.clear = false;
@@ -44888,7 +45355,7 @@
 			tDiffuse: {type: "t", value: null},
 			fX: {type: "f", value: 0.5},
 			fY: {type: "f", value: 0.5},
-			fExposure: {type: "f", value: 0.6},
+			fExposure: {type: "f", value: 0.0},
 			fDecay: {type: "f", value: 0.93},
 			fDensity: {type: "f", value: 0.96},
 			fWeight: {type: "f", value: 0.4},
@@ -44915,7 +45382,13 @@
 	});
 
 	finalPass.needsSwap = true;
-	finalPass.renderToScreen = true;
+	// finalPass.renderToScreen = true;
+
+	rgbPass = new THREE.ShaderPass(THREE.RGBShiftShader);
+
+	filmPass = new THREE.ShaderPass(THREE.FilmShader);
+
+	filmPass.renderToScreen = true;
 	 
 	// Prepare the occlusion composer's render target
 	renderTargetOcl = new THREE.WebGLRenderTarget( 
@@ -44948,6 +45421,8 @@
 
 	finalComposer.addPass( renderModel );
 	finalComposer.addPass( finalPass );
+	finalComposer.addPass( rgbPass );
+	finalComposer.addPass( filmPass );
 
 	// Projects object origin into screen space coordinates using provided camera
 	var projectOnScreen = function(object, camera) {
@@ -44970,6 +45445,8 @@
 		grPass.uniforms["fX"].value = lPos.x;
 		grPass.uniforms["fY"].value = lPos.y;
 
+		filmPass.uniforms[ 'time' ].value  = .00025 * ( timePassed );
+
 		threeEnv.renderer.setClearColor(0x000000, 0);
 	 	oclComposer.render( 0.1 );
 	 	threeEnv.renderer.setClearColor(0x4f6ab1);
@@ -44977,11 +45454,21 @@
 
 	}
 
-	gui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
-	gui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
-	gui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
-	gui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
-	gui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+	vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
+	vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
+	vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
+	vLightGui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
+	vLightGui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+
+	shaderGui.add(filmPass.uniforms.grayscale, 'value').name("grayscale");
+	shaderGui.add(filmPass.uniforms.nIntensity, 'value').min(0.0).max(1.0).name("nIntensity");
+	shaderGui.add(filmPass.uniforms.sIntensity, 'value').min(0.0).max(1.0).name("sIntensity");
+	shaderGui.add(filmPass.uniforms.sCount, 'value').min(0).max(4096).name("sCount");
+
+	shaderGui.add(rgbPass.uniforms.amount, 'value').min(0).max(0.1).name("RGBAmount");
+	shaderGui.add(rgbPass.uniforms.angle, 'value').min(0).max(Math.PI*2).name("RGBAngle");
+
+
 
 	module.exports = {
 		draw: draw
@@ -44989,10 +45476,10 @@
 
 
 /***/ },
-/* 16 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var dat = __webpack_require__(17);
+	var dat = __webpack_require__(21);
 
 	var gui = new dat.GUI();
 
@@ -45000,14 +45487,14 @@
 
 
 /***/ },
-/* 17 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(18)
-	module.exports.color = __webpack_require__(19)
+	module.exports = __webpack_require__(22)
+	module.exports.color = __webpack_require__(23)
 
 /***/ },
-/* 18 */
+/* 22 */
 /***/ function(module, exports) {
 
 	/**
@@ -48672,7 +49159,7 @@
 	dat.utils.common);
 
 /***/ },
-/* 19 */
+/* 23 */
 /***/ function(module, exports) {
 
 	/**
@@ -49432,12 +49919,12 @@
 	dat.utils.common);
 
 /***/ },
-/* 20 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(13);
-	var gui = __webpack_require__(16).addFolder('Lights');
+	var threeEnv = __webpack_require__(17);
+	var gui = __webpack_require__(20).addFolder('Lights');
 
 
 	var params = {
@@ -49483,11 +49970,13 @@
 	    })
 	);
 
+	vLight.position.y = 150;
+
 	threeEnv.oclScene.add( vLight );
 
 	var draw = function(timePassed) {
 
-		vLight.position.y = 250 * (Math.sin(timePassed / 1000)) + 250;
+		//vLight.position.y = 250 * (Math.sin(timePassed / 1000)) + 250;
 
 	}
 
@@ -49499,41 +49988,2931 @@
 	}
 
 /***/ },
-/* 21 */
+/* 25 */
 /***/ function(module, exports) {
 
 	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
 
 /***/ },
-/* 22 */
+/* 26 */
 /***/ function(module, exports) {
 
 	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSamples) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
 
 /***/ },
-/* 23 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
 
 /***/ },
-/* 24 */
+/* 28 */
 /***/ function(module, exports) {
 
 	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
 
 /***/ },
-/* 25 */
+/* 29 */
 /***/ function(module, exports) {
 
 	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
 
 /***/ },
-/* 26 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Freq = __webpack_require__(27);
-	var gui = __webpack_require__(16);
+	var THREE = __webpack_require__(6);
+	var threeEnv = __webpack_require__(17);
+	var guiFolder = __webpack_require__(20).addFolder('Camera');
+	var mask = __webpack_require__(31);
+
+	var camera = threeEnv.camera;
+	var target = mask.mask;
+	var lookAt = target.position.clone();
+
+	var orbiting = false;
+	var orbitProgress = 0;
+
+	var zReset = 500;
+
+	lookAt.y += 100;
+
+	console.log(mask);
+
+	var radius = 250;
+	var constant = 0.0002;
+
+	var params = {
+		startOrbit: function() {
+			orbiting = true;
+			orbitProgress ++;
+		},
+		stopOrbit: function() {
+			orbiting = false;
+		}
+	}
+
+
+	guiFolder.add(params, 'startOrbit');
+	guiFolder.add(params, 'stopOrbit');
+
+	var draw = function(timePassed) {
+
+
+		if (orbiting) {
+			camera.position.x = target.position.x + radius * Math.cos( constant * timePassed + orbitProgress );         
+			camera.position.z = target.position.z + radius * Math.sin( constant * timePassed + orbitProgress );
+			camera.position.y = target.position.y + radius * Math.cos( constant * timePassed + orbitProgress );
+			camera.lookAt( lookAt );
+		} else {
+
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = zReset;
+
+			camera.lookAt( lookAt );
+		}
+		
+
+
+	}
+
+
+	module.exports = {
+		draw: draw,
+		params: params
+	}
+
+/***/ },
+/* 31 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+	var TWEEN = __webpack_require__(15);
+	var threeEnv = __webpack_require__(17);
+
+	var gui = __webpack_require__(20);
+	var guiFolder = gui.addFolder('Mask');
+
+
+	var shaders = {
+		explode: __webpack_require__(32),
+		simple: __webpack_require__(33),
+		phong: __webpack_require__(34)
+	}
+
+	var maskModel = __webpack_require__(35);
+
+	var loader = new THREE.ObjectLoader();
+
+	var MainMask, oclMask;
+
+
+	var explodeModifier = new THREE.ExplodeModifier();
+
+	var tessellateModifier = new THREE.TessellateModifier( 8 );
+
+	var light;
+
+	var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
+
+	threeEnv.scene.add(cubeCamera);
+
+	var params = {
+		zPos: -800,
+		enterScene: function() {
+
+		
+			var tween = new TWEEN.Tween(params)
+		    .to({zPos: 0}, 20000)
+		    .easing(TWEEN.Easing.Sinusoidal.Out)
+		    .start();
+
+
+		},
+		sweep: function() {
+			mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
+			mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
+		},
+		randomFlash: function() {
+			mainMask.randomFlash('flash');
+		},
+		randomEdgeFlash: function() {
+			mainMask.randomFlash('edges');
+		}
+	}
+
+	guiFolder.add(params, 'zPos').min(-800).max(800);
+	guiFolder.add(params, 'enterScene');
+	guiFolder.add(params, 'randomEdgeFlash');
+	guiFolder.add(params, 'sweep');
+
+
+
+	var outerMaterial = new THREE.MeshPhongMaterial({
+		transparent: true,
+		opacity: 0.0,
+		shininess: 50,
+		side: THREE.DoubleSide,
+		color: 0x2F8582
+	});
+
+	var flashMaterial = new THREE.MeshBasicMaterial({
+		transparent: true,
+		opacity: 0,
+		side: THREE.DoubleSide,
+		color: 0xffffff,
+		fog: false
+	});
+
+
+	var shader = THREE.ShaderLib[ "phong" ];
+
+	var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+	console.log(uniforms);
+
+	uniforms.diffuse.value = new THREE.Color( 0x555555 );
+	uniforms.specular.value = new THREE.Color( 0x111111 );
+	uniforms.shininess.value = 50;
+	uniforms.envMap.value = cubeCamera.renderTarget.texture;
+	uniforms.explodeAmount = {type: "f", value: 0.0};
+	uniforms.time = {type: "f", value: 0.0};
+
+	guiFolder.add(uniforms.explodeAmount, 'value').min(0.0).max(10.0).name("explodeAmount");
+
+	var coreMaterial = new THREE.ShaderMaterial( {
+
+		uniforms: uniforms,
+		lights: true,
+		fog: true,
+		shading: THREE.FlatShading,
+		side: THREE.DoubleSide,
+		vertexShader:   shaders.explode,
+		fragmentShader: shaders.phong
+
+	});
+
+
+	// var coreMaterial = new THREE.MeshPhongMaterial( { 
+	// 	color: 0x555555, 
+	// 	specular: 0x111111,
+	// 	shininess: 50,
+	// 	shading: THREE.FlatShading,
+	// 	envMap: cubeCamera.renderTarget.texture,
+	// 	//combine: THREE.AddOperation
+	// } );
+
+	var oclMaterial = new THREE.ShaderMaterial( {
+
+		uniforms:     uniforms,
+		// color: 0x555555,
+	//	lights: true,
+		vertexShader:   shaders.explode,
+		fragmentShader: shaders.phong
+
+	});
+
+
+	//var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
+
+
+	var modelIds = {
+		outer: [
+			'feather_1',
+			'feather_2',
+			'feather_3',
+			'feather_4',
+			'feather_5',
+			'feather_6',
+			'paint_1',
+			'paint_2',
+			'paint_3',
+			'paint_4',
+			'paint_5',
+			'paint_6',
+			'nose'
+		],
+		paintLeft: [
+			'paint_1',
+			'paint_2',
+			'paint_3'
+		],
+		paintRight: [
+			'paint_4',
+			'paint_5',
+			'paint_6'
+		]
+	}
+
+
+
+
+	var Mask = function(mask) {
+
+		var that = this;
+
+
+		oclMask = new THREE.Object3D();
+
+		var outerObjs = [];
+
+		mask.position.y = -100;
+		oclMask.position.y = -100;
+
+		var headTop = mask.getObjectByName( 'head_top' );
+		var headBottom = mask.getObjectByName( 'head_bottom' );
+
+		explodeModifier.modify( headTop.geometry );
+
+		for ( var i = 0; i < 3; i ++ ) {
+
+			tessellateModifier.modify( headTop.geometry );
+
+		}
+
+		var numFaces = headTop.geometry.faces.length;
+		var displacement = new Float32Array( numFaces * 3 * 3 );
+
+		headTop.geometry = new THREE.BufferGeometry().fromGeometry( headTop.geometry );
+
+		for ( var f = 0; f < numFaces; f ++ ) {
+
+			var index = 9 * f;
+
+			var d = Math.random();
+
+			for ( var i = 0; i < 3; i ++ ) {
+
+				displacement[ index + ( 3 * i )     ] = d;
+				displacement[ index + ( 3 * i ) + 1 ] = d;
+				displacement[ index + ( 3 * i ) + 2 ] = d;
+
+			}
+
+
+		}
+
+		console.log(displacement);
+		headTop.geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
+
+
+		// Give main head material
+		headTop.material = coreMaterial;
+		headBottom.material = coreMaterial;
+
+		var oclHeadTop = headTop.clone();
+		oclHeadTop.material = oclMaterial;
+
+		var oclHeadBottom = headBottom.clone();
+		oclHeadBottom.material = oclMaterial;
+
+		oclMask.add(oclHeadTop);
+		oclMask.add(oclHeadBottom);
+
+
+		for (var i = 0; i < modelIds.outer.length; i++) {
+
+			var mesh = mask.getObjectByName( modelIds.outer[i] );
+
+			// Give outer decorations materials
+			mesh.material = outerMaterial;
+
+
+			// Give each outer decoration a "flash" clone
+			var flash = mesh.clone();
+
+			flash.name = "flash";
+
+			mesh.add(flash);
+
+			flash.rotation.x = 0;
+			flash.rotation.y = 0;
+			flash.rotation.z = 0;
+			flash.position.z = 0.1;
+			flash.material = flashMaterial.clone();
+
+			var edges = new THREE.EdgesHelper( flash, 0xffffff, 55 );
+
+			edges.matrix = flash.matrix;
+			edges.matrixAutoUpdate = true;
+			edges.position.z = 0.2;
+			edges.name = "edges";
+			mesh.add(edges);
+
+			edges.material.lineWidth = 10;
+			edges.material.transparent = true;
+			edges.material.opacity = 0;
+
+		}
+
+
+		var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
+
+		light = new THREE.PointLight( 0xffffff, 1, 0 );
+
+		light.position.set(20,40,50);
+
+		mask.add(light);
+
+		light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
+
+		this.flashOuter = function(name, type) {
+
+			if (!type) {
+				type = 'flash';
+			}
+
+			var mesh = mask.getObjectByName( name );
+
+			var material = mesh.getObjectByName( type ).material;
+
+			var target = {
+				opacity: 1
+			}
+
+			material.opacity = target.opacity;
+
+			var tween = new TWEEN.Tween(target)
+		    .to({opacity: 0}, 800)
+		    .easing(TWEEN.Easing.Quintic.Out)
+		    .start();
+
+		    tween.onUpdate(function(){
+			    material.opacity = target.opacity;
+			});
+
+		}
+
+		this.randomFlash = function(type) {
+			that.flashOuter(modelIds.outer[parseInt(Math.random() * modelIds.outer.length)], type);
+		}
+
+		this.sweepFlash = function(array, type, reverse) {
+
+			if (reverse) {
+				var array = array.slice().reverse();
+			}
+
+			function timedFlash(i) {
+
+				setTimeout(function() {
+
+					that.flashOuter(array[i], type);
+
+				}, 50 * i);
+
+			}
+
+			for (var i = 0; i < array.length; i++) {
+
+				timedFlash(i);
+
+			}
+
+
+		}
+
+		threeEnv.scene.add(mask);
+		threeEnv.oclScene.add(oclMask);
+
+		return mask;
+	}
+
+
+	var draw = function(time) {
+
+		if (mainMask) {
+
+
+			uniforms.time.value = time;
+
+			var time = time * 0.001;
+
+		//	mainMask.mesh.visible = false;
+
+			mainMask.position.z = params.zPos;
+			oclMask.position.z = params.zPos;
+
+			light.position.x = Math.sin( time * 0.7 ) * 150;
+			light.position.y = Math.cos( time * 0.5 ) * 150;
+			light.position.z = Math.cos( time * 0.3 ) * 150;
+
+			cubeCamera.position.copy( mainMask.position );
+
+			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+
+
+
+		//	mainMask.mesh.visible = true;
+
+		}
+		
+	}
+
+
+	mainMask = new Mask(loader.parse(maskModel))
+
+
+	module.exports = {
+		draw: draw,
+		mask: mainMask,
+		params: params
+	}
+
+
+
+
+
+/***/ },
+/* 32 */
+/***/ function(module, exports) {
+
+	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * noise * displacement * 100. * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
+
+/***/ },
+/* 33 */
+/***/ function(module, exports) {
+
+	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
+
+/***/ },
+/* 34 */
+/***/ function(module, exports) {
+
+	module.exports = "#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n#define ENVMAP_MODE_REFLECTION\n#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+
+/***/ },
+/* 35 */
+/***/ function(module, exports) {
+
+	module.exports = {
+		"animations": [
+			{
+				"fps": 24,
+				"tracks": [],
+				"name": "default"
+			}
+		],
+		"metadata": {
+			"type": "Object",
+			"sourceFile": "mask2.blend",
+			"version": 4.4,
+			"generator": "io_three"
+		},
+		"geometries": [
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.727928,
+						0.60506,
+						0.322428,
+						0.688101,
+						0.69512,
+						0.208014,
+						0.714133,
+						0.669912,
+						0.202948,
+						0,
+						-0.882868,
+						0.469622,
+						-0.724113,
+						0.606159,
+						0.328898,
+						-0.74752,
+						0.598804,
+						0.287393,
+						-0.709128,
+						0.674123,
+						0.206549,
+						-0.68038,
+						0.700766,
+						0.214362,
+						-0.668386,
+						0.740318,
+						0.071627,
+						0.665792,
+						0.731498,
+						0.146947,
+						0.675985,
+						0.733512,
+						0.070437,
+						0.74752,
+						0.598773,
+						0.287423,
+						-0.657613,
+						0.737877,
+						0.151799,
+						0,
+						-0.821282,
+						0.570523,
+						-0.594531,
+						-0.790429,
+						0.147435,
+						-0.605914,
+						-0.790399,
+						0.089999,
+						0.005493,
+						-0.996704,
+						0.080844,
+						0.604419,
+						-0.784326,
+						0.139653,
+						0.615009,
+						-0.783807,
+						0.085696,
+						-0.61507,
+						-0.787744,
+						0.033479,
+						0.004547,
+						-0.999115,
+						0.041505,
+						0.623737,
+						-0.780969,
+						0.031648,
+						-0.004639,
+						0.95468,
+						-0.297494,
+						0.715567,
+						0.287667,
+						-0.636525,
+						0.715537,
+						0.289285,
+						-0.635823,
+						-0.003998,
+						0.95468,
+						-0.297494,
+						-0.01355,
+						0.395886,
+						-0.91818,
+						-0.000061,
+						0.410016,
+						-0.912046,
+						0.013367,
+						0.395886,
+						-0.91818,
+						-0.000092,
+						0.381726,
+						-0.924253,
+						0,
+						0.39613,
+						-0.91818,
+						-0.719596,
+						0.286142,
+						-0.632649,
+						-0.719565,
+						0.287637,
+						-0.632008,
+						-0.004547,
+						-0.422437,
+						-0.906369,
+						-0.004059,
+						-0.422437,
+						-0.906369
+					],
+					"faces": [
+						40,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						0,
+						1,
+						2,
+						40,
+						6,
+						5,
+						27,
+						3,
+						4,
+						5,
+						3,
+						3,
+						3,
+						40,
+						30,
+						0,
+						34,
+						6,
+						7,
+						2,
+						4,
+						5,
+						6,
+						40,
+						4,
+						34,
+						22,
+						8,
+						2,
+						9,
+						7,
+						6,
+						8,
+						40,
+						2,
+						10,
+						7,
+						1,
+						10,
+						9,
+						1,
+						9,
+						10,
+						40,
+						3,
+						2,
+						7,
+						2,
+						1,
+						9,
+						2,
+						1,
+						10,
+						40,
+						32,
+						1,
+						3,
+						7,
+						0,
+						2,
+						11,
+						0,
+						2,
+						40,
+						8,
+						4,
+						22,
+						11,
+						8,
+						9,
+						12,
+						7,
+						8,
+						40,
+						4,
+						30,
+						34,
+						8,
+						6,
+						2,
+						7,
+						4,
+						6,
+						40,
+						33,
+						6,
+						27,
+						12,
+						3,
+						5,
+						13,
+						13,
+						13,
+						40,
+						31,
+						19,
+						29,
+						3,
+						13,
+						4,
+						14,
+						15,
+						16,
+						40,
+						28,
+						29,
+						26,
+						0,
+						14,
+						1,
+						17,
+						16,
+						18,
+						41,
+						20,
+						9,
+						29,
+						19,
+						15,
+						15,
+						13,
+						11,
+						19,
+						20,
+						16,
+						15,
+						41,
+						9,
+						24,
+						26,
+						29,
+						15,
+						1,
+						14,
+						15,
+						20,
+						21,
+						18,
+						16,
+						41,
+						39,
+						38,
+						42,
+						43,
+						16,
+						17,
+						17,
+						16,
+						22,
+						23,
+						24,
+						25,
+						41,
+						12,
+						11,
+						23,
+						25,
+						18,
+						19,
+						10,
+						15,
+						26,
+						27,
+						27,
+						26,
+						41,
+						11,
+						13,
+						21,
+						23,
+						19,
+						17,
+						9,
+						10,
+						27,
+						28,
+						28,
+						27,
+						41,
+						14,
+						12,
+						25,
+						35,
+						16,
+						18,
+						15,
+						15,
+						29,
+						26,
+						26,
+						29,
+						41,
+						13,
+						14,
+						35,
+						21,
+						17,
+						16,
+						15,
+						9,
+						28,
+						29,
+						29,
+						28,
+						41,
+						16,
+						18,
+						17,
+						15,
+						18,
+						16,
+						17,
+						19,
+						30,
+						30,
+						30,
+						30,
+						41,
+						37,
+						39,
+						43,
+						41,
+						18,
+						16,
+						16,
+						18,
+						31,
+						22,
+						25,
+						32,
+						41,
+						38,
+						36,
+						40,
+						42,
+						17,
+						19,
+						19,
+						17,
+						23,
+						33,
+						34,
+						24,
+						41,
+						36,
+						37,
+						41,
+						40,
+						19,
+						18,
+						18,
+						19,
+						33,
+						31,
+						32,
+						34
+					],
+					"metadata": {
+						"normals": 35,
+						"faces": 23,
+						"vertices": 44,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "headGeometry.3",
+					"vertices": [
+						0,
+						-188.923,
+						60.4589,
+						81.8936,
+						-101.891,
+						0,
+						133.854,
+						30.366,
+						16.4928,
+						0.005197,
+						-31.6289,
+						135.959,
+						-136.621,
+						30.366,
+						16.4928,
+						0,
+						76.4497,
+						-94.8643,
+						-81.8936,
+						-101.891,
+						0,
+						0.00345,
+						44.9198,
+						141.249,
+						-148.754,
+						101.104,
+						20.2329,
+						0.003454,
+						146.912,
+						-95.1395,
+						145.359,
+						101.104,
+						20.2329,
+						-0.11756,
+						53.249,
+						121.944,
+						121.866,
+						100.937,
+						20.6194,
+						-124.951,
+						100.935,
+						20.6233,
+						-0.112707,
+						138.839,
+						-76.4298,
+						-0.486808,
+						16.9703,
+						44.1111,
+						58.1697,
+						39.9015,
+						-4.61157,
+						-60.5137,
+						39.9007,
+						-4.60969,
+						-0.484474,
+						58.127,
+						-51.2784,
+						-136.621,
+						30.366,
+						16.4928,
+						-148.754,
+						101.104,
+						20.2329,
+						-148.754,
+						101.104,
+						20.2329,
+						0.00345,
+						44.9198,
+						141.249,
+						0.00345,
+						44.9198,
+						141.249,
+						145.359,
+						101.104,
+						20.2329,
+						145.359,
+						101.104,
+						20.2329,
+						133.854,
+						30.366,
+						16.4928,
+						81.8936,
+						-101.891,
+						0,
+						81.8936,
+						-101.891,
+						0,
+						0,
+						76.4497,
+						-94.8643,
+						-81.8936,
+						-101.891,
+						0,
+						-81.8936,
+						-101.891,
+						0,
+						0,
+						-188.923,
+						60.4589,
+						0,
+						-188.923,
+						60.4589,
+						0.005197,
+						-31.6289,
+						135.959,
+						0.003454,
+						146.912,
+						-95.1395,
+						-0.11756,
+						53.249,
+						121.944,
+						121.866,
+						100.937,
+						20.6194,
+						-124.951,
+						100.935,
+						20.6233,
+						-0.112707,
+						138.839,
+						-76.4298,
+						-0.486808,
+						16.9703,
+						44.1111,
+						58.1697,
+						39.9015,
+						-4.61157,
+						-60.5137,
+						39.9007,
+						-4.60969,
+						-0.484474,
+						58.127,
+						-51.2784
+					],
+					"uvs": [
+						[
+							0.625,
+							0,
+							0.625,
+							0.149128,
+							0.375,
+							0.149128,
+							0.375,
+							0.75,
+							0.625,
+							0.75,
+							0.625,
+							1,
+							0.125,
+							0,
+							0.375,
+							0,
+							0.125,
+							0.149128,
+							0.375,
+							0.182962,
+							0.625,
+							0.182962,
+							0.125,
+							0.182962,
+							0.375,
+							1,
+							0.375,
+							0.600872,
+							0.875,
+							0,
+							0,
+							0,
+							0.035345,
+							0.01483,
+							0.361149,
+							0.168157,
+							0.046496,
+							0.014614,
+							0.560026,
+							0.168368
+						]
+					]
+				},
+				"uuid": "3BE2F7D4-877C-371D-BC5B-4A944C1A4FF3"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.663663,
+						-0.746734,
+						-0.044043
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "MeshGeometry.3",
+					"vertices": [
+						-78.0807,
+						252.328,
+						-42.6817,
+						-106.88,
+						363.698,
+						-2.4509,
+						-77.7804,
+						409.835,
+						-33.6587,
+						-54.9781,
+						269.725,
+						-54.1213
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "CA4FE4A4-BE96-35EB-8310-FB491BD13F35"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.673086,
+						0.737263,
+						0.058304
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "Mesh.001Geometry.3",
+					"vertices": [
+						104.901,
+						246.001,
+						-22.6581,
+						126.001,
+						316.005,
+						6.98555,
+						109.438,
+						335.124,
+						-11.4685,
+						91.1422,
+						251.389,
+						-29.9491
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "FAA788E9-6CAA-31D6-ADF1-57EBCB596B7D"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.737114,
+						0.627698,
+						0.250317
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "group1 pasted__group10 group pasted__polySurface7Geometry.3",
+					"vertices": [
+						63.2255,
+						-0.1974,
+						93.5468,
+						149.738,
+						38.9238,
+						17.152,
+						159.812,
+						100.868,
+						20.4271,
+						70.6304,
+						27.5391,
+						105.509
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "B389414F-72F4-3F5B-9108-E308EFC4C7AD"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.737114,
+						-0.627698,
+						-0.250318,
+						0.609255,
+						0.790903,
+						-0.057274
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0,
+						41,
+						2,
+						1,
+						4,
+						5,
+						4,
+						5,
+						6,
+						7,
+						1,
+						1,
+						1,
+						1
+					],
+					"metadata": {
+						"normals": 2,
+						"faces": 2,
+						"vertices": 6,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "pasted__group1 pasted__pasted__group10 pasted__group group2.016",
+					"vertices": [
+						-55.2171,
+						48.6826,
+						119.504,
+						-171.588,
+						101.306,
+						16.7425,
+						-185.139,
+						184.629,
+						21.1479,
+						-65.1776,
+						85.9918,
+						135.594,
+						-109.396,
+						114.293,
+						-32.1061,
+						-122.948,
+						197.617,
+						-27.7007
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25,
+							0,
+							0,
+							1,
+							0,
+							1,
+							1,
+							0,
+							1
+						]
+					]
+				},
+				"uuid": "ECC09C34-BCE3-3E71-9F4E-26D5A19D441E"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.737114,
+						0.627697,
+						0.250318,
+						0.609256,
+						-0.790903,
+						0.057274
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0,
+						41,
+						2,
+						1,
+						4,
+						5,
+						4,
+						5,
+						6,
+						7,
+						1,
+						1,
+						1,
+						1
+					],
+					"metadata": {
+						"normals": 2,
+						"faces": 2,
+						"vertices": 6,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "pasted__pasted__pasted__pasted__polySurface3 pasted__pasted.003",
+					"vertices": [
+						52.0818,
+						93.4014,
+						150.024,
+						208.565,
+						164.164,
+						11.8414,
+						226.788,
+						276.209,
+						17.7654,
+						65.4757,
+						143.571,
+						171.661,
+						124.936,
+						181.628,
+						-53.8454,
+						143.159,
+						293.673,
+						-47.9214
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25,
+							0,
+							0,
+							1,
+							0,
+							1,
+							1,
+							0,
+							1
+						]
+					]
+				},
+				"uuid": "FA8B9158-FF1E-36B9-B016-F68A032CE91E"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.737114,
+						0.627698,
+						0.250318,
+						0.609255,
+						-0.790903,
+						0.057274
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0,
+						41,
+						2,
+						1,
+						4,
+						5,
+						4,
+						5,
+						6,
+						7,
+						1,
+						1,
+						1,
+						1
+					],
+					"metadata": {
+						"normals": 2,
+						"faces": 2,
+						"vertices": 6,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "Mesh.004Geometry.3",
+					"vertices": [
+						55.2171,
+						48.6826,
+						119.504,
+						171.588,
+						101.306,
+						16.7425,
+						185.139,
+						184.629,
+						21.1479,
+						65.1776,
+						85.9918,
+						135.594,
+						109.396,
+						114.293,
+						-32.1061,
+						122.948,
+						197.617,
+						-27.7007
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25,
+							0,
+							0,
+							1,
+							0,
+							1,
+							1,
+							0,
+							1
+						]
+					]
+				},
+				"uuid": "926F542F-D4E6-345E-ADB8-709FD6AA362B"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.737114,
+						-0.627697,
+						-0.250318,
+						0.609256,
+						0.790903,
+						-0.057274
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0,
+						41,
+						2,
+						1,
+						4,
+						5,
+						4,
+						5,
+						6,
+						7,
+						1,
+						1,
+						1,
+						1
+					],
+					"metadata": {
+						"normals": 2,
+						"faces": 2,
+						"vertices": 6,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "pasted__pasted__pasted__polySurface3 pasted__group1 pasted_.003",
+					"vertices": [
+						-52.0818,
+						93.4014,
+						150.024,
+						-208.565,
+						164.164,
+						11.8414,
+						-226.788,
+						276.209,
+						17.7654,
+						-65.4757,
+						143.571,
+						171.661,
+						-124.936,
+						181.628,
+						-53.8454,
+						-143.159,
+						293.673,
+						-47.9214
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25,
+							0,
+							0,
+							1,
+							0,
+							1,
+							1,
+							0,
+							1
+						]
+					]
+				},
+				"uuid": "4F0D6C36-49FE-399B-BE18-86D4060568DE"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.000092,
+						0.311899,
+						-0.950102,
+						0.012452,
+						0.313486,
+						-0.949492,
+						0.015198,
+						0.310984,
+						-0.950285,
+						0.000671,
+						0.249123,
+						-0.968444,
+						0.000458,
+						0.23899,
+						-0.971007,
+						-0.012391,
+						0.313456,
+						-0.949492,
+						-0.015015,
+						0.310984,
+						-0.950285,
+						0,
+						0.311899,
+						-0.950102,
+						-0.655551,
+						0.741511,
+						0.142882,
+						-0.599596,
+						-0.796274,
+						0.080204,
+						0.610039,
+						-0.788385,
+						0.079382,
+						0.662724,
+						0.734371,
+						0.146614,
+						-0.652721,
+						0.742357,
+						0.151202,
+						-0.594723,
+						-0.801717,
+						0.059616,
+						0.604512,
+						-0.794604,
+						0.056307,
+						0.664496,
+						0.733793,
+						0.141395,
+						-0.662593,
+						-0.736492,
+						-0.1362,
+						0.021237,
+						-0.333837,
+						0.942392,
+						0.019995,
+						-0.378847,
+						0.925243,
+						-0.020937,
+						-0.334081,
+						0.942312,
+						-0.019726,
+						-0.378637,
+						0.925335,
+						0.653296,
+						-0.743837,
+						-0.141108,
+						0.589004,
+						0.807937,
+						-0.017701,
+						-0.599462,
+						0.800274,
+						-0.014378
+					],
+					"faces": [
+						40,
+						0,
+						1,
+						2,
+						0,
+						1,
+						1,
+						0,
+						1,
+						2,
+						40,
+						4,
+						5,
+						2,
+						2,
+						2,
+						1,
+						3,
+						4,
+						2,
+						40,
+						4,
+						6,
+						7,
+						2,
+						3,
+						3,
+						3,
+						5,
+						6,
+						40,
+						0,
+						3,
+						7,
+						0,
+						0,
+						3,
+						0,
+						7,
+						6,
+						40,
+						8,
+						9,
+						22,
+						4,
+						5,
+						0,
+						8,
+						8,
+						8,
+						40,
+						23,
+						19,
+						10,
+						3,
+						2,
+						6,
+						9,
+						9,
+						9,
+						40,
+						10,
+						19,
+						18,
+						7,
+						8,
+						1,
+						10,
+						10,
+						10,
+						40,
+						11,
+						18,
+						22,
+						9,
+						1,
+						0,
+						11,
+						11,
+						11,
+						40,
+						3,
+						0,
+						2,
+						0,
+						0,
+						1,
+						7,
+						0,
+						2,
+						40,
+						1,
+						4,
+						2,
+						1,
+						2,
+						1,
+						1,
+						3,
+						2,
+						40,
+						5,
+						4,
+						7,
+						2,
+						2,
+						3,
+						4,
+						3,
+						6,
+						40,
+						6,
+						0,
+						7,
+						3,
+						0,
+						3,
+						5,
+						0,
+						6,
+						40,
+						23,
+						8,
+						22,
+						10,
+						4,
+						0,
+						12,
+						12,
+						12,
+						40,
+						8,
+						23,
+						10,
+						11,
+						3,
+						6,
+						13,
+						13,
+						13,
+						40,
+						11,
+						10,
+						18,
+						9,
+						7,
+						1,
+						14,
+						14,
+						14,
+						40,
+						9,
+						11,
+						22,
+						5,
+						9,
+						0,
+						15,
+						15,
+						15,
+						41,
+						20,
+						13,
+						14,
+						21,
+						12,
+						13,
+						12,
+						1,
+						16,
+						16,
+						16,
+						16,
+						41,
+						13,
+						12,
+						10,
+						11,
+						14,
+						15,
+						9,
+						5,
+						17,
+						17,
+						17,
+						17,
+						41,
+						14,
+						13,
+						11,
+						9,
+						13,
+						14,
+						5,
+						4,
+						18,
+						18,
+						18,
+						18,
+						41,
+						12,
+						15,
+						8,
+						10,
+						15,
+						16,
+						6,
+						9,
+						19,
+						19,
+						19,
+						19,
+						41,
+						15,
+						14,
+						9,
+						8,
+						16,
+						13,
+						4,
+						6,
+						20,
+						20,
+						20,
+						20,
+						41,
+						21,
+						14,
+						15,
+						17,
+						12,
+						16,
+						12,
+						0,
+						21,
+						21,
+						21,
+						21,
+						41,
+						16,
+						17,
+						15,
+						12,
+						12,
+						3,
+						12,
+						15,
+						22,
+						22,
+						22,
+						22,
+						41,
+						20,
+						16,
+						12,
+						13,
+						12,
+						2,
+						15,
+						14,
+						23,
+						23,
+						23,
+						23
+					],
+					"metadata": {
+						"normals": 24,
+						"faces": 24,
+						"vertices": 24,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "head.001Geometry.3",
+					"vertices": [
+						0,
+						196.591,
+						170.474,
+						168.155,
+						241.262,
+						27.6433,
+						134.154,
+						241.257,
+						29.0113,
+						-0.37005,
+						205.52,
+						143.276,
+						0,
+						288.26,
+						-107.204,
+						-0.37005,
+						278.855,
+						-68.9948,
+						-172.794,
+						241.262,
+						27.6433,
+						-138.605,
+						241.257,
+						29.0113,
+						-153.576,
+						129.217,
+						21.7193,
+						0,
+						75.3426,
+						147.111,
+						0.002754,
+						167.911,
+						-95.0843,
+						149.932,
+						129.217,
+						21.7193,
+						-0.154528,
+						158.364,
+						-70.106,
+						118.153,
+						128.926,
+						22.4809,
+						-0.166764,
+						85.3161,
+						121.016,
+						-121.353,
+						128.923,
+						22.489,
+						-0.37005,
+						278.855,
+						-68.9948,
+						-138.605,
+						241.257,
+						29.0113,
+						168.155,
+						241.262,
+						27.6433,
+						0,
+						288.26,
+						-107.204,
+						134.154,
+						241.257,
+						29.0113,
+						-0.37005,
+						205.52,
+						143.276,
+						0,
+						196.591,
+						170.474,
+						-172.794,
+						241.262,
+						27.6433
+					],
+					"uvs": [
+						[
+							0.375,
+							0.25,
+							0.625,
+							0.25,
+							0.625,
+							0.5,
+							0.375,
+							0.5,
+							0.125,
+							0.196409,
+							0.375,
+							0.196409,
+							0.625,
+							0.553591,
+							0.875,
+							0.196409,
+							0.875,
+							0.25,
+							0.625,
+							0.196409,
+							0.125,
+							0.25,
+							0.375,
+							0.553591,
+							0,
+							0,
+							0.196153,
+							0.223972,
+							0.380289,
+							0.202976,
+							0.591006,
+							0.224437,
+							0.577614,
+							0.484934
+						]
+					]
+				},
+				"uuid": "D1A3118F-251A-32E9-8B3D-A68E8A3E9561"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.663663,
+						0.746734,
+						0.044043
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "group1 pasted__group10 group pasted__polySurface8Geometry.3",
+					"vertices": [
+						78.0807,
+						252.328,
+						-42.6817,
+						106.88,
+						363.698,
+						-2.4509,
+						77.7804,
+						409.835,
+						-33.6587,
+						54.9781,
+						269.725,
+						-54.1213
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "E89CF6CC-66CB-3B6E-ADA1-42E185E62435"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						0.737114,
+						-0.627698,
+						-0.250317
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "pasted__group1 pasted__pasted__group10 pasted__group group2.017",
+					"vertices": [
+						-63.2255,
+						-0.1974,
+						93.5468,
+						-149.738,
+						38.9238,
+						17.152,
+						-159.812,
+						100.868,
+						20.4271,
+						-70.6304,
+						27.5391,
+						105.509
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "249B0553-DF65-37B0-A279-4640C2BDF94E"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.635116,
+						0.768059,
+						0.081929
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "group1 pasted__group10 group pasted__pasted__polySurface8Geomet",
+					"vertices": [
+						47.3137,
+						261.725,
+						-58.8856,
+						49.5941,
+						339.187,
+						-44.087,
+						28.6501,
+						349.495,
+						-64.9563,
+						32.6294,
+						261.916,
+						-66.3578
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "461E39F4-9BA4-3006-BA6B-F49EECEB732B"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.673086,
+						-0.737263,
+						-0.058304
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "pasted__group1 pasted__pasted__group10 pasted__group group2.015",
+					"vertices": [
+						-104.901,
+						246.001,
+						-22.6581,
+						-126.001,
+						316.005,
+						6.98555,
+						-109.438,
+						335.124,
+						-11.4685,
+						-91.1422,
+						251.389,
+						-29.9491
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "2E83CDAA-9BF6-3088-93E3-587981D96C2C"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.635116,
+						-0.768059,
+						-0.081929
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0
+					],
+					"metadata": {
+						"normals": 1,
+						"faces": 1,
+						"vertices": 4,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "pasted__group1 pasted__pasted__group10 pasted__group group2.018",
+					"vertices": [
+						-47.3137,
+						261.725,
+						-58.8856,
+						-49.5941,
+						339.187,
+						-44.087,
+						-28.6501,
+						349.495,
+						-64.9563,
+						-32.6294,
+						261.916,
+						-66.3578
+					],
+					"uvs": [
+						[
+							0.375,
+							0.196409,
+							0.625,
+							0.196409,
+							0.625,
+							0.25,
+							0.375,
+							0.25
+						]
+					]
+				},
+				"uuid": "ECCA7B44-5B48-3C7E-B247-F3CC0380C0E6"
+			},
+			{
+				"type": "Geometry",
+				"data": {
+					"normals": [
+						-0.395834,
+						0.871971,
+						0.288066,
+						0.428215,
+						0.857228,
+						0.285995
+					],
+					"faces": [
+						41,
+						0,
+						1,
+						2,
+						3,
+						0,
+						1,
+						2,
+						3,
+						0,
+						0,
+						0,
+						0,
+						41,
+						1,
+						4,
+						5,
+						2,
+						1,
+						4,
+						5,
+						2,
+						1,
+						1,
+						1,
+						1
+					],
+					"metadata": {
+						"normals": 2,
+						"faces": 2,
+						"vertices": 6,
+						"version": 3,
+						"generator": "io_three",
+						"uvs": 1
+					},
+					"name": "Mesh.002Geometry.3",
+					"vertices": [
+						-31.294,
+						67.7036,
+						169.217,
+						0.00275,
+						41.7747,
+						199.914,
+						0,
+						188.342,
+						223.277,
+						-59.3759,
+						160.188,
+						212.078,
+						27.6499,
+						67.7036,
+						169.217,
+						54.7374,
+						160.188,
+						212.078
+					],
+					"uvs": [
+						[
+							0.125,
+							0.196409,
+							0.375,
+							0.196409,
+							0.375,
+							0.25,
+							0.125,
+							0.25,
+							0.625,
+							0.196409,
+							0.625,
+							0.25
+						]
+					]
+				},
+				"uuid": "718373D8-8B57-3C09-8003-B4D7E4064E7C"
+			}
+		],
+		"materials": [],
+		"textures": [],
+		"images": [],
+		"object": {
+			"type": "Scene",
+			"children": [
+				{
+					"name": "feather_1",
+					"uuid": "065618CD-1784-3A91-932A-E04BAE140D7B",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0,
+						-2.19707,
+						0,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "2E83CDAA-9BF6-3088-93E3-587981D96C2C"
+				},
+				{
+					"name": "feather_2",
+					"uuid": "85F841DE-6B5D-3A82-84EE-56538BA7C2D8",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0,
+						-2.19707,
+						0,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "CA4FE4A4-BE96-35EB-8310-FB491BD13F35"
+				},
+				{
+					"name": "feather_3",
+					"uuid": "4FD2AF0A-06BB-3E44-8F4E-B7A7E8676D21",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "ECCA7B44-5B48-3C7E-B247-F3CC0380C0E6"
+				},
+				{
+					"name": "feather_4",
+					"uuid": "5ED464F1-7C7A-35E5-A2A3-4347DEBCDEFF",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "461E39F4-9BA4-3006-BA6B-F49EECEB732B"
+				},
+				{
+					"name": "feather_5",
+					"uuid": "82C92C45-1B1D-3981-BEFB-8E0AEF1260E7",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "E89CF6CC-66CB-3B6E-ADA1-42E185E62435"
+				},
+				{
+					"name": "feather_6",
+					"uuid": "ABE500CB-CC19-3BEE-B0D5-5817B50050CD",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "FAA788E9-6CAA-31D6-ADF1-57EBCB596B7D"
+				},
+				{
+					"name": "head_bottom",
+					"uuid": "4DFCB24B-E69B-301E-855A-440D94081E9B",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						-0.25663,
+						-1.10321,
+						-0.262381,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "3BE2F7D4-877C-371D-BC5B-4A944C1A4FF3"
+				},
+				{
+					"name": "head_top",
+					"uuid": "0A1B141C-1F3F-3933-9659-9680B7F74F0A",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						-0.25663,
+						-1.10321,
+						-0.262381,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "D1A3118F-251A-32E9-8B3D-A68E8A3E9561"
+				},
+				{
+					"name": "nose",
+					"uuid": "145680C0-7DAE-3F57-9E8C-C382655728F3",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0,
+						-2.19707,
+						-0.196079,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "718373D8-8B57-3C09-8003-B4D7E4064E7C"
+				},
+				{
+					"name": "paint_1",
+					"uuid": "20BA297E-BC23-398E-A8B0-A047643711AF",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0,
+						-2.19707,
+						0,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "4F0D6C36-49FE-399B-BE18-86D4060568DE"
+				},
+				{
+					"name": "paint_2",
+					"uuid": "D39E39F0-A1AB-3124-A57F-88EE734BC4AE",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0,
+						-2.19707,
+						0,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "ECC09C34-BCE3-3E71-9F4E-26D5A19D441E"
+				},
+				{
+					"name": "paint_3",
+					"uuid": "84902A2C-9D60-3731-B9F2-B917A41E0096",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0,
+						-2.19707,
+						0,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "249B0553-DF65-37B0-A279-4640C2BDF94E"
+				},
+				{
+					"name": "paint_4",
+					"uuid": "7738509F-3CD8-3BDA-84D2-F61DDEEDBCC6",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "FA8B9158-FF1E-36B9-B016-F68A032CE91E"
+				},
+				{
+					"name": "paint_5",
+					"uuid": "E1623226-3508-3FF2-BA30-C77BB2258F1D",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "926F542F-D4E6-345E-ADB8-709FD6AA362B"
+				},
+				{
+					"name": "paint_6",
+					"uuid": "3BC56DB4-D50F-311C-B750-1E7C64A047B5",
+					"matrix": [
+						-1,
+						0,
+						0,
+						0,
+						0,
+						1,
+						0,
+						0,
+						0,
+						0,
+						-1,
+						0,
+						0.01657,
+						-2.19707,
+						-0.000498,
+						1
+					],
+					"visible": true,
+					"type": "Mesh",
+					"castShadow": true,
+					"receiveShadow": true,
+					"geometry": "B389414F-72F4-3F5B-9108-E308EFC4C7AD"
+				}
+			],
+			"matrix": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1
+			],
+			"uuid": "30178238-F965-4613-9EA8-B9510BE87E29"
+		}
+	};
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Freq = __webpack_require__(37);
+	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Frequencies');
 
 	var audioContext, analyser, source, stream, freqs;
@@ -49628,7 +53007,7 @@
 	}
 
 /***/ },
-/* 27 */
+/* 37 */
 /***/ function(module, exports) {
 
 	// Overwrite properties of one object with another
@@ -49886,17 +53265,17 @@
 	module.exports = Freq;
 
 /***/ },
-/* 28 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(13);
-	var audioAnalyser = __webpack_require__(26);
-	var gui = __webpack_require__(16);
+	var threeEnv = __webpack_require__(17);
+	var audioAnalyser = __webpack_require__(36);
+	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Background');
 	var shaders = {
-		vertex: __webpack_require__(21),
-		fragment: __webpack_require__(29)
+		vertex: __webpack_require__(25),
+		fragment: __webpack_require__(39)
 	}
 
 	var swampMaterial, swampGeometry, swampMesh;
@@ -49964,20 +53343,20 @@
 	}
 
 /***/ },
-/* 29 */
+/* 39 */
 /***/ function(module, exports) {
 
-	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);\n}"
+	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);\n}"
 
 /***/ },
-/* 30 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(11);
-	var threeEnv = __webpack_require__(13);
+	var TWEEN = __webpack_require__(15);
+	var threeEnv = __webpack_require__(17);
 
-	var gui = __webpack_require__(16);
+	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Leaves');
 
 	var loader = new THREE.JSONLoader();
@@ -49985,16 +53364,23 @@
 	var particles = [];
 	var numLeafs = 50;
 
+	var zLimit = 2000;
+
 	var radius = window.innerHeight/3;
 
 	var leafGroup = new THREE.Object3D();
 	threeEnv.scene.add(leafGroup);
 
 	var params = {
-		groupRotSpeed: 0.01,
-		speed: 1,
+		groupRotSpeed: 0.00,
+		speed: 0,
+		leafOpacity: 1,
+		active: false,
 		gotoCircle: function() {
 			gotoCircle();
+		},
+		resetLeaves: function() {
+			resetAll();
 		}
 	}
 
@@ -50003,6 +53389,9 @@
 	guiFolder.add(params, 'speed', -10, 10);
 	guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
 	guiFolder.add(params, 'gotoCircle');
+	guiFolder.add(params, 'resetLeaves');
+	guiFolder.add(params, 'active');
+	guiFolder.add(params, 'leafOpacity', 0, 1);
 
 
 	loader.load('leaf.js', function ( geometry ) {
@@ -50013,7 +53402,8 @@
 					color: 0x73be73,
 					// transparent: true,
 					// blending: THREE.AdditiveBlending,
-					shading: THREE.FlatShading
+					shading: THREE.FlatShading,
+					transparent: true
 				});
 
 			
@@ -50032,17 +53422,22 @@
 		this.mesh = leafModel.clone();
 
 		this.index = i;
-		this.mesh.position.x = (Math.random() * 1000) - 500;
-		this.mesh.position.y = (Math.random() * 1000) - 500;
-		this.mesh.position.z = (Math.random() * 1000) - 500;
-
-		this.vz = Math.random() + 0.5;
-
-		this.mesh.rotation.x = Math.random() * Math.PI*2;
-		this.mesh.rotation.y = Math.random() * Math.PI*2;
-		this.mesh.rotation.z = Math.random() * Math.PI*2;
-
+		
 		leafGroup.add(this.mesh);
+
+		this.reset = function() {
+
+			that.mesh.position.x = (Math.random() * 1000) - 500;
+			that.mesh.position.y = (Math.random() * 1000) - 500;
+			that.mesh.position.z = (Math.random() * zLimit) - (zLimit*1.3);
+
+			that.vz = Math.random() + 0.5;
+
+			that.mesh.rotation.x = Math.random() * Math.PI*2;
+			that.mesh.rotation.y = Math.random() * Math.PI*2;
+			that.mesh.rotation.z = Math.random() * Math.PI*2;
+
+		}
 
 		this.circleTween = function() {
 
@@ -50083,7 +53478,6 @@
 			});
 
 		}
-
 		
 	}
 
@@ -50105,6 +53499,8 @@
 			
 		}
 
+		resetAll();
+
 	}
 
 	var draw = function(timePassed) {
@@ -50115,16 +53511,19 @@
 
 			var particle = particles[i];
 
+			particle.mesh.material.opacity = params.leafOpacity;
 			particle.mesh.position.z += particle.vz * params.speed;
 			particle.mesh.rotation.x += 0.01;
 			particle.mesh.rotation.y += 0.01;
 			particle.mesh.rotation.z += 0.01;
 
-			if (particle.mesh.position.z > 500) {
+
+
+			if (params.active && particle.mesh.position.z > 500 && params.speed > 0) {
 				particle.mesh.position.z = -500;
 			}
 			
-			if (particle.mesh.position.z < -500) {
+			if (params.active && particle.mesh.position.z < -500 && params.speed < 0) {
 				particle.mesh.position.z = 500;
 			}
 
@@ -50132,278 +53531,12 @@
 
 	}
 
-	module.exports = {
-		draw: draw
-	}
+	var resetAll = function() {
 
-
-
-
-
-/***/ },
-/* 31 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(11);
-	var threeEnv = __webpack_require__(13);
-
-	var gui = __webpack_require__(16);
-	var guiFolder = gui.addFolder('Mask');
-
-	var loader = new THREE.XHRLoader();
-	loader.setResponseType( 'json' );
-
-	var mainMask;
-
-	var light;
-
-	var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
-
-	threeEnv.scene.add(cubeCamera);
-
-	var params = {
-		sweep: function() {
-			mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
-			mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
-		},
-		randomFlash: function() {
-			mainMask.randomFlash('flash');
-		},
-		randomEdgeFlash: function() {
-			mainMask.randomFlash('edges');
-		}
-	}
-
-	guiFolder.add(params, 'randomFlash');
-	guiFolder.add(params, 'randomEdgeFlash');
-	guiFolder.add(params, 'sweep');
-
-	var outerMaterial = new THREE.MeshPhongMaterial({
-		transparent: true,
-		opacity: 0.0,
-		shininess: 50,
-		side: THREE.DoubleSide,
-		color: 0x2F8582
-	});
-
-	var flashMaterial = new THREE.MeshBasicMaterial({
-		transparent: true,
-		opacity: 0,
-		side: THREE.DoubleSide,
-		color: 0xffffff,
-		fog: false
-	});
-
-	var coreMaterial = new THREE.MeshPhongMaterial( { 
-		color: 0x555555, 
-		specular: 0x111111,
-		shininess: 50,
-		shading: THREE.FlatShading,
-		envMap: cubeCamera.renderTarget.texture,
-		combine: THREE.AddOperation
-	} );
-
-	var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
-
-
-	var modelIds = {
-		outer: [
-			'feather_1',
-			'feather_2',
-			'feather_3',
-			'feather_4',
-			'feather_5',
-			'feather_6',
-			'paint_1',
-			'paint_2',
-			'paint_3',
-			'paint_4',
-			'paint_5',
-			'paint_6',
-			'nose'
-		],
-		paintLeft: [
-			'paint_1',
-			'paint_2',
-			'paint_3'
-		],
-		paintRight: [
-			'paint_4',
-			'paint_5',
-			'paint_6'
-		]
-	}
-
-	loader.load('mask.json', function (data) {
-
-		var loader = new THREE.ObjectLoader();
-
-		var mask = loader.parse(data)
-
-		mainMask = new Mask(mask)
-
-	});
-
-
-	var Mask = function(mask) {
-
-		var that = this;
-
-		var oclMask = new THREE.Object3D();
-
-		var outerObjs = [];
-
-		mask.position.y = -100;
-		oclMask.position.y = -100;
-
-		var headTop = mask.getObjectByName( 'head_top' );
-		var headBottom = mask.getObjectByName( 'head_bottom' );
-
-		// Give main head material
-		headTop.material = coreMaterial;
-		headBottom.material = coreMaterial;
-
-		var oclHeadTop = headTop.clone();
-		oclHeadTop.material = oclMaterial;
-
-		var oclHeadBottom = headBottom.clone();
-		oclHeadBottom.material = oclMaterial;
-
-		oclMask.add(oclHeadTop);
-		oclMask.add(oclHeadBottom);
-
-
-		for (var i = 0; i < modelIds.outer.length; i++) {
-
-			var mesh = mask.getObjectByName( modelIds.outer[i] );
-
-			// Give outer decorations materials
-			mesh.material = outerMaterial;
-
-
-			// Give each outer decoration a "flash" clone
-			var flash = mesh.clone();
-
-			flash.name = "flash";
-
-			mesh.add(flash);
-
-			flash.rotation.x = 0;
-			flash.rotation.y = 0;
-			flash.rotation.z = 0;
-			flash.position.z = 0.1;
-			flash.material = flashMaterial.clone();
-
-			var edges = new THREE.EdgesHelper( flash, 0xffffff, 55 );
-
-			edges.matrix = flash.matrix;
-			edges.matrixAutoUpdate = true;
-			edges.position.z = 0.2;
-			edges.name = "edges";
-			mesh.add(edges);
-
-			edges.material.lineWidth = 10;
-			edges.material.transparent = true;
-			edges.material.opacity = 0;
-
+		for (var i = 0; i < numLeafs; i++) {
+			particles[i].reset();
 		}
 
-
-		var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
-
-		light = new THREE.PointLight( 0xffffff, 1, 0 );
-
-		light.position.set(20,40,50);
-
-		mask.add(light);
-
-		light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
-
-		this.flashOuter = function(name, type) {
-
-			if (!type) {
-				type = 'flash';
-			}
-
-			var mesh = mask.getObjectByName( name );
-
-			var material = mesh.getObjectByName( type ).material;
-
-			var target = {
-				opacity: 1
-			}
-
-			material.opacity = target.opacity;
-
-			var tween = new TWEEN.Tween(target)
-		    .to({opacity: 0}, 800)
-		    .easing(TWEEN.Easing.Quintic.Out)
-		    .start();
-
-		    tween.onUpdate(function(){
-			    material.opacity = target.opacity;
-			});
-
-		}
-
-		this.randomFlash = function(type) {
-			that.flashOuter(modelIds.outer[parseInt(Math.random() * modelIds.outer.length)], type);
-		}
-
-		this.sweepFlash = function(array, type, reverse) {
-
-			if (reverse) {
-				var array = array.slice().reverse();
-			}
-
-			function timedFlash(i) {
-
-				setTimeout(function() {
-
-					that.flashOuter(array[i], type);
-
-				}, 50 * i);
-
-			}
-
-			for (var i = 0; i < array.length; i++) {
-
-				timedFlash(i);
-
-			}
-
-
-		}
-
-		threeEnv.scene.add(mask);
-		threeEnv.oclScene.add(oclMask);
-
-		return mask;
-	}
-
-
-	var draw = function(time) {
-
-		if (mainMask) {
-
-			var time = time * 0.001;
-
-		//	mainMask.mesh.visible = false;
-
-
-			light.position.x = Math.sin( time * 0.7 ) * 150;
-			light.position.y = Math.cos( time * 0.5 ) * 150;
-			light.position.z = Math.cos( time * 0.3 ) * 150;
-
-			cubeCamera.position.copy( mainMask.position );
-
-			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
-
-		//	mainMask.mesh.visible = true;
-
-		}
-		
 	}
 
 	module.exports = {
@@ -50415,22 +53548,29 @@
 
 
 /***/ },
-/* 32 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(13);
-	var gui = __webpack_require__(16).addFolder('Ribbons');
+	var threeEnv = __webpack_require__(17);
+	var gui = __webpack_require__(20).addFolder('Ribbons');
 
 	var params = {
 		ribbonCount: 3,
 		ribbonFreq: 50,
-		ribbonRot: 0.005
+		ribbonRot: 0.005,
+		ribbonOpacity: 1,
+		ribbonsActive: false,
+		startRibbons: function() {
+			params.ribbonsActive = true;
+		}
 	}
 
 	gui.add(params, 'ribbonCount', 0, 20);
 	gui.add(params, 'ribbonFreq', 0, 200);
 	gui.add(params, 'ribbonRot', 0, 0.03);
+	gui.add(params, 'ribbonOpacity', 0, 1);
+	gui.add(params, 'ribbonsActive');
 
 	var ribbon;
 
@@ -50444,11 +53584,11 @@
 
 	var ribbons = [];
 
-	var radius = 200;
+	var radius = 0;
 
 	threeEnv.scene.add(group);
 
-	group.position.z = -100;
+	group.position.z = -150;
 
 	var Ribbon = function(id) {
 
@@ -50482,7 +53622,8 @@
 		var material = new THREE.MeshLambertMaterial({
 			//wireframe: true,
 			side: THREE.DoubleSide,
-			shading: THREE.FlatShading
+			shading: THREE.FlatShading,
+			transparent: true
 		});
 			
 		var mesh = new THREE.Mesh(geom, material);
@@ -50510,14 +53651,21 @@
 			// Ensure first part of ribbon is pointing away from center
 			if (i == 0) {
 				sequence[i].dy = 0;
+				sequence[i].dz = 0.5;
+				sequence[i].dx = 1.5;
 			}
 
 			if (i !== sequenceLength-1) {
-				sequence[i].nextZ = (i+1) * 100;
+
+				sequence[i].nextZ = 100 + (i * 100);
+				
+				
 			}
 		}
 
 		this.update = function() {
+
+			material.opacity = params.ribbonOpacity;
 
 			var sequenceItem = sequence[sequenceIndex];
 
@@ -50597,7 +53745,7 @@
 
 		mainTick++;
 
-		if (mainTick > params.ribbonFreq) {
+		if (params.ribbonsActive && mainTick > params.ribbonFreq) {
 
 			for (var i = 0; i < params.ribbonCount; i++) {
 				fireRibbon();
@@ -50612,39 +53760,93 @@
 	}
 
 	module.exports = {
-		draw: draw
+		draw: draw,
+		params: params
 	}
 
 /***/ },
-/* 33 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(26);
+	var audioAnalyser = __webpack_require__(36);
 	var bpm = 115;
-	var ppb = 24; // pulses per beat
-	var spp = (60/(bpm*ppb)); // seconds per pulse
+	var ppq = 480; // pulses per quarter note (per beat)
+	var spp = (60/(bpm*ppq)); // seconds per pulse
 	var marker = audioAnalyser.getTime();
 	var now;
 
-	var cowbell = __webpack_require__(34);
+	var cowbell = __webpack_require__(43);
 	var cowbellIndex = 0;
+	var timelineIndex = 0;
 
 	var tick = 0;
+
+
+	var mask = __webpack_require__(31);
+	var ribbons = __webpack_require__(41);
+	var camera = __webpack_require__(30);
+
+	// Get time sig in seconds of specified bar / beat
+	var barBeat = function(bar, beat) {
+
+		var beats = (bar * 4) + beat;
+		return beats * (60/bpm);
+
+	}
+
+	var timeline = [
+		{
+			time: 25,
+			event: mask.params.enterScene
+		},
+		{
+			time: barBeat(24, 0),
+			event: camera.params.startOrbit
+		},
+		{
+			time: barBeat(28, 0),
+			event: camera.params.startOrbit
+		},
+		{
+			time: barBeat(32, 0),
+			event: camera.params.startOrbit
+		},
+		{
+			time: barBeat(36, 0),
+			event: camera.params.startOrbit
+		},
+		{
+			time: barBeat(40, 0),
+			event: camera.params.stopOrbit
+		},
+		{
+			time: barBeat(40, 0),
+			event: ribbons.params.startRibbons
+		}
+	]
 
 	var pulse = function() {
 		tick++;
 
 		// Every beat
-		if (tick % 24 == 0) {
+		if (tick % ppq == 0) {
 
 		}
 	}
 
-
 	var checkChannels = function(time) {
 
-		while (time >= cowbell[cowbellIndex]) {
-			// console.log(time);
+		// EVENTS
+		while (timeline[timelineIndex] && time >= timeline[timelineIndex].time) {
+			
+			timeline[timelineIndex].event();
+			timelineIndex++;
+		}
+
+
+		// MIDI
+		while (time >= cowbell[cowbellIndex] * spp) {
+			//console.log('b');
 			cowbellIndex++;
 		}
 	}
@@ -50652,7 +53854,7 @@
 	var run = function() {
 		now = audioAnalyser.getTime();
 
-		checkChannels(now * 1000);
+		checkChannels(now);
 				
 		// Check to see if time passed is more than time per pulse
 		var result = now - marker;
@@ -50672,7 +53874,7 @@
 	}
 
 /***/ },
-/* 34 */
+/* 43 */
 /***/ function(module, exports) {
 
 	module.exports = [
