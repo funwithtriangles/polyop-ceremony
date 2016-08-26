@@ -11,7 +11,9 @@ var timelineIndex = 0;
 
 var tick = 0;
 
+
 var mask = require('./mask');
+var ribbons = require('./ribbons');
 var camera = require('./camera');
 
 // Get time sig in seconds of specified bar / beat
@@ -46,6 +48,10 @@ var timeline = [
 	{
 		time: barBeat(40, 0),
 		event: camera.params.stopOrbit
+	},
+	{
+		time: barBeat(40, 0),
+		event: ribbons.params.startRibbons
 	}
 ]
 

@@ -7,7 +7,10 @@ var params = {
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
 	ribbonOpacity: 1,
-	ribbonsActive: false
+	ribbonsActive: false,
+	startRibbons: function() {
+		params.ribbonsActive = true;
+	}
 }
 
 gui.add(params, 'ribbonCount', 0, 20);
@@ -204,5 +207,6 @@ var draw = function(timePassed) {
 }
 
 module.exports = {
-	draw: draw
+	draw: draw,
+	params: params
 }
