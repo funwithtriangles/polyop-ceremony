@@ -14,8 +14,6 @@ var zReset = 500;
 
 lookAt.y += 100;
 
-console.log(mask);
-
 var radius = 250;
 var constant = 0.0002;
 

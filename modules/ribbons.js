@@ -18,6 +18,9 @@ var params = {
 		} else {
 			params.waveActive = false
 		}
+	},
+	stopRibbons: function(wave) {
+		params.ribbonsActive = false;
 	}
 }
 

@@ -54,9 +54,21 @@ var timeline = [
 		event: ribbons.params.startRibbons
 	},
 	{
+		time: barBeat(40, 0),
+		event: function() {
+			mask.params.startDancing(10)
+		}
+	},
+	{
 		time: barBeat(56, 0),
 		event: function() {
-			ribbons.params.startRibbons(true)
+			mask.params.startDancing(2)
+		}
+	},
+	{
+		time: barBeat(56, 0),
+		event: function() {
+			ribbons.params.stopRibbons()
 		}
 	}
 ]
@@ -75,7 +87,7 @@ var checkChannels = function(time) {
 
 	// MIDI
 	while (time >= cowbell[cowbellIndex] * clock.params.spp) {
-		//console.log('b');
+		camera.params.startOrbit();
 		cowbellIndex++;
 	}
 }

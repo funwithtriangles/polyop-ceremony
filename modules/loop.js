@@ -21,6 +21,7 @@ var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
 var mask = require('./mask');
+var crystals = require('./crystals');
 var ribbons = require('./ribbons');
 var clock = require('./clock');
 var sequencer = require('./sequencer');
@@ -58,6 +59,7 @@ function loop() {
 	background.draw(timePassed);
 	leaves.draw(timePassed);
 	mask.draw(timePassed);
+	crystals.draw(timePassed);
 	ribbons.draw(timePassed);
 	camera.draw(timePassed);
 

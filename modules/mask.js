@@ -46,6 +46,13 @@ var params = {
 
 
 	},
+	startDancing: function(power) {
+
+		console.log('dng');
+		params.dancing = true;
+		params.dancePower = power;
+
+	},
 	defaultPos: function() {
 		params.zPos = 0;
 	},
@@ -91,7 +98,6 @@ var shader = THREE.ShaderLib[ "phong" ];
 
 var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
-console.log(uniforms);
 
 uniforms.diffuse.value = new THREE.Color( 0x555555 );
 uniforms.specular.value = new THREE.Color( 0x111111 );
@@ -99,6 +105,7 @@ uniforms.shininess.value = 50;
 uniforms.envMap.value = cubeCamera.renderTarget.texture;
 uniforms.explodeAmount = {type: "f", value: 0.0};
 uniforms.time = {type: "f", value: 0.0};
+uniforms.flipEnvMap.value = 1;
 
 guiFolder.add(uniforms.explodeAmount, 'value').min(0.0).max(10.0).name("explodeAmount");
 
@@ -108,7 +115,7 @@ var coreMaterial = new THREE.ShaderMaterial( {
 	lights: true,
 	fog: true,
 	shading: THREE.FlatShading,
-	side: THREE.DoubleSide,
+	// side: THREE.BackSide,
 	vertexShader:   shaders.explode,
 	fragmentShader: shaders.phong
 
@@ -214,7 +221,6 @@ var Mask = function(mask) {
 
 	}
 
-	console.log(displacement);
 	headTop.geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
 
 
@@ -361,7 +367,6 @@ var draw = function(time) {
 
 		var time = time * 0.001;
 
-	//	mainMask.mesh.visible = false;
 
 		mainMask.position.x = params.xPos;
 		oclMask.position.x = params.xPos;
@@ -379,14 +384,12 @@ var draw = function(time) {
 		light.position.z = Math.cos( time * 0.3 ) * 150;
 
 		cubeCamera.position.copy( mainMask.position );
+		cubeCamera.position.y += 150;
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 
-		
+	
 
-
-
-	//	mainMask.mesh.visible = true;
 
 	}
 	
