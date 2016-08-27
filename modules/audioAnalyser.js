@@ -27,6 +27,8 @@ var params = {
 	'a1': 0.01,
 	'b0': 0.1,
 	'b1': 0.5,
+	'c0': 0.5,
+	'c1': 1,
 	'smoothing': 0.85
 }
 
@@ -37,6 +39,8 @@ var a0 = guiFolder.add(params, 'a0', 0, 1);
 var a1 = guiFolder.add(params, 'a1', 0, 1);
 var b0 = guiFolder.add(params, 'b0', 0, 1);
 var b1 = guiFolder.add(params, 'b1', 0, 1);
+var c0 = guiFolder.add(params, 'c0', 0, 1);
+var c1 = guiFolder.add(params, 'c1', 0, 1);
 var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
 
 
@@ -56,6 +60,14 @@ b1.onChange(function(value) {
 	stream.bands[1].updateUpper(value);
 });
 
+c0.onChange(function(value) {
+	stream.bands[2].updateLower(value);
+});
+
+c1.onChange(function(value) {
+	stream.bands[2].updateUpper(value);
+});
+
 smoothing.onChange(function(value) {
 	stream.updateSmoothing(value);
 });
@@ -64,7 +76,8 @@ smoothing.onChange(function(value) {
 stream = analyser.createStream(source, {
 	bandVals: [
 		[ params['a0'], params['a1'] ],
-		[ params['b0'], params['b1'] ]
+		[ params['b0'], params['b1'] ],
+		[ params['c0'], params['c1'] ]
 	],
 	smoothing: params.smoothing
 });

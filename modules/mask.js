@@ -24,9 +24,8 @@ var explodeModifier = new THREE.ExplodeModifier();
 
 var tessellateModifier = new THREE.TessellateModifier( 8 );
 
-var light;
 
-var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
+var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 
 threeEnv.scene.add(cubeCamera);
 
@@ -273,17 +272,6 @@ var Mask = function(mask) {
 
 	}
 
-
-	var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
-
-	light = new THREE.PointLight( 0xffffff, 1, 0 );
-
-	light.position.set(20,40,50);
-
-	mask.add(light);
-
-	light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
-
 	this.flashOuter = function(name, type) {
 
 		if (!type) {
@@ -377,11 +365,6 @@ var draw = function(time) {
 		mainMask.position.z = params.zPos;
 		oclMask.position.z = params.zPos;
 
-		
-
-		light.position.x = Math.sin( time * 0.7 ) * 150;
-		light.position.y = Math.cos( time * 0.5 ) * 150;
-		light.position.z = Math.cos( time * 0.3 ) * 150;
 
 		cubeCamera.position.copy( mainMask.position );
 		cubeCamera.position.y += 150;
