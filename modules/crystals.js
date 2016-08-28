@@ -7,7 +7,7 @@ var guiFolder = gui.addFolder('Crystals');
 var audioAnalyser = require('./audioAnalyser');
 var clock = require('./clock');
 
-var numCrystals = 3;
+var numCrystals = 5;
 var crystals = [];
 
 var orbitAngle = 0;
@@ -27,6 +27,9 @@ var params = {
 	},
 	startSpeedFlux: function() {
 		params.speedFlux = 1;
+	},
+	changeSpeed: function(speed) {
+		params.speed = speed;
 	}
 }
 
@@ -74,7 +77,7 @@ var draw = function() {
 
 	// params.radius = ((clock.lfo.sineTwo + 2) / 4) + 1;
 
-	var speed = ((clock.lfo.sine * params.speedFlux) + 1) * params.speed;
+	var speed = ((clock.lfo.sine * params.speedFlux) + 0.8) * params.speed;
 
 	orbitAngle += speed;
 

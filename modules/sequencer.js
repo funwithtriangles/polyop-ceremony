@@ -54,9 +54,15 @@ var timeline = [
 		time: barBeat(40, 0),
 		event: camera.params.stopOrbit
 	},
+	// {
+	// 	time: barBeat(40, 0),
+	// 	event: ribbons.params.startRibbons
+	// },
 	{
 		time: barBeat(40, 0),
-		event: ribbons.params.startRibbons
+		event: function() {
+			crystals.params.changeSpeed(0.16)
+		}
 	},
 	{
 		time: barBeat(40, 0),
