@@ -10,9 +10,9 @@ var leafModel;
 var particles = [];
 var numLeafs = 50;
 
-var zLimit = 2000;
+var zLimit = 500;
 
-var radius = window.innerHeight/3;
+var radius = window.innerHeight/2.5;
 
 var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
@@ -21,7 +21,7 @@ var params = {
 	groupRotX: 0,
 	groupRotY: 0,
 	groupRotZ: 0.005,
-	speed: 0,
+	speed: -0.02,
 	leafOpacity: 1,
 	active: true,
 	gotoCircle: function() {
@@ -65,6 +65,10 @@ loader.load('leaf.js', function ( geometry ) {
 	}
 );
 
+function posNeg() {
+	return Math.random() > 0.5 ? 1 : -1;
+}
+
 var Leaf = function(i) {
 
 	var that = this;
@@ -77,9 +81,12 @@ var Leaf = function(i) {
 
 	this.reset = function() {
 
-		that.mesh.position.x = (Math.random() * 2000) - 1000;
-		that.mesh.position.y = (Math.random() * 2000) - 1000;
-		that.mesh.position.z = (Math.random() * 2000) - 1000;
+
+
+		that.mesh.position.x = (((Math.random() + 1.1) * 1000) - 1000) * posNeg();
+		that.mesh.position.y = (((Math.random() + 1.1) * 1000) - 1000) * posNeg();
+		that.mesh.position.z = (Math.random() * zLimit*2) - zLimit;
+
 
 		that.vz = Math.random() + 0.5;
 
@@ -171,12 +178,12 @@ var draw = function(timePassed) {
 
 
 
-		if (params.active && particle.mesh.position.z > 500 && params.speed > 0) {
-			particle.mesh.position.z = -500;
+		if (params.active && particle.mesh.position.z > zLimit && params.speed > 0) {
+			particle.mesh.position.z = -zLimit;
 		}
 		
-		if (params.active && particle.mesh.position.z < -500 && params.speed < 0) {
-			particle.mesh.position.z = 500;
+		if (params.active && particle.mesh.position.z < -zLimit && params.speed < 0) {
+			particle.mesh.position.z = zLimit;
 		}
 
 	}
