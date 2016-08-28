@@ -13,6 +13,7 @@ var mask = require('./mask');
 var ribbons = require('./ribbons');
 var crystals = require('./crystals');
 var leaves = require('./leaves');
+var background = require('./background');
 var camera = require('./camera');
 
 
@@ -62,6 +63,7 @@ var timeline = [
 			mask.params.startDancing(10)
 			leaves.params.speed = -0.2;
 			leaves.params.groupRotZ = 0.04;
+			background.params.scale = 4.0;
 		}
 	},
 	{
@@ -94,6 +96,24 @@ var timeline = [
 			leaves.params.gotoCircle();
 			leaves.params.groupRotZ = 0.08;
 			leaves.params.speed = -0.4;
+		}
+	},
+	{
+		time: barBeat(68, 0),
+		event: function() {
+			leaves.params.gotoCircle()
+		}
+	},
+	{
+		time: barBeat(72, 0),
+		event: function() {
+			leaves.params.gotoCircle()
+		}
+	},
+	{
+		time: barBeat(76, 0),
+		event: function() {
+			leaves.params.gotoCircle()
 		}
 	}
 ]

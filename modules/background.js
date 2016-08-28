@@ -13,7 +13,7 @@ var swampMaterial, swampGeometry, swampMesh;
 var params = {
 	bounceAmp: 0.5,
 	pulseAmp: 0.5,
-	scale: 1.0
+	scale: 2.0
 }
 
 // gui.remember(params);
@@ -59,7 +59,7 @@ swampMesh = new THREE.Mesh( swampGeometry, swampMaterial );
  
 threeEnv.bgScene.add( swampMesh );
 
-exports.draw = function(timePassed) {
+var draw = function(timePassed) {
 
 	var levelsData = audioAnalyser.getLevels().bands;
 
@@ -70,4 +70,9 @@ exports.draw = function(timePassed) {
     swampMaterial.uniforms[ 'pulse' ].value = levelsData[1].average * params.pulseAmp * 10;
     swampMaterial.uniforms[ 'scale' ].value = parseFloat(params.scale);
 
+}
+
+module.exports = {
+	draw: draw,
+	params: params
 }

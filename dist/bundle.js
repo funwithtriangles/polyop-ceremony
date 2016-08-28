@@ -418,12 +418,18 @@
 	var composers = __webpack_require__(19);
 	var lights = __webpack_require__(24);
 	var camera = __webpack_require__(30);
-	var audioAnalyser = __webpack_require__(36);
-	var background = __webpack_require__(38);
-	var leaves = __webpack_require__(40);
+	var audioAnalyser = __webpack_require__(33);
+	var background = __webpack_require__(39);
+	var leaves = __webpack_require__(41);
 	var mask = __webpack_require__(31);
-	var ribbons = __webpack_require__(41);
-	var sequencer = __webpack_require__(42);
+	var crystals = __webpack_require__(42);
+	var ribbons = __webpack_require__(43);
+	var clock = __webpack_require__(32);
+	var sequencer = __webpack_require__(44);
+	var performanceTest = __webpack_require__(46);
+
+	var lastLoop = new Date;
+
 
 	var stats;
 	var start, timePassed;
@@ -442,6 +448,11 @@
 
 	function loop() {
 
+		var thisLoop = new Date;
+	    var fps = 1000 / (thisLoop - lastLoop);
+	    lastLoop = thisLoop;
+	    performanceTest.check(fps);
+
 		stats.begin();
 
 		TWEEN.update();
@@ -450,24 +461,18 @@
 
 		audioAnalyser.updateLevels();
 
+		clock.run();
 		sequencer.run();
 
 		lights.draw(timePassed);
 		background.draw(timePassed);
 		leaves.draw(timePassed);
 		mask.draw(timePassed);
+		crystals.draw(timePassed);
 		ribbons.draw(timePassed);
 		camera.draw(timePassed);
 
-		// Auto clear must be on for the cubemap to render (mask reflections)
-	//	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
-
-		// Turn autoclear back off again before rendering top layer
-		// threeEnv.renderer.autoClear = false;
-
 		composers.draw(timePassed);
-
-	//	threeEnv.renderer.clearDepth();
 		
 		stats.end();
 
@@ -45313,9 +45318,6 @@
 	var copyPass;
 
 	var renderTargetParams = {
-		minFilter: THREE.LinearFilter, 
-		magFilter: THREE.LinearFilter, 
-		format: THREE.RGBAFormat, 
 		stencilBuffer: false
 	}
 
@@ -45388,6 +45390,9 @@
 
 	filmPass = new THREE.ShaderPass(THREE.FilmShader);
 
+	filmPass.uniforms.sCount.value = threeEnv.box.height;
+	filmPass.uniforms.nIntensity.value = 0.23;
+
 	filmPass.renderToScreen = true;
 	 
 	// Prepare the occlusion composer's render target
@@ -45454,6 +45459,10 @@
 
 	}
 
+	var changeQuality = function(quality) {
+		renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	}
+
 	vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
 	vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
 	vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
@@ -45471,7 +45480,8 @@
 
 
 	module.exports = {
-		draw: draw
+		draw: draw,
+		changeQuality: changeQuality
 	}
 
 
@@ -45482,6 +45492,8 @@
 	var dat = __webpack_require__(21);
 
 	var gui = new dat.GUI();
+
+	gui.close();
 
 	module.exports = gui;
 
@@ -50027,7 +50039,7 @@
 	var mask = __webpack_require__(31);
 
 	var camera = threeEnv.camera;
-	var target = mask.mask;
+	var target = mask.mask.mask;
 	var lookAt = target.position.clone();
 
 	var orbiting = false;
@@ -50036,8 +50048,6 @@
 	var zReset = 500;
 
 	lookAt.y += 100;
-
-	console.log(mask);
 
 	var radius = 250;
 	var constant = 0.0002;
@@ -50090,45 +50100,58 @@
 	var THREE = __webpack_require__(6);
 	var TWEEN = __webpack_require__(15);
 	var threeEnv = __webpack_require__(17);
+	var clock = __webpack_require__(32);
 
 	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Mask');
 
 
 	var shaders = {
-		explode: __webpack_require__(32),
-		simple: __webpack_require__(33),
-		phong: __webpack_require__(34)
+		explode: __webpack_require__(35),
+		simple: __webpack_require__(36),
+		phong: __webpack_require__(37)
 	}
 
-	var maskModel = __webpack_require__(35);
+	var maskModel = __webpack_require__(38);
 
 	var loader = new THREE.ObjectLoader();
 
-	var MainMask, oclMask;
+	var mainMask;
 
+	var maskYOffset = -100;
 
 	var explodeModifier = new THREE.ExplodeModifier();
 
 	var tessellateModifier = new THREE.TessellateModifier( 8 );
 
-	var light;
 
-	var cubeCamera = new THREE.CubeCamera( 1, 1000, 1024 );
+	var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 
 	threeEnv.scene.add(cubeCamera);
 
 	var params = {
-		zPos: -800,
+		zGroupPos: -800,
+		// zGroupPos:
+		dancing: false,
+		dancePower: 1,
 		enterScene: function() {
 
 		
 			var tween = new TWEEN.Tween(params)
-		    .to({zPos: 0}, 20000)
+		    .to({zGroupPos: 100}, 25000)
 		    .easing(TWEEN.Easing.Sinusoidal.Out)
 		    .start();
 
 
+		},
+		startDancing: function(power) {
+
+			params.dancing = true;
+			params.dancePower = power;
+
+		},
+		defaultPos: function() {
+			params.zGroupPos = 0;
 		},
 		sweep: function() {
 			mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
@@ -50142,10 +50165,12 @@
 		}
 	}
 
-	guiFolder.add(params, 'zPos').min(-800).max(800);
+	guiFolder.add(params, 'zGroupPos').min(-800).max(800);
 	guiFolder.add(params, 'enterScene');
 	guiFolder.add(params, 'randomEdgeFlash');
 	guiFolder.add(params, 'sweep');
+	guiFolder.add(params, 'dancing');
+	guiFolder.add(params, 'dancePower', 1, 20);
 
 
 
@@ -50170,7 +50195,6 @@
 
 	var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
-	console.log(uniforms);
 
 	uniforms.diffuse.value = new THREE.Color( 0x555555 );
 	uniforms.specular.value = new THREE.Color( 0x111111 );
@@ -50178,6 +50202,7 @@
 	uniforms.envMap.value = cubeCamera.renderTarget.texture;
 	uniforms.explodeAmount = {type: "f", value: 0.0};
 	uniforms.time = {type: "f", value: 0.0};
+	uniforms.flipEnvMap.value = 1;
 
 	guiFolder.add(uniforms.explodeAmount, 'value').min(0.0).max(10.0).name("explodeAmount");
 
@@ -50187,7 +50212,7 @@
 		lights: true,
 		fog: true,
 		shading: THREE.FlatShading,
-		side: THREE.DoubleSide,
+		// side: THREE.BackSide,
 		vertexShader:   shaders.explode,
 		fragmentShader: shaders.phong
 
@@ -50253,12 +50278,16 @@
 		var that = this;
 
 
-		oclMask = new THREE.Object3D();
+		that.group = new THREE.Object3D();
+		that.oclGroup = new THREE.Object3D();
+		that.mask = mask;
+
+		that.oclMask = new THREE.Object3D();
 
 		var outerObjs = [];
 
-		mask.position.y = -100;
-		oclMask.position.y = -100;
+		mask.position.y = maskYOffset;
+		that.oclMask.position.y = maskYOffset;
 
 		var headTop = mask.getObjectByName( 'head_top' );
 		var headBottom = mask.getObjectByName( 'head_bottom' );
@@ -50293,7 +50322,6 @@
 
 		}
 
-		console.log(displacement);
 		headTop.geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
 
 
@@ -50307,8 +50335,8 @@
 		var oclHeadBottom = headBottom.clone();
 		oclHeadBottom.material = oclMaterial;
 
-		oclMask.add(oclHeadTop);
-		oclMask.add(oclHeadBottom);
+		that.oclMask.add(oclHeadTop);
+		that.oclMask.add(oclHeadBottom);
 
 
 		for (var i = 0; i < modelIds.outer.length; i++) {
@@ -50345,17 +50373,6 @@
 			edges.material.opacity = 0;
 
 		}
-
-
-		var sphere = new THREE.SphereGeometry( 0.5, 16, 8 );
-
-		light = new THREE.PointLight( 0xffffff, 1, 0 );
-
-		light.position.set(20,40,50);
-
-		mask.add(light);
-
-		light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xff0040 } ) ) );
 
 		this.flashOuter = function(name, type) {
 
@@ -50413,38 +50430,63 @@
 
 		}
 
-		threeEnv.scene.add(mask);
-		threeEnv.oclScene.add(oclMask);
+		that.group.add(mask);
+		that.oclGroup.add(that.oclMask);
+		threeEnv.scene.add(that.group);
+		threeEnv.oclScene.add(that.oclGroup);
 
-		return mask;
 	}
 
 
 	var draw = function(time) {
 
+
+		var wave = clock.lfo.sine; 
+		var waveHalf = clock.lfo.sineHalf;
+
+		if (params.dancing) {
+			var xMaskPos = 2.5 * wave * params.dancePower;
+			var yMaskPos = (1.5 * waveHalf) * params.dancePower + maskYOffset;
+			var zMaskPos =  waveHalf * params.dancePower;
+		} else {
+			var xMaskPos = 0;
+			var yMaskPos = maskYOffset;
+			var zMaskPos = 0;
+		}
+		
+
 		if (mainMask) {
+
+			var mask = mainMask.mask;
+			var oclMask = mainMask.oclMask;
+			var maskGroup = mainMask.group;
+			var oclMaskGroup = mainMask.oclGroup;
 
 
 			uniforms.time.value = time;
 
 			var time = time * 0.001;
 
-		//	mainMask.mesh.visible = false;
+			maskGroup.position.z = params.zGroupPos;
+			oclMaskGroup.position.z = params.zGroupPos;;
 
-			mainMask.position.z = params.zPos;
-			oclMask.position.z = params.zPos;
+			mask.position.x = xMaskPos;
+			oclMask.position.x = xMaskPos;
 
-			light.position.x = Math.sin( time * 0.7 ) * 150;
-			light.position.y = Math.cos( time * 0.5 ) * 150;
-			light.position.z = Math.cos( time * 0.3 ) * 150;
+			mask.position.y = yMaskPos;
+			oclMask.position.y = yMaskPos;
 
-			cubeCamera.position.copy( mainMask.position );
+			mask.position.z = zMaskPos;
+			oclMask.position.z = zMaskPos;
+
+
+			cubeCamera.position.copy( mainMask.mask.position );
+			cubeCamera.position.y += 150;
 
 			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 
+		
 
-
-		//	mainMask.mesh.visible = true;
 
 		}
 		
@@ -50466,24 +50508,456 @@
 
 /***/ },
 /* 32 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * noise * displacement * 100. * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
+	var audioAnalyser = __webpack_require__(33);
+
+	var params = {
+		bpm: 115,
+		ppq: 480,  // pulses per quarter note (per beat)
+		spp: 60/(115*480)
+	}
+
+	var lfo = {
+		sine: 0,
+		sineHalf: 0
+	}
+
+	var tick = 0;
+
+
+	var deltaStep = Math.PI / params.ppq;
+	var marker = audioAnalyser.getTime();
+	var now;
+
+	var pulse = function() {
+		tick++;
+
+		// Every beat
+		if (tick % params.ppq == 0) {
+
+		}
+
+		lfo.sine = Math.sin(deltaStep * tick);
+		lfo.sineHalf = Math.sin(deltaStep * 2 * tick);
+		lfo.sineTwo = Math.sin(deltaStep / 2 * tick);
+		lfo.sineBar = Math.sin(deltaStep / 4 * tick);
+
+	}
+
+
+	var run = function() {
+		now = audioAnalyser.getTime();
+
+		// Check to see if time passed is more than time per pulse
+		var result = now - marker;
+
+		while (result > params.spp) {
+			// Pulse if so
+			pulse();
+			// Increase next time to check against by time per pulse
+			marker+=params.spp;
+			// Loop over in case missed more than one pulse
+			result-=params.spp;
+		}
+	}
+
+	module.exports = {
+		run: run,
+		params: params,
+		lfo: lfo
+	}
 
 /***/ },
 /* 33 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
+	var Freq = __webpack_require__(34);
+	var gui = __webpack_require__(20);
+	var guiFolder = gui.addFolder('Frequencies');
+
+	var audioContext, analyser, source, stream, freqs;
+
+	var audio = new Audio();
+	audio.src = 'ceremony.mp3';
+	audio.controls = true;
+	// audio.autoplay = true;
+	document.body.appendChild(audio);
+
+	var elVisualiser = document.createElement("div");
+	elVisualiser.className = "debug-visualiser";
+	document.body.appendChild( elVisualiser );
+
+
+	audioContext = new( window.AudioContext || window.webkitAudioContext );
+
+	source = audioContext.createMediaElementSource(audio);
+
+	// Set up audio lib
+	analyser = new Freq(audioContext);
+
+	var params = {
+		'a0': 0,
+		'a1': 0.01,
+		'b0': 0.1,
+		'b1': 0.5,
+		'c0': 0.5,
+		'c1': 1,
+		'smoothing': 0.85
+	}
+
+
+	// gui.remember(params);
+
+	var a0 = guiFolder.add(params, 'a0', 0, 1);
+	var a1 = guiFolder.add(params, 'a1', 0, 1);
+	var b0 = guiFolder.add(params, 'b0', 0, 1);
+	var b1 = guiFolder.add(params, 'b1', 0, 1);
+	var c0 = guiFolder.add(params, 'c0', 0, 1);
+	var c1 = guiFolder.add(params, 'c1', 0, 1);
+	var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
+
+
+	a0.onChange(function(value) {
+		stream.bands[0].updateLower(value);
+	});
+
+	a1.onChange(function(value) {
+		stream.bands[0].updateUpper(value);
+	});
+
+	b0.onChange(function(value) {
+		stream.bands[1].updateLower(value);
+	});
+
+	b1.onChange(function(value) {
+		stream.bands[1].updateUpper(value);
+	});
+
+	c0.onChange(function(value) {
+		stream.bands[2].updateLower(value);
+	});
+
+	c1.onChange(function(value) {
+		stream.bands[2].updateUpper(value);
+	});
+
+	smoothing.onChange(function(value) {
+		stream.updateSmoothing(value);
+	});
+
+	// Create a stream
+	stream = analyser.createStream(source, {
+		bandVals: [
+			[ params['a0'], params['a1'] ],
+			[ params['b0'], params['b1'] ],
+			[ params['c0'], params['c1'] ]
+		],
+		smoothing: params.smoothing
+	});
+
+	// Create a new visualiser from stream passing in an empty div
+	stream.visualiser(elVisualiser);
+
+
+	// Should only happen once per tick
+	var updateLevels = function() {
+		stream.update();
+	}
+
+	// Can be used to get data in many modules
+	var getLevels = function() {
+		return stream.read();
+	}
+
+	var getTime = function() {
+		return audio.currentTime
+	}
+
+	module.exports = {
+		getLevels: getLevels,
+		updateLevels: updateLevels,
+		getTime: getTime
+	}
 
 /***/ },
 /* 34 */
 /***/ function(module, exports) {
 
-	module.exports = "#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n#define ENVMAP_MODE_REFLECTION\n#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+	// Overwrite properties of one object with another
+	var extend = function() {
+	  var extended = {};
+
+	  for(key in arguments) {
+	    var argument = arguments[key];
+	    for (prop in argument) {
+	      if (Object.prototype.hasOwnProperty.call(argument, prop)) {
+	        extended[prop] = argument[prop];
+	      }
+	    }
+	  }
+
+	  return extended;
+	};
+
+	Freq = function() {
+		this.streams = [];
+	};
+
+	Freq.prototype.createStream = function( source, settings ) {
+
+		var stream = new this.Stream( source, settings );
+
+		this.streams.push( stream );
+
+		return stream;
+	}
+
+	Freq.prototype.Stream = function( source, settings ) {
+
+		this.defaults = {
+			bandVals: [
+				[ 0, 0.25 ],
+				[ 0.25, 0.5 ],
+				[ 0.5, 0.75 ],
+				[ 0.75, 1]
+			],
+			smoothing: 0.85
+		}
+
+		// Extend the defaults with any settings defined
+		this.settings = extend(this.defaults, settings);
+
+		// Create bands array to hold band objs
+		this.bands = [];
+		
+
+		var context = source.context;
+
+		//create analyser node
+		this.analyser = context.createAnalyser();
+
+		//set size of how many bits we analyse on
+		this.analyser.fftSize = 1024;
+
+		// Setup frequency array
+		this.freqDomain = new Uint8Array( this.analyser.frequencyBinCount );
+
+		this.analyser.smoothingTimeConstant = settings.smoothing;
+
+		//connect to source
+		source.connect( this.analyser );
+
+		//pipe to speakers
+		this.analyser.connect( context.destination );
+
+		// Create array of band objs
+		for ( var i = 0; i < this.settings.bandVals.length; i++ ) {
+
+			var lower = this.settings.bandVals[ i ][ 0 ];
+			var upper = this.settings.bandVals[ i ][ 1 ];
+
+			this.bands.push( new Band( lower, upper, this.freqDomain ) );
+		}
+
+	}
+
+	// Update band data (should only happen once per tick)
+	Freq.prototype.Stream.prototype.update = function() {
+
+		this.analyser.getByteFrequencyData( this.freqDomain );
+
+		// Array that will store the returned data
+		this.bandData = [];
+
+		var numBands = this.bands.length;
+		
+
+		for ( var i = 0; i < numBands; i++ ) {
+
+			band = this.bands[ i ];
+
+			this.bandData.push( {
+				width: band.widthPerc,
+				location: band.lowerPerc,
+				average: band.getAverage(),
+			} );
+
+		}
+
+	}
+
+	// Band data can then be read by many modules
+	Freq.prototype.Stream.prototype.read = function() {
+		return {
+			bands: this.bandData,
+			rawFreqs: this.freqDomain
+		}
+	}
+
+	// Band data can then be read by many modules
+	Freq.prototype.Stream.prototype.updateSmoothing = function(value) {
+		this.analyser.smoothingTimeConstant = value;
+	}
+
+
+
+	Freq.prototype.Stream.prototype.visualiser = function( containerElement ) {
+
+		var stream = this;
+
+		// Create canvas and context
+		var canvasElement = document.createElement( 'canvas' );
+		var visualContext = canvasElement.getContext( "2d" );
+		containerElement.appendChild( canvasElement );
+
+		var WIDTH = containerElement.offsetWidth;
+		var HEIGHT = containerElement.offsetHeight;
+		canvasElement.width = WIDTH;
+		canvasElement.height = HEIGHT;
+
+		var barWidth = WIDTH / this.analyser.frequencyBinCount;
+
+		// Function to draw graph
+		var drawGraph = function() {
+
+			var data = stream.read();
+
+			// Create background bars
+			for ( var i = 0; i < stream.analyser.frequencyBinCount; i++ ) {
+
+				var value = stream.freqDomain[ i ];
+				var percent = value / 256;
+				var height = HEIGHT * percent;
+				var offset = HEIGHT - height - 1;
+				var hue = i / stream.analyser.frequencyBinCount * 360;
+
+				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
+				visualContext.fillRect( i * barWidth, offset, barWidth, height );
+
+			}
+
+			// Create band bars
+			for ( var i = 0; i < stream.settings.bandVals.length; i++ ) {
+
+				var bandWidth = data.bands[ i ].width * WIDTH;
+				var location = data.bands[ i ].location * WIDTH;
+				var height = HEIGHT * data.bands[ i ].average;
+				var offset = HEIGHT - height - 1;
+				var hue = i / stream.settings.bandVals.length * 360;
+
+				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
+				visualContext.fillRect( location, offset, bandWidth, height );
+
+			}
+		}
+
+		// Animation loop
+		var draw = function() {
+
+			visualContext.fillStyle = 'black';
+			visualContext.fillRect( 0, 0, WIDTH, HEIGHT );
+
+			drawGraph();
+
+			window.requestAnimationFrame( draw );
+		}
+
+		// Start loop
+		window.requestAnimationFrame( draw );
+
+	}
+
+	var Band = function( lower, upper, freqDomain ) {
+
+		this.binCount = freqDomain.length;
+		this.freqDomain = freqDomain;
+
+		this.lowerPerc = lower;
+		this.upperPerc = upper;
+
+		this.calculate();
+
+	}
+
+	Band.prototype.calculate = function() {
+
+		this.widthPerc = this.upperPerc - this.lowerPerc;
+		this.widthFreq = Math.floor( this.binCount * this.widthPerc );
+		this.startFreq = Math.floor( this.lowerPerc * this.binCount );
+
+	}
+
+	// Calculate average value for frequencies inside a band
+	Band.prototype.getAverage = function() {
+
+		var bandTotal = 0;
+
+		for ( var j = 0; j < this.widthFreq; j++ ) {
+			bandTotal += this.freqDomain[ this.startFreq + j ];
+		}
+
+		// Return an average of the band
+		return (bandTotal / this.widthFreq) / 256;
+
+	}
+
+	Band.prototype.updatePosition = function( perc ) {
+
+		this.lowerPerc = perc;
+		this.upperPerc = perc + this.widthPerc;
+		this.calculate();
+
+	}
+
+	Band.prototype.updateLower = function( perc ) {
+
+		this.lowerPerc = perc;
+		this.calculate();
+
+	}
+
+	Band.prototype.updateUpper = function( perc ) {
+
+		this.upperPerc = perc;
+		this.calculate();
+
+	}
+
+	// Updates width from upper and lower equally (i.e. center aligned)
+	Band.prototype.updateWidth = function( perc ) {
+
+		var centerPerc = this.lowerPerc + ( this.widthPerc / 2 );
+
+		this.lowerPerch = centerPerc - ( perc / 2 );
+		this.upperPerc = centerPerc + ( perc / 2 );
+
+		this.calculate();
+
+	}
+
+	module.exports = Freq;
 
 /***/ },
 /* 35 */
+/***/ function(module, exports) {
+
+	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * noise * displacement * 100. * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
+
+/***/ },
+/* 36 */
+/***/ function(module, exports) {
+
+	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
+
+/***/ },
+/* 37 */
+/***/ function(module, exports) {
+
+	module.exports = "#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n#define ENVMAP_MODE_REFLECTION\n#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+
+/***/ },
+/* 38 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -52908,374 +53382,17 @@
 	};
 
 /***/ },
-/* 36 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Freq = __webpack_require__(37);
-	var gui = __webpack_require__(20);
-	var guiFolder = gui.addFolder('Frequencies');
-
-	var audioContext, analyser, source, stream, freqs;
-
-	var audio = new Audio();
-	audio.src = 'ceremony.mp3';
-	audio.controls = true;
-	// audio.autoplay = true;
-	document.body.appendChild(audio);
-
-	var elVisualiser = document.createElement("div");
-	elVisualiser.className = "debug-visualiser";
-	document.body.appendChild( elVisualiser );
-
-
-	audioContext = new( window.AudioContext || window.webkitAudioContext );
-
-	source = audioContext.createMediaElementSource(audio);
-
-	// Set up audio lib
-	analyser = new Freq(audioContext);
-
-	var params = {
-		'a0': 0,
-		'a1': 0.01,
-		'b0': 0.1,
-		'b1': 0.5,
-		'smoothing': 0.85
-	}
-
-
-	// gui.remember(params);
-
-	var a0 = guiFolder.add(params, 'a0', 0, 1);
-	var a1 = guiFolder.add(params, 'a1', 0, 1);
-	var b0 = guiFolder.add(params, 'b0', 0, 1);
-	var b1 = guiFolder.add(params, 'b1', 0, 1);
-	var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
-
-
-	a0.onChange(function(value) {
-		stream.bands[0].updateLower(value);
-	});
-
-	a1.onChange(function(value) {
-		stream.bands[0].updateUpper(value);
-	});
-
-	b0.onChange(function(value) {
-		stream.bands[1].updateLower(value);
-	});
-
-	b1.onChange(function(value) {
-		stream.bands[1].updateUpper(value);
-	});
-
-	smoothing.onChange(function(value) {
-		stream.updateSmoothing(value);
-	});
-
-	// Create a stream
-	stream = analyser.createStream(source, {
-		bandVals: [
-			[ params['a0'], params['a1'] ],
-			[ params['b0'], params['b1'] ]
-		],
-		smoothing: params.smoothing
-	});
-
-	// Create a new visualiser from stream passing in an empty div
-	stream.visualiser(elVisualiser);
-
-
-	// Should only happen once per tick
-	var updateLevels = function() {
-		stream.update();
-	}
-
-	// Can be used to get data in many modules
-	var getLevels = function() {
-		return stream.read();
-	}
-
-	var getTime = function() {
-		return audio.currentTime
-	}
-
-	module.exports = {
-		getLevels: getLevels,
-		updateLevels: updateLevels,
-		getTime: getTime
-	}
-
-/***/ },
-/* 37 */
-/***/ function(module, exports) {
-
-	// Overwrite properties of one object with another
-	var extend = function() {
-	  var extended = {};
-
-	  for(key in arguments) {
-	    var argument = arguments[key];
-	    for (prop in argument) {
-	      if (Object.prototype.hasOwnProperty.call(argument, prop)) {
-	        extended[prop] = argument[prop];
-	      }
-	    }
-	  }
-
-	  return extended;
-	};
-
-	Freq = function() {
-		this.streams = [];
-	};
-
-	Freq.prototype.createStream = function( source, settings ) {
-
-		var stream = new this.Stream( source, settings );
-
-		this.streams.push( stream );
-
-		return stream;
-	}
-
-	Freq.prototype.Stream = function( source, settings ) {
-
-		this.defaults = {
-			bandVals: [
-				[ 0, 0.25 ],
-				[ 0.25, 0.5 ],
-				[ 0.5, 0.75 ],
-				[ 0.75, 1]
-			],
-			smoothing: 0.85
-		}
-
-		// Extend the defaults with any settings defined
-		this.settings = extend(this.defaults, settings);
-
-		// Create bands array to hold band objs
-		this.bands = [];
-		
-
-		var context = source.context;
-
-		//create analyser node
-		this.analyser = context.createAnalyser();
-
-		//set size of how many bits we analyse on
-		this.analyser.fftSize = 1024;
-
-		// Setup frequency array
-		this.freqDomain = new Uint8Array( this.analyser.frequencyBinCount );
-
-		this.analyser.smoothingTimeConstant = settings.smoothing;
-
-		//connect to source
-		source.connect( this.analyser );
-
-		//pipe to speakers
-		this.analyser.connect( context.destination );
-
-		// Create array of band objs
-		for ( var i = 0; i < this.settings.bandVals.length; i++ ) {
-
-			var lower = this.settings.bandVals[ i ][ 0 ];
-			var upper = this.settings.bandVals[ i ][ 1 ];
-
-			this.bands.push( new Band( lower, upper, this.freqDomain ) );
-		}
-
-	}
-
-	// Update band data (should only happen once per tick)
-	Freq.prototype.Stream.prototype.update = function() {
-
-		this.analyser.getByteFrequencyData( this.freqDomain );
-
-		// Array that will store the returned data
-		this.bandData = [];
-
-		var numBands = this.bands.length;
-		
-
-		for ( var i = 0; i < numBands; i++ ) {
-
-			band = this.bands[ i ];
-
-			this.bandData.push( {
-				width: band.widthPerc,
-				location: band.lowerPerc,
-				average: band.getAverage(),
-			} );
-
-		}
-
-	}
-
-	// Band data can then be read by many modules
-	Freq.prototype.Stream.prototype.read = function() {
-		return {
-			bands: this.bandData,
-			rawFreqs: this.freqDomain
-		}
-	}
-
-	// Band data can then be read by many modules
-	Freq.prototype.Stream.prototype.updateSmoothing = function(value) {
-		this.analyser.smoothingTimeConstant = value;
-	}
-
-
-
-	Freq.prototype.Stream.prototype.visualiser = function( containerElement ) {
-
-		var stream = this;
-
-		// Create canvas and context
-		var canvasElement = document.createElement( 'canvas' );
-		var visualContext = canvasElement.getContext( "2d" );
-		containerElement.appendChild( canvasElement );
-
-		var WIDTH = containerElement.offsetWidth;
-		var HEIGHT = containerElement.offsetHeight;
-		canvasElement.width = WIDTH;
-		canvasElement.height = HEIGHT;
-
-		var barWidth = WIDTH / this.analyser.frequencyBinCount;
-
-		// Function to draw graph
-		var drawGraph = function() {
-
-			var data = stream.read();
-
-			// Create background bars
-			for ( var i = 0; i < stream.analyser.frequencyBinCount; i++ ) {
-
-				var value = stream.freqDomain[ i ];
-				var percent = value / 256;
-				var height = HEIGHT * percent;
-				var offset = HEIGHT - height - 1;
-				var hue = i / stream.analyser.frequencyBinCount * 360;
-
-				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
-				visualContext.fillRect( i * barWidth, offset, barWidth, height );
-
-			}
-
-			// Create band bars
-			for ( var i = 0; i < stream.settings.bandVals.length; i++ ) {
-
-				var bandWidth = data.bands[ i ].width * WIDTH;
-				var location = data.bands[ i ].location * WIDTH;
-				var height = HEIGHT * data.bands[ i ].average;
-				var offset = HEIGHT - height - 1;
-				var hue = i / stream.settings.bandVals.length * 360;
-
-				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
-				visualContext.fillRect( location, offset, bandWidth, height );
-
-			}
-		}
-
-		// Animation loop
-		var draw = function() {
-
-			visualContext.fillStyle = 'black';
-			visualContext.fillRect( 0, 0, WIDTH, HEIGHT );
-
-			drawGraph();
-
-			window.requestAnimationFrame( draw );
-		}
-
-		// Start loop
-		window.requestAnimationFrame( draw );
-
-	}
-
-	var Band = function( lower, upper, freqDomain ) {
-
-		this.binCount = freqDomain.length;
-		this.freqDomain = freqDomain;
-
-		this.lowerPerc = lower;
-		this.upperPerc = upper;
-
-		this.calculate();
-
-	}
-
-	Band.prototype.calculate = function() {
-
-		this.widthPerc = this.upperPerc - this.lowerPerc;
-		this.widthFreq = Math.floor( this.binCount * this.widthPerc );
-		this.startFreq = Math.floor( this.lowerPerc * this.binCount );
-
-	}
-
-	// Calculate average value for frequencies inside a band
-	Band.prototype.getAverage = function() {
-
-		var bandTotal = 0;
-
-		for ( var j = 0; j < this.widthFreq; j++ ) {
-			bandTotal += this.freqDomain[ this.startFreq + j ];
-		}
-
-		// Return an average of the band
-		return (bandTotal / this.widthFreq) / 256;
-
-	}
-
-	Band.prototype.updatePosition = function( perc ) {
-
-		this.lowerPerc = perc;
-		this.upperPerc = perc + this.widthPerc;
-		this.calculate();
-
-	}
-
-	Band.prototype.updateLower = function( perc ) {
-
-		this.lowerPerc = perc;
-		this.calculate();
-
-	}
-
-	Band.prototype.updateUpper = function( perc ) {
-
-		this.upperPerc = perc;
-		this.calculate();
-
-	}
-
-	// Updates width from upper and lower equally (i.e. center aligned)
-	Band.prototype.updateWidth = function( perc ) {
-
-		var centerPerc = this.lowerPerc + ( this.widthPerc / 2 );
-
-		this.lowerPerch = centerPerc - ( perc / 2 );
-		this.upperPerc = centerPerc + ( perc / 2 );
-
-		this.calculate();
-
-	}
-
-	module.exports = Freq;
-
-/***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
-	var audioAnalyser = __webpack_require__(36);
+	var audioAnalyser = __webpack_require__(33);
 	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Background');
 	var shaders = {
 		vertex: __webpack_require__(25),
-		fragment: __webpack_require__(39)
+		fragment: __webpack_require__(40)
 	}
 
 	var swampMaterial, swampGeometry, swampMesh;
@@ -53343,13 +53460,13 @@
 	}
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports) {
 
 	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);\n}"
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
@@ -53364,18 +53481,20 @@
 	var particles = [];
 	var numLeafs = 50;
 
-	var zLimit = 2000;
+	var zLimit = 500;
 
-	var radius = window.innerHeight/3;
+	var radius = window.innerHeight/2.5;
 
 	var leafGroup = new THREE.Object3D();
 	threeEnv.scene.add(leafGroup);
 
 	var params = {
-		groupRotSpeed: 0.00,
-		speed: 0,
+		groupRotX: 0,
+		groupRotY: 0,
+		groupRotZ: 0.005,
+		speed: -0.02,
 		leafOpacity: 1,
-		active: false,
+		active: true,
 		gotoCircle: function() {
 			gotoCircle();
 		},
@@ -53386,8 +53505,10 @@
 
 	// gui.remember(params);
 
-	guiFolder.add(params, 'speed', -10, 10);
-	guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
+	guiFolder.add(params, 'speed', -1, 1);
+	guiFolder.add(params, 'groupRotX', 0, 1);
+	guiFolder.add(params, 'groupRotY', 0, 1);
+	guiFolder.add(params, 'groupRotZ', 0, 1);
 	guiFolder.add(params, 'gotoCircle');
 	guiFolder.add(params, 'resetLeaves');
 	guiFolder.add(params, 'active');
@@ -53415,6 +53536,10 @@
 		}
 	);
 
+	function posNeg() {
+		return Math.random() > 0.5 ? 1 : -1;
+	}
+
 	var Leaf = function(i) {
 
 		var that = this;
@@ -53427,9 +53552,12 @@
 
 		this.reset = function() {
 
-			that.mesh.position.x = (Math.random() * 1000) - 500;
-			that.mesh.position.y = (Math.random() * 1000) - 500;
-			that.mesh.position.z = (Math.random() * zLimit) - (zLimit*1.3);
+
+
+			that.mesh.position.x = (((Math.random() + 1.1) * 1000) - 1000) * posNeg();
+			that.mesh.position.y = (((Math.random() + 1.1) * 1000) - 1000) * posNeg();
+			that.mesh.position.z = (Math.random() * zLimit*2) - zLimit;
+
 
 			that.vz = Math.random() + 0.5;
 
@@ -53505,26 +53633,28 @@
 
 	var draw = function(timePassed) {
 
-		leafGroup.rotation.z += params.groupRotSpeed;
+		// leafGroup.rotation.x += params.groupRotX * 0.1;
+		// leafGroup.rotation.y += params.groupRotY * 0.1;
+		leafGroup.rotation.z += params.groupRotZ * 0.1;
 
 		for (var i = 0; i < particles.length; i++) {
 
 			var particle = particles[i];
 
 			particle.mesh.material.opacity = params.leafOpacity;
-			particle.mesh.position.z += particle.vz * params.speed;
-			particle.mesh.rotation.x += 0.01;
-			particle.mesh.rotation.y += 0.01;
-			particle.mesh.rotation.z += 0.01;
+			particle.mesh.position.z += particle.vz * params.speed * 10;
+			particle.mesh.rotation.x += 0.003;
+			particle.mesh.rotation.y += 0.003;
+			particle.mesh.rotation.z += 0.003;
 
 
 
-			if (params.active && particle.mesh.position.z > 500 && params.speed > 0) {
-				particle.mesh.position.z = -500;
+			if (params.active && particle.mesh.position.z > zLimit && params.speed > 0) {
+				particle.mesh.position.z = -zLimit;
 			}
 			
-			if (params.active && particle.mesh.position.z < -500 && params.speed < 0) {
-				particle.mesh.position.z = 500;
+			if (params.active && particle.mesh.position.z < -zLimit && params.speed < 0) {
+				particle.mesh.position.z = zLimit;
 			}
 
 		}
@@ -53540,7 +53670,8 @@
 	}
 
 	module.exports = {
-		draw: draw
+		draw: draw,
+		params: params
 	}
 
 
@@ -53548,28 +53679,157 @@
 
 
 /***/ },
-/* 41 */
+/* 42 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+	var threeEnv = __webpack_require__(17);
+	var TWEEN = __webpack_require__(15);
+	var gui = __webpack_require__(20);
+	var mask = __webpack_require__(31);
+	var guiFolder = gui.addFolder('Crystals');
+	var audioAnalyser = __webpack_require__(33);
+	var clock = __webpack_require__(32);
+
+	var numCrystals = 5;
+	var crystals = [];
+
+	var orbitAngle = 0;
+
+
+
+	var params = {
+		speed: 0.02,
+		speedFlux: 0,
+		opacity: 0,
+		radius: 1,
+		fadeIn: function() {
+			var tween = new TWEEN.Tween(params)
+		    .to({opacity: 1}, 30000)
+		    .easing(TWEEN.Easing.Sinusoidal.Out)
+		    .start();
+		},
+		fadeOut: function() {
+			var tween = new TWEEN.Tween(params)
+		    .to({opacity: 0}, 5000)
+		    .easing(TWEEN.Easing.Sinusoidal.Out)
+		    .start();
+		},
+		startSpeedFlux: function() {
+			params.speedFlux = 1;
+		},
+		changeSpeed: function(speed) {
+			params.speed = speed;
+		}
+	}
+
+	var crystalMaterial = new THREE.MeshBasicMaterial({
+		wireframe: true,
+		transparent: true,
+		opacity: params.opacity
+	});
+
+	guiFolder.add(params, 'radius', 0, 10).name('Crystal Radius');
+	guiFolder.add(params, 'speed', 0, 1).name('Crystal Speed');
+	guiFolder.add(params, 'speedFlux', 0, 1).name('Speed Flux');
+
+	var Crystal = function() {
+
+		this.size = (Math.random() * 15) + 5;
+		var geometry = new THREE.IcosahedronGeometry(this.size);
+		this.mesh = new THREE.Mesh(geometry, crystalMaterial);
+
+		mask.mask.group.add(this.mesh);
+
+		var light = new THREE.PointLight( 0xffffff, 1, 0 );
+
+		this.mesh.add(light);
+
+
+	}
+
+	for (var i = 0; i < numCrystals; i++) {
+
+		crystals.push(new Crystal());
+
+	}
+
+
+
+	var draw = function() {
+
+
+		var levelsData = audioAnalyser.getLevels().bands;
+
+
+
+		crystalMaterial.opacity = params.opacity;
+
+		// params.radius = ((clock.lfo.sineTwo + 2) / 4) + 1;
+
+		var speed = ((clock.lfo.sine * params.speedFlux) + 0.8) * params.speed;
+
+		orbitAngle += speed;
+
+		for (var i = 0; i < numCrystals; i++) {
+
+			var crystal = crystals[i];
+			var offset = i * 10;
+
+			crystal.mesh.position.x = Math.sin( (orbitAngle + offset) * 0.5 ) * 200 * params.radius;
+			crystal.mesh.position.y = Math.cos( (orbitAngle + offset) * 0.2 ) * 250 * params.radius;
+			crystal.mesh.position.z = Math.cos( (orbitAngle + offset) * 0.5 ) * 250 * params.radius;
+
+			crystal.mesh.rotation.x += levelsData[1].average * 0.5;
+			crystal.mesh.rotation.y += levelsData[2].average * 0.5;
+
+		}
+
+	}
+
+
+
+	module.exports = {
+		draw: draw,
+		params: params
+	}
+
+
+/***/ },
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
 	var gui = __webpack_require__(20).addFolder('Ribbons');
+	var clock = __webpack_require__(32);
 
 	var params = {
 		ribbonCount: 3,
 		ribbonFreq: 50,
 		ribbonRot: 0.005,
-		ribbonOpacity: 1,
+		opacity: 1,
 		ribbonsActive: false,
-		startRibbons: function() {
+		waveActive: false,
+		startRibbons: function(wave) {
 			params.ribbonsActive = true;
+
+			if (wave) {
+				params.waveActive = true;
+			} else {
+				params.waveActive = false
+			}
+		},
+		stopRibbons: function(wave) {
+			params.ribbonsActive = false;
 		}
 	}
 
 	gui.add(params, 'ribbonCount', 0, 20);
+	gui.add(params, 'waveActive');
 	gui.add(params, 'ribbonFreq', 0, 200);
 	gui.add(params, 'ribbonRot', 0, 0.03);
-	gui.add(params, 'ribbonOpacity', 0, 1);
+	gui.add(params, 'opacity', 0, 1).name('Ribbon Opacity');
 	gui.add(params, 'ribbonsActive');
 
 	var ribbon;
@@ -53596,7 +53856,7 @@
 
 		var tick = 0;
 
-		var length = 100;
+		var length = 75;
 
 		var positions = [];
 
@@ -53619,7 +53879,7 @@
 
 		var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 		
-		var material = new THREE.MeshLambertMaterial({
+		var material = new THREE.MeshPhongMaterial({
 			//wireframe: true,
 			side: THREE.DoubleSide,
 			shading: THREE.FlatShading,
@@ -53665,7 +53925,7 @@
 
 		this.update = function() {
 
-			material.opacity = params.ribbonOpacity;
+			material.opacity = params.opacity;
 
 			var sequenceItem = sequence[sequenceIndex];
 
@@ -53755,7 +54015,9 @@
 		}
 
 		updateRibbons();
-		group.rotation.z += params.ribbonRot;
+
+		var wave = params.waveActive ? (clock.lfo.sine + 0.9) : 1; // Convert sine wave to between 0 and 1
+		group.rotation.z += params.ribbonRot * wave;
 		
 	}
 
@@ -53765,32 +54027,32 @@
 	}
 
 /***/ },
-/* 42 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(36);
-	var bpm = 115;
-	var ppq = 480; // pulses per quarter note (per beat)
-	var spp = (60/(bpm*ppq)); // seconds per pulse
-	var marker = audioAnalyser.getTime();
+	var audioAnalyser = __webpack_require__(33);
+	var clock = __webpack_require__(32);
+
 	var now;
 
-	var cowbell = __webpack_require__(43);
+	var cowbell = __webpack_require__(45);
 	var cowbellIndex = 0;
 	var timelineIndex = 0;
 
-	var tick = 0;
-
+	var cowbellCamera = true;
 
 	var mask = __webpack_require__(31);
-	var ribbons = __webpack_require__(41);
+	var ribbons = __webpack_require__(43);
+	var crystals = __webpack_require__(42);
+	var leaves = __webpack_require__(41);
 	var camera = __webpack_require__(30);
+
 
 	// Get time sig in seconds of specified bar / beat
 	var barBeat = function(bar, beat) {
 
 		var beats = (bar * 4) + beat;
-		return beats * (60/bpm);
+		return beats * (60/clock.params.bpm);
 
 	}
 
@@ -53798,6 +54060,14 @@
 		{
 			time: 25,
 			event: mask.params.enterScene
+		},
+		{
+			time: barBeat(20, 0),
+			event: crystals.params.fadeIn
+		},
+		{
+			time: barBeat(24, 0),
+			event: mask.params.defaultPos
 		},
 		{
 			time: barBeat(24, 0),
@@ -53817,22 +54087,50 @@
 		},
 		{
 			time: barBeat(40, 0),
-			event: camera.params.stopOrbit
+			event: function() {
+				crystals.params.changeSpeed(0.16);
+				crystals.params.startSpeedFlux();
+				camera.params.stopOrbit();
+				mask.params.startDancing(10)
+				leaves.params.speed = -0.2;
+				leaves.params.groupRotZ = 0.04;
+			}
 		},
 		{
-			time: barBeat(40, 0),
-			event: ribbons.params.startRibbons
+			time: barBeat(44, 0),
+			event: function() {
+				leaves.params.active = false;
+			}
+		},
+		{
+			time: barBeat(48, 0),
+			event: function() {
+				crystals.params.fadeOut();
+				ribbons.params.startRibbons();
+			}
+		},
+		{
+			time: barBeat(56, 0),
+			event: function() {
+				leaves.params.active = true;
+				mask.params.startDancing(2);
+				ribbons.params.stopRibbons();
+				ribbons.params.opacity = 0;
+			}
+		},
+		{
+			time: barBeat(64, 0),
+			event: function() {
+				cowbellCamera = false;
+				camera.params.stopOrbit();
+				leaves.params.gotoCircle();
+				leaves.params.groupRotZ = 0.08;
+				leaves.params.speed = -0.4;
+			}
 		}
 	]
 
-	var pulse = function() {
-		tick++;
 
-		// Every beat
-		if (tick % ppq == 0) {
-
-		}
-	}
 
 	var checkChannels = function(time) {
 
@@ -53845,8 +54143,12 @@
 
 
 		// MIDI
-		while (time >= cowbell[cowbellIndex] * spp) {
-			//console.log('b');
+		while (time >= cowbell[cowbellIndex] * clock.params.spp) {
+
+			if (cowbellCamera) {
+				camera.params.startOrbit();
+			}
+			
 			cowbellIndex++;
 		}
 	}
@@ -53855,18 +54157,6 @@
 		now = audioAnalyser.getTime();
 
 		checkChannels(now);
-				
-		// Check to see if time passed is more than time per pulse
-		var result = now - marker;
-
-		while (result > spp) {
-			// Pulse if so
-			pulse();
-			// Increase next time to check against by time per pulse
-			marker+=spp;
-			// Loop over in case missed more than one pulse
-			result-=spp;
-		}
 	}
 
 	module.exports = {
@@ -53874,724 +54164,221 @@
 	}
 
 /***/ },
-/* 43 */
+/* 45 */
 /***/ function(module, exports) {
 
 	module.exports = [
-		123255,
-		123378,
+		107522,
+		108361,
+		108842,
+		109081,
+		109217,
+		109337,
+		109457,
+		109801,
+		110282,
+		110761,
+		111003,
+		111137,
+		111257,
+		111380,
+		111723,
+		112201,
+		112682,
+		112921,
+		113060,
+		113177,
+		113297,
+		113642,
+		114602,
+		114980,
+		115100,
+		115217,
+		115562,
+		116041,
+		116522,
+		116762,
+		116899,
+		117017,
+		117140,
+		117482,
+		117962,
+		118442,
+		118682,
+		118819,
+		118940,
+		119057,
+		119403,
+		119882,
+		120362,
+		120602,
+		120737,
+		120857,
+		120977,
+		121322,
+		121803,
+		122281,
+		122521,
+		122657,
+		122777,
+		122897,
+		123241,
 		123722,
 		124202,
-		124682,
-		124921,
-		125058,
-		125178,
-		125298,
+		124442,
+		124697,
+		124817,
+		125163,
 		125642,
-		126121,
-		126601,
-		126844,
-		126978,
-		127098,
-		127204,
-		127561,
-		128042,
-		128521,
-		128762,
-		128898,
-		129018,
-		129138,
-		129482,
-		129979,
-		130441,
-		130682,
-		130818,
-		130938,
-		131058,
-		131401,
+		126122,
+		126362,
+		126499,
+		126619,
+		126737,
+		127081,
+		127564,
+		128041,
+		128281,
+		128420,
+		128540,
+		128660,
+		129001,
+		129501,
+		129962,
+		130203,
+		130340,
+		130457,
+		130577,
+		130922,
+		131402,
 		131881,
-		132361,
-		132601,
-		132738,
-		132858,
-		132965,
-		133322,
-		133801,
-		134282,
-		134521,
-		134658,
-		134778,
-		134898,
-		135241,
-		135721,
-		136201,
-		136443,
-		136578,
-		136698,
-		136818,
-		137161,
-		137641,
-		138122,
-		138362,
-		138497,
-		138618,
-		140108,
-		140300,
-		140535,
-		141993,
-		142220,
-		142455,
-		143948,
-		144140,
-		144380,
+		132122,
+		132256,
+		132380,
+		132500,
+		132842,
+		133321,
+		133802,
+		134042,
+		134179,
+		134296,
+		139562,
+		139801,
+		139939,
+		140059,
+		140176,
+		142443,
+		142921,
+		143402,
+		143641,
+		143779,
+		143899,
+		144019,
+		144362,
+		144842,
+		145322,
+		145563,
+		145699,
 		145819,
-		146180,
-		146300,
-		147787,
-		147980,
-		148221,
-		149662,
-		149900,
-		150140,
-		151627,
-		151820,
-		152060,
-		153500,
-		153860,
-		153980,
-		155467,
-		155659,
-		155894,
-		157345,
-		157579,
-		157820,
-		159308,
-		159499,
-		159740,
-		161179,
-		161537,
-		161660,
-		163147,
-		163340,
-		163574,
-		165024,
-		165260,
-		165500,
-		166597,
-		166987,
-		167180,
-		167414,
-		168859,
-		169219,
-		169339,
-		261601,
-		261961,
-		262441,
-		262921,
-		263161,
-		263296,
-		263417,
-		263537,
-		263881,
-		264362,
-		264841,
-		265082,
-		265216,
-		265337,
-		265459,
-		265802,
-		266281,
-		266761,
-		267001,
-		267139,
-		267256,
-		267377,
-		267721,
-		268202,
-		268682,
-		268922,
-		269059,
-		269179,
-		269297,
-		269641,
-		270121,
-		270601,
-		270841,
-		270979,
-		271096,
-		271220,
-		271561,
-		272041,
-		272521,
-		272762,
-		272899,
-		273019,
-		273136,
-		273482,
-		273961,
-		274442,
-		274681,
-		274816,
-		274936,
-		275057,
-		275401,
-		275882,
-		276361,
-		276601,
-		276736,
-		276856,
-		276976,
-		277321,
-		277802,
-		278282,
-		278521,
-		278659,
-		278776,
-		278896,
-		279243,
-		279721,
-		280202,
-		280441,
-		280579,
-		280699,
-		280816,
-		281161,
-		281643,
-		282121,
-		282361,
-		282498,
-		282619,
-		282739,
-		283080,
-		283580,
-		284041,
-		284282,
-		284419,
-		284536,
-		284656,
-		285001,
-		285481,
-		285961,
-		286201,
-		286336,
-		286459,
-		286579,
-		286922,
-		287401,
-		287881,
-		288121,
-		288258,
-		288376,
-		293641,
-		293881,
-		294018,
-		294138,
-		294256,
-		296522,
-		297001,
-		297481,
-		297721,
-		297858,
-		297978,
-		298098,
-		298441,
-		298922,
-		299402,
-		299642,
-		299778,
-		299898,
-		300018,
-		303241,
-		303482,
-		303618,
-		303738,
-		303858,
-		307081,
-		307321,
-		307458,
-		307578,
-		307698,
-		308041,
-		308522,
-		312841,
-		313081,
-		313218,
-		313338,
-		313458,
-		338497,
-		339339,
-		339397,
-		339579,
-		339787,
-		340418,
-		340476,
-		340778,
-		340836,
-		341258,
-		341318,
-		341499,
-		341707,
-		342338,
-		342396,
-		343178,
-		343419,
-		343477,
-		343627,
-		344258,
-		344319,
-		344618,
-		345202,
-		345363,
-		345523,
-		345640,
-		345801,
-		345961,
-		346178,
-		347018,
-		347077,
-		347258,
-		347467,
-		348097,
-		348457,
-		348517,
-		348938,
-		348997,
-		349178,
-		349387,
-		350020,
-		350078,
-		350858,
-		351098,
-		351158,
-		351307,
-		351937,
-		351998,
-		352298,
-		352883,
-		353043,
-		353203,
-		353320,
-		353480,
-		353641,
-		353859,
-		354698,
-		354757,
-		354938,
-		355147,
-		355779,
-		355831,
-		356137,
-		356196,
-		356618,
-		356677,
-		356858,
-		357066,
-		357699,
-		357759,
-		358538,
-		358778,
-		358837,
-		358986,
-		359619,
-		359679,
-		359977,
-		360562,
-		360722,
-		360882,
-		361161,
-		361320,
-		361540,
-		362378,
-		362436,
-		362618,
-		362826,
-		363459,
-		363510,
-		363817,
-		363878,
-		364298,
-		364356,
-		364538,
-		364746,
-		365379,
-		365438,
-		366218,
-		366279,
-		366458,
-		366517,
-		366666,
-		367299,
-		367358,
-		367660,
-		368242,
-		368402,
-		368562,
-		369001,
-		369219,
-		370057,
-		370117,
-		370298,
-		370506,
-		371139,
-		371190,
-		371499,
-		371559,
-		371977,
-		372037,
-		372218,
-		372426,
-		373059,
-		373118,
-		373897,
-		373959,
-		374138,
-		374196,
-		374346,
-		374979,
-		375038,
-		375339,
-		375922,
-		376082,
-		376242,
-		376359,
-		376680,
-		376899,
-		377737,
-		377978,
-		378039,
-		378143,
-		378819,
-		378869,
-		379179,
-		379238,
-		379657,
-		379716,
-		379897,
-		380106,
-		380739,
-		380797,
-		381577,
-		381639,
-		381817,
-		381877,
-		382026,
-		382659,
-		382717,
-		383019,
-		383602,
-		383761,
-		383922,
-		384579,
-		385420,
-		385657,
-		385719,
-		385823,
-		386498,
-		386550,
-		386859,
-		386918,
-		387337,
-		387396,
-		387577,
-		387789,
-		388418,
-		388478,
-		389260,
-		389318,
-		389498,
-		389706,
-		390338,
-		390398,
-		390699,
-		391284,
-		391441,
-		391601,
-		392259,
-		393097,
-		393337,
-		393399,
-		393503,
-		394178,
-		394539,
-		394597,
-		395020,
-		395078,
-		395257,
-		395468,
-		396098,
-		396157,
-		396939,
-		396999,
-		397180,
-		397385,
-		398018,
-		398077,
-		398379,
-		398963,
-		399124,
-		399284,
-		399401,
-		399938,
-		400780,
-		401020,
-		401078,
-		401194,
-		401372,
-		401858,
-		402218,
-		402278,
-		402699,
-		402758,
-		402937,
-		403148,
-		403778,
-		403837,
-		404619,
-		404678,
-		404857,
-		405065,
-		405698,
-		405757,
-		406058,
-		406643,
-		406801,
-		406964,
-		407081,
-		407241,
-		407402,
-		407618,
-		407679,
-		408459,
-		408699,
-		408759,
-		408873,
-		409538,
-		409898,
-		409957,
-		410379,
-		410438,
-		410619,
-		410828,
-		411458,
-		411516,
-		412299,
-		412358,
-		412539,
-		412747,
-		413378,
-		413436,
-		413738,
-		414323,
-		414483,
-		414643,
-		414761,
-		414921,
-		415298,
-		415359,
-		416139,
-		416379,
-		416438,
-		416553,
-		417218,
-		417578,
-		417637,
-		418059,
-		418117,
-		418299,
-		418507,
-		419137,
-		419197,
-		419979,
-		420037,
-		420219,
-		420427,
-		421057,
-		421117,
-		421418,
-		421479,
-		422003,
-		422163,
-		422323,
-		422441,
-		422673,
-		422977,
-		423039,
-		423818,
-		424059,
-		424118,
-		424232,
-		424369,
-		424515,
-		424660,
-		424718,
-		424898,
-		425258,
-		425317,
-		425738,
-		425798,
-		426628,
-		426817,
-		426876,
-		427658,
-		427718,
-		428075,
-		428492,
-		428550,
-		428738,
-		428796,
-		429098,
-		429159,
-		430171,
-		430230,
-		430657,
-		430719,
-		431498,
-		431779,
-		431947,
-		432124,
-		432577,
-		432938,
-		432996,
-		433824,
-		434498,
-		435846,
-		435984,
-		436116,
-		436420,
-		436478,
-		437362,
-		437458,
-		437675,
-		437800,
-		438019,
-		438150,
-		438337,
-		438398,
-		439178,
-		439462,
-		439627,
-		439803,
-		440257,
-		440617,
-		441098,
-		441157,
-		441338,
-		441504,
-		441605,
-		441750,
-		441912,
-		442179,
-		443018,
-		443077,
-		443293,
-		443434,
-		443531,
-		443638,
-		444097,
-		444263,
-		444393,
-		444484,
-		444617,
-		444970,
-		445202,
-		445362,
-		445480,
-		445640,
-		445800,
-		446020,
-		446078,
-		446858,
-		447098,
-		447157,
-		447264,
-		447939,
-		448297,
-		448778,
-		448836,
-		449018,
-		449226,
-		449859,
-		449910,
-		450698,
-		450756,
-		450938,
-		451146,
-		451779,
-		451838,
-		452137,
-		452198,
-		452722,
-		452882,
-		453042,
-		453154,
-		453320,
-		453480,
-		453699,
-		453758,
-		454538,
-		454778,
-		454837,
-		454959,
-		455619,
-		455977,
-		456458,
-		456698,
-		456906,
-		457539,
-		458377,
-		458437,
-		458618,
-		458826,
-		459459,
-		459518,
-		459819,
-		459879,
-		460402,
-		460562,
-		460722,
-		460834,
-		461000,
-		461139,
-		461379,
-		461438,
-		462217,
-		462458,
-		462516,
-		462639,
-		463299,
-		463715,
-		464138,
-		464378,
-		464439,
-		464543,
-		465219,
-		466057,
-		466116,
-		466298,
-		466509,
-		467139,
-		467197,
-		467499,
-		467558,
-		468084,
-		468242,
-		468402,
-		468514,
-		468658,
-		468840,
-		469059,
-		469117,
-		469897,
-		470137,
-		470319,
-		470979,
-		471817,
-		472057,
-		472223,
-		472899,
-		474173,
-		488071
+		145939,
+		149161,
+		149402,
+		149538,
+		149659,
+		149779,
+		153001,
+		153242,
+		153378,
+		153499,
+		153619,
+		153961,
+		154442,
+		158761,
+		159001,
+		159138,
+		159258,
+		159379,
+		281766,
+		281906,
+		282036,
+		283379,
+		283595,
+		283940,
+		284071,
+		287526,
+		287671,
+		287833,
+		289214,
+		289355,
+		289451,
+		289560,
+		290183,
+		290314,
+		290405,
+		290538,
+		290891,
+		293184,
+		297067,
+		300881,
+		302827,
+		304747,
+		308560,
+		310464,
+		312429,
+		316240,
+		318144,
+		320093,
+		333992
 	];
+
+/***/ },
+/* 46 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var composers = __webpack_require__(19)
+
+	var sample = new Array();
+	var sampleSize = 64;
+	var sum;
+	var average;
+	var fpsThreshold = 30;
+	var quality = 1; // Higher is worse
+
+	var check = function(fps) {
+
+		sample.unshift(fps);
+
+		if (sample.length > sampleSize) {
+			sample.pop();
+
+			if (average < fpsThreshold && quality < 3 ) {
+
+				quality++;
+				sample = [];
+				console.log('quality: '+quality);
+				composers.changeQuality(quality);
+
+
+
+			}
+		}
+
+		sum = 0;
+
+		for (var i = 0; i < sample.length; i++) {
+			sum += sample[i];
+		}
+
+		average = sum/sample.length;
+
+		
+		
+
+	}
+
+	module.exports = {
+		check: check
+	}
 
 /***/ }
 /******/ ]);

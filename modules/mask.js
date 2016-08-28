@@ -32,6 +32,7 @@ threeEnv.scene.add(cubeCamera);
 
 var params = {
 	zGroupPos: -800,
+	// zGroupPos:
 	dancing: false,
 	dancePower: 1,
 	enterScene: function() {

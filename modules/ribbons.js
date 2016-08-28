@@ -8,7 +8,7 @@ var params = {
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
 	opacity: 1,
-	ribbonsActive: true,
+	ribbonsActive: false,
 	waveActive: false,
 	startRibbons: function(wave) {
 		params.ribbonsActive = true;
@@ -55,7 +55,7 @@ var Ribbon = function(id) {
 
 	var tick = 0;
 
-	var length = 100;
+	var length = 75;
 
 	var positions = [];
 
