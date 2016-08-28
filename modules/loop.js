@@ -25,6 +25,9 @@ var crystals = require('./crystals');
 var ribbons = require('./ribbons');
 var clock = require('./clock');
 var sequencer = require('./sequencer');
+var performanceTest = require('./performanceTest');
+
+var lastLoop = new Date;
 
 
 var stats;
@@ -43,6 +46,11 @@ function init() {
 }
 
 function loop() {
+
+	var thisLoop = new Date;
+    var fps = 1000 / (thisLoop - lastLoop);
+    lastLoop = thisLoop;
+    performanceTest.check(fps);
 
 	stats.begin();
 
@@ -63,16 +71,7 @@ function loop() {
 	ribbons.draw(timePassed);
 	camera.draw(timePassed);
 
-
-	// Auto clear must be on for the cubemap to render (mask reflections)
-//	threeEnv.renderer.render( threeEnv.bgScene, threeEnv.bgCamera );
-
-	// Turn autoclear back off again before rendering top layer
-	// threeEnv.renderer.autoClear = false;
-
 	composers.draw(timePassed);
-
-//	threeEnv.renderer.clearDepth();
 	
 	stats.end();
 

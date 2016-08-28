@@ -23,9 +23,6 @@ var finalPass;
 var copyPass;
 
 var renderTargetParams = {
-	minFilter: THREE.LinearFilter, 
-	magFilter: THREE.LinearFilter, 
-	format: THREE.RGBAFormat, 
 	stencilBuffer: false
 }
 
@@ -98,6 +95,9 @@ rgbPass = new THREE.ShaderPass(THREE.RGBShiftShader);
 
 filmPass = new THREE.ShaderPass(THREE.FilmShader);
 
+filmPass.uniforms.sCount.value = threeEnv.box.height;
+filmPass.uniforms.nIntensity.value = 0.23;
+
 filmPass.renderToScreen = true;
  
 // Prepare the occlusion composer's render target
@@ -164,6 +164,10 @@ var draw = function(timePassed) {
 
 }
 
+var changeQuality = function(quality) {
+	renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+}
+
 vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
 vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
 vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
@@ -181,5 +185,6 @@ shaderGui.add(rgbPass.uniforms.angle, 'value').min(0).max(Math.PI*2).name("RGBAn
 
 
 module.exports = {
-	draw: draw
+	draw: draw,
+	changeQuality: changeQuality
 }
