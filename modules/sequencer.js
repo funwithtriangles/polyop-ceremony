@@ -9,6 +9,7 @@ var timelineIndex = 0;
 
 var mask = require('./mask');
 var ribbons = require('./ribbons');
+var crystals = require('./crystals');
 var camera = require('./camera');
 
 
@@ -24,6 +25,10 @@ var timeline = [
 	{
 		time: 25,
 		event: mask.params.enterScene
+	},
+	{
+		time: barBeat(20, 0),
+		event: crystals.params.fadeIn
 	},
 	{
 		time: barBeat(24, 0),

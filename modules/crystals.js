@@ -1,5 +1,6 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
+var TWEEN = require('tween.js');
 var gui = require('./gui');
 var mask = require('./mask');
 var guiFolder = gui.addFolder('Crystals');
@@ -10,13 +11,24 @@ var crystals = [];
 
 var orbitAngle = 0;
 
-var crystalMaterial = new THREE.MeshBasicMaterial({
-	wireframe: true
-});
+
 
 var params = {
-	speed: 0.05
+	speed: 0.02,
+	opacity: 0,
+	fadeIn: function() {
+		var tween = new TWEEN.Tween(params)
+	    .to({opacity: 1}, 30000)
+	    .easing(TWEEN.Easing.Sinusoidal.Out)
+	    .start();
+	}
 }
+
+var crystalMaterial = new THREE.MeshBasicMaterial({
+	wireframe: true,
+	transparent: true,
+	opacity: params.opacity
+});
 
 guiFolder.add(params, 'speed', 0, 1).name('Crystal Speed');
 
@@ -49,6 +61,8 @@ var draw = function() {
 	var levelsData = audioAnalyser.getLevels().bands;
 
 	orbitAngle += params.speed;
+
+	crystalMaterial.opacity = params.opacity;
 
 	for (var i = 0; i < numCrystals; i++) {
 
