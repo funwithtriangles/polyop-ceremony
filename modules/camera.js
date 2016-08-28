@@ -4,7 +4,7 @@ var guiFolder = require('./gui').addFolder('Camera');
 var mask = require('./mask');
 
 var camera = threeEnv.camera;
-var target = mask.mask;
+var target = mask.mask.group;
 var lookAt = target.position.clone();
 
 var orbiting = false;

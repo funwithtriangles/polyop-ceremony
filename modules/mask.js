@@ -17,8 +17,7 @@ var maskModel = require('../assets/mask.json');
 
 var loader = new THREE.ObjectLoader();
 
-var MainMask, oclMask;
-
+var mainMask;
 
 var explodeModifier = new THREE.ExplodeModifier();
 
@@ -30,16 +29,14 @@ var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 threeEnv.scene.add(cubeCamera);
 
 var params = {
-	zPos: -800,
-	yPos: -100,
-	xPos: 0,
+	zGroupPos: -800,
 	dancing: false,
 	dancePower: 1,
 	enterScene: function() {
 
 	
 		var tween = new TWEEN.Tween(params)
-	    .to({zPos: 100}, 25000)
+	    .to({zGroupPos: 100}, 25000)
 	    .easing(TWEEN.Easing.Sinusoidal.Out)
 	    .start();
 
@@ -53,7 +50,7 @@ var params = {
 
 	},
 	defaultPos: function() {
-		params.zPos = 0;
+		params.zGroupPos = 0;
 	},
 	sweep: function() {
 		mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
@@ -67,7 +64,7 @@ var params = {
 	}
 }
 
-guiFolder.add(params, 'zPos').min(-800).max(800);
+guiFolder.add(params, 'zGroupPos').min(-800).max(800);
 guiFolder.add(params, 'enterScene');
 guiFolder.add(params, 'randomEdgeFlash');
 guiFolder.add(params, 'sweep');
@@ -180,12 +177,16 @@ var Mask = function(mask) {
 	var that = this;
 
 
-	oclMask = new THREE.Object3D();
+	that.group = new THREE.Object3D();
+	that.oclGroup = new THREE.Object3D();
+	that.mask = mask;
+
+	that.oclMask = new THREE.Object3D();
 
 	var outerObjs = [];
 
 	mask.position.y = params.yPos;
-	oclMask.position.y = params.yPos;
+	that.oclMask.position.y = params.yPos;
 
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
@@ -233,8 +234,8 @@ var Mask = function(mask) {
 	var oclHeadBottom = headBottom.clone();
 	oclHeadBottom.material = oclMaterial;
 
-	oclMask.add(oclHeadTop);
-	oclMask.add(oclHeadBottom);
+	that.oclMask.add(oclHeadTop);
+	that.oclMask.add(oclHeadBottom);
 
 
 	for (var i = 0; i < modelIds.outer.length; i++) {
@@ -328,10 +329,11 @@ var Mask = function(mask) {
 
 	}
 
-	threeEnv.scene.add(mask);
-	threeEnv.oclScene.add(oclMask);
+	that.group.add(mask);
+	that.oclGroup.add(that.oclMask);
+	threeEnv.scene.add(that.group);
+	threeEnv.oclScene.add(that.oclGroup);
 
-	return mask;
 }
 
 
@@ -342,31 +344,42 @@ var draw = function(time) {
 	var waveHalf = clock.lfo.sineHalf;
 
 	if (params.dancing) {
-		params.xPos = 2.5 * wave * params.dancePower;
-		params.yPos = -100 + (1.5 * waveHalf) * params.dancePower;
-		params.zPos =  waveHalf * params.dancePower;
+		var xMaskPos = 2.5 * wave * params.dancePower;
+		var yMaskPos = (1.5 * waveHalf) * params.dancePower;
+		var zMaskPos =  waveHalf * params.dancePower;
+	} else {
+		var xMaskPos = 0;
+		var yMaskPos = 0;
+		var zMaskPos = 0;
 	}
 	
 
 	if (mainMask) {
+
+		var mask = mainMask.mask;
+		var oclMask = mainMask.oclMask;
+		var maskGroup = mainMask.group;
+		var oclMaskGroup = mainMask.oclGroup;
 
 
 		uniforms.time.value = time;
 
 		var time = time * 0.001;
 
+		maskGroup.position.z = params.zGroupPos;
+		oclMaskGroup.position.z = params.zGroupPos;;
 
-		mainMask.position.x = params.xPos;
-		oclMask.position.x = params.xPos;
+		mask.position.x = xMaskPos;
+		oclMask.position.x = xMaskPos;
 
-		mainMask.position.y = params.yPos;
-		oclMask.position.y = params.yPos;
+		mask.position.y = yMaskPos;
+		oclMask.position.y = yMaskPos;
 
-		mainMask.position.z = params.zPos;
-		oclMask.position.z = params.zPos;
+		mask.position.z = zMaskPos;
+		oclMask.position.z = zMaskPos;
 
 
-		cubeCamera.position.copy( mainMask.position );
+		cubeCamera.position.copy( mainMask.mask.position );
 		cubeCamera.position.y += 150;
 
 		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );

@@ -28,6 +28,8 @@ var pulse = function() {
 
 	lfo.sine = Math.sin(deltaStep * tick);
 	lfo.sineHalf = Math.sin(deltaStep * 2 * tick);
+	lfo.sineTwo = Math.sin(deltaStep / 2 * tick);
+	lfo.sineBar = Math.sin(deltaStep / 4 * tick);
 
 }
 

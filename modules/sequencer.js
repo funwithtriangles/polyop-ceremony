@@ -60,6 +60,10 @@ var timeline = [
 	},
 	{
 		time: barBeat(40, 0),
+		event: crystals.params.startSpeedFlux
+	},
+	{
+		time: barBeat(40, 0),
 		event: function() {
 			mask.params.startDancing(10)
 		}
@@ -92,7 +96,7 @@ var checkChannels = function(time) {
 
 	// MIDI
 	while (time >= cowbell[cowbellIndex] * clock.params.spp) {
-		camera.params.startOrbit();
+		//camera.params.startOrbit();
 		cowbellIndex++;
 	}
 }
