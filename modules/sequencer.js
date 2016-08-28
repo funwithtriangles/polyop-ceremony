@@ -60,7 +60,8 @@ var timeline = [
 			crystals.params.startSpeedFlux();
 			camera.params.stopOrbit();
 			mask.params.startDancing(10)
-			leaves.params.speed = -0.1;
+			leaves.params.speed = -0.2;
+			leaves.params.groupRotZ = 0.04;
 		}
 	},
 	{
@@ -90,6 +91,9 @@ var timeline = [
 		event: function() {
 			cowbellCamera = false;
 			camera.params.stopOrbit();
+			leaves.params.gotoCircle();
+			leaves.params.groupRotZ = 0.08;
+			leaves.params.speed = -0.4;
 		}
 	}
 ]
