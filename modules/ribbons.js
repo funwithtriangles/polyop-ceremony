@@ -8,7 +8,7 @@ var params = {
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
 	opacity: 1,
-	ribbonsActive: false,
+	ribbonsActive: true,
 	waveActive: false,
 	startRibbons: function(wave) {
 		params.ribbonsActive = true;
@@ -47,7 +47,7 @@ var radius = 0;
 
 threeEnv.scene.add(group);
 
-group.position.z = -200;
+group.position.z = -150;
 
 var Ribbon = function(id) {
 
@@ -78,7 +78,7 @@ var Ribbon = function(id) {
 
 	var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 	
-	var material = new THREE.MeshLambertMaterial({
+	var material = new THREE.MeshPhongMaterial({
 		//wireframe: true,
 		side: THREE.DoubleSide,
 		shading: THREE.FlatShading,
