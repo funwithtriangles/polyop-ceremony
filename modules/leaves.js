@@ -18,10 +18,12 @@ var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
 
 var params = {
-	groupRotSpeed: 0.00,
+	groupRotX: 0,
+	groupRotY: 0,
+	groupRotZ: 0.005,
 	speed: 0,
 	leafOpacity: 1,
-	active: false,
+	active: true,
 	gotoCircle: function() {
 		gotoCircle();
 	},
@@ -32,8 +34,10 @@ var params = {
 
 // gui.remember(params);
 
-guiFolder.add(params, 'speed', -10, 10);
-guiFolder.add(params, 'groupRotSpeed', 0, 0.05);
+guiFolder.add(params, 'speed', -1, 1);
+guiFolder.add(params, 'groupRotX', 0, 1);
+guiFolder.add(params, 'groupRotY', 0, 1);
+guiFolder.add(params, 'groupRotZ', 0, 1);
 guiFolder.add(params, 'gotoCircle');
 guiFolder.add(params, 'resetLeaves');
 guiFolder.add(params, 'active');
@@ -73,9 +77,9 @@ var Leaf = function(i) {
 
 	this.reset = function() {
 
-		that.mesh.position.x = (Math.random() * 1000) - 500;
-		that.mesh.position.y = (Math.random() * 1000) - 500;
-		that.mesh.position.z = (Math.random() * zLimit) - (zLimit*1.3);
+		that.mesh.position.x = (Math.random() * 2000) - 1000;
+		that.mesh.position.y = (Math.random() * 2000) - 1000;
+		that.mesh.position.z = (Math.random() * 2000) - 1000;
 
 		that.vz = Math.random() + 0.5;
 
@@ -151,17 +155,19 @@ var init = function() {
 
 var draw = function(timePassed) {
 
-	leafGroup.rotation.z += params.groupRotSpeed;
+	// leafGroup.rotation.x += params.groupRotX * 0.1;
+	// leafGroup.rotation.y += params.groupRotY * 0.1;
+	leafGroup.rotation.z += params.groupRotZ * 0.1;
 
 	for (var i = 0; i < particles.length; i++) {
 
 		var particle = particles[i];
 
 		particle.mesh.material.opacity = params.leafOpacity;
-		particle.mesh.position.z += particle.vz * params.speed;
-		particle.mesh.rotation.x += 0.01;
-		particle.mesh.rotation.y += 0.01;
-		particle.mesh.rotation.z += 0.01;
+		particle.mesh.position.z += particle.vz * params.speed * 10;
+		particle.mesh.rotation.x += 0.003;
+		particle.mesh.rotation.y += 0.003;
+		particle.mesh.rotation.z += 0.003;
 
 
 
@@ -186,7 +192,8 @@ var resetAll = function() {
 }
 
 module.exports = {
-	draw: draw
+	draw: draw,
+	params: params
 }
 
 

@@ -19,6 +19,8 @@ var loader = new THREE.ObjectLoader();
 
 var mainMask;
 
+var maskYOffset = -100;
+
 var explodeModifier = new THREE.ExplodeModifier();
 
 var tessellateModifier = new THREE.TessellateModifier( 8 );
@@ -44,7 +46,6 @@ var params = {
 	},
 	startDancing: function(power) {
 
-		console.log('dng');
 		params.dancing = true;
 		params.dancePower = power;
 
@@ -185,8 +186,8 @@ var Mask = function(mask) {
 
 	var outerObjs = [];
 
-	mask.position.y = params.yPos;
-	that.oclMask.position.y = params.yPos;
+	mask.position.y = maskYOffset;
+	that.oclMask.position.y = maskYOffset;
 
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
@@ -345,11 +346,11 @@ var draw = function(time) {
 
 	if (params.dancing) {
 		var xMaskPos = 2.5 * wave * params.dancePower;
-		var yMaskPos = (1.5 * waveHalf) * params.dancePower;
+		var yMaskPos = (1.5 * waveHalf) * params.dancePower + maskYOffset;
 		var zMaskPos =  waveHalf * params.dancePower;
 	} else {
 		var xMaskPos = 0;
-		var yMaskPos = 0;
+		var yMaskPos = maskYOffset;
 		var zMaskPos = 0;
 	}
 	

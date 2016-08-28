@@ -25,6 +25,12 @@ var params = {
 	    .easing(TWEEN.Easing.Sinusoidal.Out)
 	    .start();
 	},
+	fadeOut: function() {
+		var tween = new TWEEN.Tween(params)
+	    .to({opacity: 0}, 5000)
+	    .easing(TWEEN.Easing.Sinusoidal.Out)
+	    .start();
+	},
 	startSpeedFlux: function() {
 		params.speedFlux = 1;
 	},

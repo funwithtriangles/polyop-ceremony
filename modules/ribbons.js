@@ -7,7 +7,7 @@ var params = {
 	ribbonCount: 3,
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
-	ribbonOpacity: 1,
+	opacity: 1,
 	ribbonsActive: false,
 	waveActive: false,
 	startRibbons: function(wave) {
@@ -28,7 +28,7 @@ gui.add(params, 'ribbonCount', 0, 20);
 gui.add(params, 'waveActive');
 gui.add(params, 'ribbonFreq', 0, 200);
 gui.add(params, 'ribbonRot', 0, 0.03);
-gui.add(params, 'ribbonOpacity', 0, 1);
+gui.add(params, 'opacity', 0, 1).name('Ribbon Opacity');
 gui.add(params, 'ribbonsActive');
 
 var ribbon;
@@ -124,7 +124,7 @@ var Ribbon = function(id) {
 
 	this.update = function() {
 
-		material.opacity = params.ribbonOpacity;
+		material.opacity = params.opacity;
 
 		var sequenceItem = sequence[sequenceIndex];
 
