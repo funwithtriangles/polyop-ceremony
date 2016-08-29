@@ -165,8 +165,8 @@ var draw = function(timePassed) {
 }
 
 var changeQuality = function(quality) {
-	renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
-	finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	// renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	// finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 }
 
 vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
