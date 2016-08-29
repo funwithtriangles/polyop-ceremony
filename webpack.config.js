@@ -24,6 +24,7 @@ module.exports = {
         progress: true,
         colors: true,
         inline: true,
-        contentBase: 'dist/'
+        contentBase: 'dist/',
+        host: '0.0.0.0'
     }
 };
