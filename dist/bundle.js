@@ -45461,6 +45461,7 @@
 
 	var changeQuality = function(quality) {
 		renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+		finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 	}
 
 	vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
@@ -53400,7 +53401,7 @@
 	var params = {
 		bounceAmp: 0.5,
 		pulseAmp: 0.5,
-		scale: 1.0
+		scale: 2.0
 	}
 
 	// gui.remember(params);
@@ -53446,7 +53447,7 @@
 	 
 	threeEnv.bgScene.add( swampMesh );
 
-	exports.draw = function(timePassed) {
+	var draw = function(timePassed) {
 
 		var levelsData = audioAnalyser.getLevels().bands;
 
@@ -53457,6 +53458,11 @@
 	    swampMaterial.uniforms[ 'pulse' ].value = levelsData[1].average * params.pulseAmp * 10;
 	    swampMaterial.uniforms[ 'scale' ].value = parseFloat(params.scale);
 
+	}
+
+	module.exports = {
+		draw: draw,
+		params: params
 	}
 
 /***/ },
@@ -54045,6 +54051,7 @@
 	var ribbons = __webpack_require__(43);
 	var crystals = __webpack_require__(42);
 	var leaves = __webpack_require__(41);
+	var background = __webpack_require__(39);
 	var camera = __webpack_require__(30);
 
 
@@ -54094,6 +54101,7 @@
 				mask.params.startDancing(10)
 				leaves.params.speed = -0.2;
 				leaves.params.groupRotZ = 0.04;
+				background.params.scale = 4.0;
 			}
 		},
 		{
@@ -54126,6 +54134,24 @@
 				leaves.params.gotoCircle();
 				leaves.params.groupRotZ = 0.08;
 				leaves.params.speed = -0.4;
+			}
+		},
+		{
+			time: barBeat(68, 0),
+			event: function() {
+				leaves.params.gotoCircle()
+			}
+		},
+		{
+			time: barBeat(72, 0),
+			event: function() {
+				leaves.params.gotoCircle()
+			}
+		},
+		{
+			time: barBeat(76, 0),
+			event: function() {
+				leaves.params.gotoCircle()
 			}
 		}
 	]
