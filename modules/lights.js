@@ -1,4 +1,5 @@
 var THREE = require('three');
+var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
 var gui = require('./gui').addFolder('Lights');
 
@@ -38,17 +39,6 @@ var randomPositions = function() {
 
 }
 
-// Volumetric light
-var vLight = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(70, 3),
-    new THREE.MeshBasicMaterial({
-        color: 0xffffff
-    })
-);
-
-vLight.position.y = 150;
-
-threeEnv.oclScene.add( vLight );
 
 var draw = function(timePassed) {
 
@@ -59,6 +49,5 @@ var draw = function(timePassed) {
 randomPositions();
 
 module.exports = {
-	vLight: vLight,
 	draw: draw
 }

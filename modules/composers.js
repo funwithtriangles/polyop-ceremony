@@ -1,8 +1,8 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
-var vLightGui = require('./gui').addFolder('vLight');
+// var vLightGui = require('./gui').addFolder('vLight');
 var shaderGui = require('./gui').addFolder('Shaders');
-var vLight = require('./lights').vLight;
+var vLight = require('./vLight');
 var shaders = {
 	vertex: require('../shaders/simple_vertex.glsl'),
 	godRays: require('../shaders/god_rays.glsl'),
@@ -151,7 +151,7 @@ var projectOnScreen = function(object, camera) {
 
 var draw = function(timePassed) {
 
-	var lPos = projectOnScreen(vLight, threeEnv.camera);
+	var lPos = projectOnScreen(vLight.mesh, threeEnv.camera);
 	grPass.uniforms["fX"].value = lPos.x;
 	grPass.uniforms["fY"].value = lPos.y;
 
@@ -162,6 +162,8 @@ var draw = function(timePassed) {
  	threeEnv.renderer.setClearColor(0x4f6ab1);
 	finalComposer.render( 0.1 );
 
+	grPass.uniforms.fExposure.value = vLight.params.exposure;
+
 }
 
 var changeQuality = function(quality) {
@@ -169,11 +171,11 @@ var changeQuality = function(quality) {
 	// finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 }
 
-vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
-vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
-vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
-vLightGui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
-vLightGui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+
+// vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
+// vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
+// vLightGui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
+// vLightGui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
 
 shaderGui.add(filmPass.uniforms.grayscale, 'value').name("grayscale");
 shaderGui.add(filmPass.uniforms.nIntensity, 'value').min(0.0).max(1.0).name("nIntensity");
