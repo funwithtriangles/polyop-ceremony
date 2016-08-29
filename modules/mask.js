@@ -196,7 +196,42 @@ var modelIds = {
 	]
 }
 
+var makeExplodable = function(geometry) {
 
+	explodeModifier.modify( geometry );
+
+	for ( var i = 0; i < 3; i ++ ) {
+
+		tessellateModifier.modify( geometry );
+
+	}
+
+	var numFaces = geometry.faces.length;
+	var displacement = new Float32Array( numFaces * 3 * 3 );
+
+	geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+
+	for ( var f = 0; f < numFaces; f ++ ) {
+
+		var index = 9 * f;
+
+		var d = Math.random();
+
+		for ( var i = 0; i < 3; i ++ ) {
+
+			displacement[ index + ( 3 * i )     ] = d;
+			displacement[ index + ( 3 * i ) + 1 ] = d;
+			displacement[ index + ( 3 * i ) + 2 ] = d;
+
+		}
+
+
+	}
+
+	geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
+
+	return geometry;
+}
 
 
 var Mask = function(mask) {
@@ -218,37 +253,8 @@ var Mask = function(mask) {
 	var headTop = mask.getObjectByName( 'head_top' );
 	var headBottom = mask.getObjectByName( 'head_bottom' );
 
-	explodeModifier.modify( headTop.geometry );
-
-	for ( var i = 0; i < 3; i ++ ) {
-
-		tessellateModifier.modify( headTop.geometry );
-
-	}
-
-	var numFaces = headTop.geometry.faces.length;
-	var displacement = new Float32Array( numFaces * 3 * 3 );
-
-	headTop.geometry = new THREE.BufferGeometry().fromGeometry( headTop.geometry );
-
-	for ( var f = 0; f < numFaces; f ++ ) {
-
-		var index = 9 * f;
-
-		var d = Math.random();
-
-		for ( var i = 0; i < 3; i ++ ) {
-
-			displacement[ index + ( 3 * i )     ] = d;
-			displacement[ index + ( 3 * i ) + 1 ] = d;
-			displacement[ index + ( 3 * i ) + 2 ] = d;
-
-		}
-
-
-	}
-
-	headTop.geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
+	headTop.geometry = makeExplodable(headTop.geometry);
+	headBottom.geometry = makeExplodable(headBottom.geometry);
 
 
 	// Give main head material
