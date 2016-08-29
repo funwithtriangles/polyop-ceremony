@@ -3,8 +3,7 @@ var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
 var clock = require('./clock');
 
-var gui = require('./gui');
-var guiFolder = gui.addFolder('Mask');
+var gui = require('./gui').addFolder('Mask');
 
 
 var shaders = {
@@ -32,9 +31,13 @@ threeEnv.scene.add(cubeCamera);
 
 var params = {
 	zGroupPos: -800,
-	// zGroupPos:
+	//zGroupPos: 0,
 	dancing: false,
 	dancePower: 1,
+	rumble: 0,
+	explodeAmount: 0,
+	explodeSpeed: 0,
+	rumbling: false,
 	enterScene: function() {
 
 	
@@ -43,6 +46,23 @@ var params = {
 	    .easing(TWEEN.Easing.Sinusoidal.Out)
 	    .start();
 
+
+	},
+	startRumble: function() {
+		var tween = new TWEEN.Tween(params)
+	    .to({rumble: 1, explodeAmount: 15}, 30000)
+	    .easing(TWEEN.Easing.Quadratic.In)
+	    .start();
+	},
+	explode: function() {
+
+		params.rumble = 0;
+		params.explodeSpeed = 100;
+
+		var tween = new TWEEN.Tween(params)
+	    .to({explodeSpeed: 1}, 1000)
+	    .easing(TWEEN.Easing.Exponential.Out)
+	    .start();
 
 	},
 	startDancing: function(power) {
@@ -66,12 +86,16 @@ var params = {
 	}
 }
 
-guiFolder.add(params, 'zGroupPos').min(-800).max(800);
-guiFolder.add(params, 'enterScene');
-guiFolder.add(params, 'randomEdgeFlash');
-guiFolder.add(params, 'sweep');
-guiFolder.add(params, 'dancing');
-guiFolder.add(params, 'dancePower', 1, 20);
+gui.add(params, 'zGroupPos', -800, 800);
+gui.add(params, 'enterScene');
+gui.add(params, 'randomEdgeFlash');
+gui.add(params, 'sweep');
+gui.add(params, 'dancing');
+gui.add(params, 'dancePower', 1, 20);
+gui.add(params, 'explode');
+gui.add(params, 'startRumble');
+gui.add(params, 'explodeAmount', 0, 1500);
+gui.add(params, 'rumble', 0, 3);
 
 
 
@@ -102,10 +126,11 @@ uniforms.specular.value = new THREE.Color( 0x111111 );
 uniforms.shininess.value = 50;
 uniforms.envMap.value = cubeCamera.renderTarget.texture;
 uniforms.explodeAmount = {type: "f", value: 0.0};
+uniforms.rumble = {type: "f", value: 0.0};
 uniforms.time = {type: "f", value: 0.0};
 uniforms.flipEnvMap.value = 1;
 
-guiFolder.add(uniforms.explodeAmount, 'value').min(0.0).max(10.0).name("explodeAmount");
+
 
 var coreMaterial = new THREE.ShaderMaterial( {
 
@@ -113,7 +138,7 @@ var coreMaterial = new THREE.ShaderMaterial( {
 	lights: true,
 	fog: true,
 	shading: THREE.FlatShading,
-	// side: THREE.BackSide,
+	side: THREE.DoubleSide,
 	vertexShader:   shaders.explode,
 	fragmentShader: shaders.phong
 
@@ -366,6 +391,11 @@ var draw = function(time) {
 
 		uniforms.time.value = time;
 
+		params.explodeAmount += params.explodeSpeed;
+
+		uniforms.explodeAmount.value = params.explodeAmount;
+		uniforms.rumble.value = params.rumble;
+
 		var time = time * 0.001;
 
 		maskGroup.position.z = params.zGroupPos;
@@ -379,6 +409,12 @@ var draw = function(time) {
 
 		mask.position.z = zMaskPos;
 		oclMask.position.z = zMaskPos;
+
+
+		if (params.rumbling) {
+			//params.rumble += 0.001;
+			// params.explodeAmount += 0.02;
+		}
 
 
 		cubeCamera.position.copy( mainMask.mask.position );

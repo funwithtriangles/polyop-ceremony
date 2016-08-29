@@ -21,6 +21,7 @@ varying vec3 tempPosition;
 varying float noise;
 
 uniform float explodeAmount;
+uniform float rumble;
 uniform float time;
 
 #ifndef FLAT_SHADED
@@ -95,7 +96,7 @@ void main() {
 
 //	tempPosition = position + normal * b * noise * displacement * 10.;
 
-	vec3 newPosition = position + normal * noise * displacement * 100. * explodeAmount;
+	vec3 newPosition = position + normal * displacement * ((noise * 100. * rumble) + 1.) * explodeAmount;
 	//vec3 newPosition = tempPosition;
 
 	gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
