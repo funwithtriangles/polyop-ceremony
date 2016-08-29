@@ -8,12 +8,14 @@ var cowbellIndex = 0;
 var timelineIndex = 0;
 
 var cowbellCamera = true;
+var cowbellRibbons = false;
 
 var mask = require('./mask');
 var ribbons = require('./ribbons');
 var crystals = require('./crystals');
 var leaves = require('./leaves');
 var background = require('./background');
+var vLight = require('./vLight');
 var camera = require('./camera');
 
 
@@ -92,8 +94,10 @@ var timeline = [
 		time: barBeat(64, 0),
 		event: function() {
 			cowbellCamera = false;
+			cowbellRibbons = true;
 			camera.params.stopOrbit();
 			leaves.params.gotoCircle();
+			ribbons.params.startRibbons();
 			leaves.params.groupRotZ = 0.08;
 			leaves.params.speed = -0.4;
 		}
@@ -115,6 +119,19 @@ var timeline = [
 		event: function() {
 			leaves.params.gotoCircle()
 		}
+	},
+	{
+		time: barBeat(80, 0),
+		event: function() {
+			mask.params.startRumble();
+			vLight.params.fadeIn();
+		}
+	},
+	{
+		time: barBeat(96, 0),
+		event: function() {
+			mask.params.explode();
+		}
 	}
 ]
 
@@ -135,6 +152,10 @@ var checkChannels = function(time) {
 
 		if (cowbellCamera) {
 			camera.params.startOrbit();
+		}
+
+		if (cowbellRibbons) {
+			ribbons.params.randomFlash();
 		}
 		
 		cowbellIndex++;
