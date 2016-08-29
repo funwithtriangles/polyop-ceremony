@@ -1,15 +1,58 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
+var TWEEN = require('tween.js');
 var gui = require('./gui').addFolder('Ribbons');
 var clock = require('./clock');
 
+var numFlashes = 0;
+var flashing = false;
+
 var params = {
-	ribbonCount: 3,
+	ribbonCount: 2,
 	ribbonFreq: 50,
 	ribbonRot: 0.005,
 	opacity: 1,
 	ribbonsActive: false,
 	waveActive: false,
+	randomFlash: function() {
+
+	
+
+		for (var i = numFlashes % 2; i < 10; i += 2) {
+
+			var ribbon = ribbons[i];
+
+			if (ribbon) {
+
+				var material = ribbon.mesh.material;
+
+				material.opacity = 1;
+
+
+				var tween = new TWEEN.Tween(material)
+			    .to({opacity: 0}, 500)
+			    .easing(TWEEN.Easing.Quintic.Out)
+			    .start()
+			    .onStart(function() {
+			    	flashing = true;
+			    })
+			    .onComplete(function() {
+			    	flashing = false;
+			    });
+
+			}
+			
+			
+		}
+
+
+		numFlashes ++;
+
+		
+		
+
+
+	},
 	startRibbons: function(wave) {
 		params.ribbonsActive = true;
 
@@ -30,6 +73,7 @@ gui.add(params, 'ribbonFreq', 0, 200);
 gui.add(params, 'ribbonRot', 0, 0.03);
 gui.add(params, 'opacity', 0, 1).name('Ribbon Opacity');
 gui.add(params, 'ribbonsActive');
+gui.add(params, 'randomFlash');
 
 var ribbon;
 
@@ -78,18 +122,18 @@ var Ribbon = function(id) {
 
 	var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 	
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshBasicMaterial({
 		//wireframe: true,
 		side: THREE.DoubleSide,
-		shading: THREE.FlatShading,
-		transparent: true
+		transparent: true,
+		opacity: 0
 	});
 		
-	var mesh = new THREE.Mesh(geom, material);
+	this.mesh = new THREE.Mesh(geom, material);
 
-	mesh.position.x = radius;
+	this.mesh.position.x = radius;
 
-	this.container.add(mesh);
+	this.container.add(this.mesh);
 
 	this.container.rotation.z = Math.random() * Math.PI * 2;
 
@@ -124,8 +168,10 @@ var Ribbon = function(id) {
 
 	this.update = function() {
 
-		material.opacity = params.opacity;
-
+		if (!flashing) {
+			material.opacity = params.opacity;
+		}
+		
 		var sequenceItem = sequence[sequenceIndex];
 
 		x += sequenceItem.dx * speed;
