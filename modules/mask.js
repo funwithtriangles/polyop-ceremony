@@ -31,6 +31,7 @@ threeEnv.scene.add(cubeCamera);
 
 var params = {
 	zGroupPos: -800,
+	yRotSpeed: 0,
 	//zGroupPos: 0,
 	dancing: false,
 	dancePower: 1,
@@ -58,9 +59,15 @@ var params = {
 
 		params.rumble = 0;
 		params.explodeSpeed = 100;
+		params.yRotSpeed = 0.1;
 
 		var tween = new TWEEN.Tween(params)
 	    .to({explodeSpeed: 1}, 1000)
+	    .easing(TWEEN.Easing.Exponential.Out)
+	    .start();
+
+	    var tween = new TWEEN.Tween(params)
+	    .to({yRotSpeed: 0.001}, 1500)
 	    .easing(TWEEN.Easing.Exponential.Out)
 	    .start();
 
@@ -415,6 +422,10 @@ var draw = function(time) {
 
 		mask.position.z = zMaskPos;
 		oclMask.position.z = zMaskPos;
+
+		mask.rotation.y += params.yRotSpeed;
+		oclMask.rotation.y += params.yRotSpeed;
+
 
 
 		if (params.rumbling) {
