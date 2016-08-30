@@ -416,17 +416,17 @@
 	var Stats = __webpack_require__(16);
 	var threeEnv = __webpack_require__(17);
 	var composers = __webpack_require__(19);
-	var lights = __webpack_require__(24);
-	var camera = __webpack_require__(30);
-	var audioAnalyser = __webpack_require__(33);
-	var background = __webpack_require__(39);
-	var leaves = __webpack_require__(41);
-	var mask = __webpack_require__(31);
-	var crystals = __webpack_require__(42);
-	var ribbons = __webpack_require__(43);
-	var clock = __webpack_require__(32);
-	var sequencer = __webpack_require__(44);
-	var performanceTest = __webpack_require__(46);
+	var lights = __webpack_require__(30);
+	var camera = __webpack_require__(31);
+	var audioAnalyser = __webpack_require__(34);
+	var background = __webpack_require__(40);
+	var leaves = __webpack_require__(42);
+	var mask = __webpack_require__(32);
+	var crystals = __webpack_require__(43);
+	var ribbons = __webpack_require__(44);
+	var clock = __webpack_require__(33);
+	var sequencer = __webpack_require__(45);
+	var performanceTest = __webpack_require__(47);
 
 	var lastLoop = new Date;
 
@@ -45295,9 +45295,9 @@
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
-	var vLightGui = __webpack_require__(20).addFolder('vLight');
+	// var vLightGui = require('./gui').addFolder('vLight');
 	var shaderGui = __webpack_require__(20).addFolder('Shaders');
-	var vLight = __webpack_require__(24).vLight;
+	var vLight = __webpack_require__(24);
 	var shaders = {
 		vertex: __webpack_require__(25),
 		godRays: __webpack_require__(26),
@@ -45446,7 +45446,7 @@
 
 	var draw = function(timePassed) {
 
-		var lPos = projectOnScreen(vLight, threeEnv.camera);
+		var lPos = projectOnScreen(vLight.mesh, threeEnv.camera);
 		grPass.uniforms["fX"].value = lPos.x;
 		grPass.uniforms["fY"].value = lPos.y;
 
@@ -45457,6 +45457,8 @@
 	 	threeEnv.renderer.setClearColor(0x4f6ab1);
 		finalComposer.render( 0.1 );
 
+		grPass.uniforms.fExposure.value = vLight.params.exposure;
+
 	}
 
 	var changeQuality = function(quality) {
@@ -45464,11 +45466,11 @@
 		finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 	}
 
-	vLightGui.add(grPass.uniforms.fExposure, 'value').min(0.0).max(1.0).step(0.01).name("Exposure");
-	vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
-	vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
-	vLightGui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
-	vLightGui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
+
+	// vLightGui.add(grPass.uniforms.fDecay, 'value').min(0.6).max(1.0).step(0.01).name("Decay");
+	// vLightGui.add(grPass.uniforms.fDensity, 'value').min(0.0).max(1.0).step(0.01).name("Density");
+	// vLightGui.add(grPass.uniforms.fWeight, 'value').min(0.0).max(1.0).step(0.01).name("Weight");
+	// vLightGui.add(grPass.uniforms.fClamp, 'value').min(0.0).max(1.0).step(0.01).name("Clamp");
 
 	shaderGui.add(filmPass.uniforms.grayscale, 'value').name("grayscale");
 	shaderGui.add(filmPass.uniforms.nIntensity, 'value').min(0.0).max(1.0).name("nIntensity");
@@ -49936,6 +49938,77 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
+	var TWEEN = __webpack_require__(15);
+	var threeEnv = __webpack_require__(17);
+	var gui = __webpack_require__(20).addFolder('vLight');
+
+	var params = {
+		exposure: 0,
+		fadeIn: function() {
+
+			var tween = new TWEEN.Tween(params)
+		    .to({exposure: 1}, 30000)
+		    .easing(TWEEN.Easing.Quadratic.In)
+		    .start();
+
+		}
+	}
+
+	var mesh = new THREE.Mesh(
+	    new THREE.IcosahedronGeometry(70, 3),
+	    new THREE.MeshBasicMaterial({
+	        color: 0xffffff
+	    })
+	);
+
+	gui.add(params, 'exposure', 0, 1);
+	gui.add(params, 'fadeIn');
+
+	// mesh.position.y = 150;
+
+	threeEnv.oclScene.add( mesh );
+
+	module.exports = {
+		params: params,
+		mesh: mesh
+	}
+
+/***/ },
+/* 25 */
+/***/ function(module, exports) {
+
+	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
+
+/***/ },
+/* 26 */
+/***/ function(module, exports) {
+
+	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSamples) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
+
+/***/ },
+/* 27 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+
+/***/ },
+/* 28 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+
+/***/ },
+/* 29 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(6);
+	var TWEEN = __webpack_require__(15);
 	var threeEnv = __webpack_require__(17);
 	var gui = __webpack_require__(20).addFolder('Lights');
 
@@ -49975,17 +50048,6 @@
 
 	}
 
-	// Volumetric light
-	var vLight = new THREE.Mesh(
-	    new THREE.IcosahedronGeometry(70, 3),
-	    new THREE.MeshBasicMaterial({
-	        color: 0xffffff
-	    })
-	);
-
-	vLight.position.y = 150;
-
-	threeEnv.oclScene.add( vLight );
 
 	var draw = function(timePassed) {
 
@@ -49996,48 +50058,17 @@
 	randomPositions();
 
 	module.exports = {
-		vLight: vLight,
 		draw: draw
 	}
 
 /***/ },
-/* 25 */
-/***/ function(module, exports) {
-
-	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
-
-/***/ },
-/* 26 */
-/***/ function(module, exports) {
-
-	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSamples) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
-
-/***/ },
-/* 27 */
-/***/ function(module, exports) {
-
-	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
-
-/***/ },
-/* 28 */
-/***/ function(module, exports) {
-
-	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
-
-/***/ },
-/* 29 */
-/***/ function(module, exports) {
-
-	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
-
-/***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
 	var guiFolder = __webpack_require__(20).addFolder('Camera');
-	var mask = __webpack_require__(31);
+	var mask = __webpack_require__(32);
 
 	var camera = threeEnv.camera;
 	var target = mask.mask.mask;
@@ -50095,25 +50126,24 @@
 	}
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var TWEEN = __webpack_require__(15);
 	var threeEnv = __webpack_require__(17);
-	var clock = __webpack_require__(32);
+	var clock = __webpack_require__(33);
 
-	var gui = __webpack_require__(20);
-	var guiFolder = gui.addFolder('Mask');
+	var gui = __webpack_require__(20).addFolder('Mask');
 
 
 	var shaders = {
-		explode: __webpack_require__(35),
-		simple: __webpack_require__(36),
-		phong: __webpack_require__(37)
+		explode: __webpack_require__(36),
+		simple: __webpack_require__(37),
+		phong: __webpack_require__(38)
 	}
 
-	var maskModel = __webpack_require__(38);
+	var maskModel = __webpack_require__(39);
 
 	var loader = new THREE.ObjectLoader();
 
@@ -50132,9 +50162,14 @@
 
 	var params = {
 		zGroupPos: -800,
-		// zGroupPos:
+		yRotSpeed: 0,
+		//zGroupPos: 0,
 		dancing: false,
 		dancePower: 1,
+		rumble: 0,
+		explodeAmount: 0,
+		explodeSpeed: 0,
+		rumbling: false,
 		enterScene: function() {
 
 		
@@ -50143,6 +50178,29 @@
 		    .easing(TWEEN.Easing.Sinusoidal.Out)
 		    .start();
 
+
+		},
+		startRumble: function() {
+			var tween = new TWEEN.Tween(params)
+		    .to({rumble: 1, explodeAmount: 15}, 30000)
+		    .easing(TWEEN.Easing.Quadratic.In)
+		    .start();
+		},
+		explode: function() {
+
+			params.rumble = 0;
+			params.explodeSpeed = 100;
+			params.yRotSpeed = 0.1;
+
+			var tween = new TWEEN.Tween(params)
+		    .to({explodeSpeed: 1}, 1000)
+		    .easing(TWEEN.Easing.Exponential.Out)
+		    .start();
+
+		    var tween = new TWEEN.Tween(params)
+		    .to({yRotSpeed: 0.001}, 1500)
+		    .easing(TWEEN.Easing.Exponential.Out)
+		    .start();
 
 		},
 		startDancing: function(power) {
@@ -50166,12 +50224,16 @@
 		}
 	}
 
-	guiFolder.add(params, 'zGroupPos').min(-800).max(800);
-	guiFolder.add(params, 'enterScene');
-	guiFolder.add(params, 'randomEdgeFlash');
-	guiFolder.add(params, 'sweep');
-	guiFolder.add(params, 'dancing');
-	guiFolder.add(params, 'dancePower', 1, 20);
+	gui.add(params, 'zGroupPos', -800, 800);
+	gui.add(params, 'enterScene');
+	gui.add(params, 'randomEdgeFlash');
+	gui.add(params, 'sweep');
+	gui.add(params, 'dancing');
+	gui.add(params, 'dancePower', 1, 20);
+	gui.add(params, 'explode');
+	gui.add(params, 'startRumble');
+	gui.add(params, 'explodeAmount', 0, 1500);
+	gui.add(params, 'rumble', 0, 3);
 
 
 
@@ -50202,10 +50264,11 @@
 	uniforms.shininess.value = 50;
 	uniforms.envMap.value = cubeCamera.renderTarget.texture;
 	uniforms.explodeAmount = {type: "f", value: 0.0};
+	uniforms.rumble = {type: "f", value: 0.0};
 	uniforms.time = {type: "f", value: 0.0};
 	uniforms.flipEnvMap.value = 1;
 
-	guiFolder.add(uniforms.explodeAmount, 'value').min(0.0).max(10.0).name("explodeAmount");
+
 
 	var coreMaterial = new THREE.ShaderMaterial( {
 
@@ -50213,7 +50276,7 @@
 		lights: true,
 		fog: true,
 		shading: THREE.FlatShading,
-		// side: THREE.BackSide,
+		side: THREE.DoubleSide,
 		vertexShader:   shaders.explode,
 		fragmentShader: shaders.phong
 
@@ -50271,7 +50334,42 @@
 		]
 	}
 
+	var makeExplodable = function(geometry) {
 
+		explodeModifier.modify( geometry );
+
+		for ( var i = 0; i < 3; i ++ ) {
+
+			tessellateModifier.modify( geometry );
+
+		}
+
+		var numFaces = geometry.faces.length;
+		var displacement = new Float32Array( numFaces * 3 * 3 );
+
+		geometry = new THREE.BufferGeometry().fromGeometry( geometry );
+
+		for ( var f = 0; f < numFaces; f ++ ) {
+
+			var index = 9 * f;
+
+			var d = Math.random();
+
+			for ( var i = 0; i < 3; i ++ ) {
+
+				displacement[ index + ( 3 * i )     ] = d;
+				displacement[ index + ( 3 * i ) + 1 ] = d;
+				displacement[ index + ( 3 * i ) + 2 ] = d;
+
+			}
+
+
+		}
+
+		geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
+
+		return geometry;
+	}
 
 
 	var Mask = function(mask) {
@@ -50293,37 +50391,8 @@
 		var headTop = mask.getObjectByName( 'head_top' );
 		var headBottom = mask.getObjectByName( 'head_bottom' );
 
-		explodeModifier.modify( headTop.geometry );
-
-		for ( var i = 0; i < 3; i ++ ) {
-
-			tessellateModifier.modify( headTop.geometry );
-
-		}
-
-		var numFaces = headTop.geometry.faces.length;
-		var displacement = new Float32Array( numFaces * 3 * 3 );
-
-		headTop.geometry = new THREE.BufferGeometry().fromGeometry( headTop.geometry );
-
-		for ( var f = 0; f < numFaces; f ++ ) {
-
-			var index = 9 * f;
-
-			var d = Math.random();
-
-			for ( var i = 0; i < 3; i ++ ) {
-
-				displacement[ index + ( 3 * i )     ] = d;
-				displacement[ index + ( 3 * i ) + 1 ] = d;
-				displacement[ index + ( 3 * i ) + 2 ] = d;
-
-			}
-
-
-		}
-
-		headTop.geometry.addAttribute( 'displacement', new THREE.BufferAttribute( displacement, 3 ) );
+		headTop.geometry = makeExplodable(headTop.geometry);
+		headBottom.geometry = makeExplodable(headBottom.geometry);
 
 
 		// Give main head material
@@ -50466,6 +50535,11 @@
 
 			uniforms.time.value = time;
 
+			params.explodeAmount += params.explodeSpeed;
+
+			uniforms.explodeAmount.value = params.explodeAmount;
+			uniforms.rumble.value = params.rumble;
+
 			var time = time * 0.001;
 
 			maskGroup.position.z = params.zGroupPos;
@@ -50479,6 +50553,16 @@
 
 			mask.position.z = zMaskPos;
 			oclMask.position.z = zMaskPos;
+
+			mask.rotation.y += params.yRotSpeed;
+			oclMask.rotation.y += params.yRotSpeed;
+
+
+
+			if (params.rumbling) {
+				//params.rumble += 0.001;
+				// params.explodeAmount += 0.02;
+			}
 
 
 			cubeCamera.position.copy( mainMask.mask.position );
@@ -50508,10 +50592,10 @@
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(33);
+	var audioAnalyser = __webpack_require__(34);
 
 	var params = {
 		bpm: 115,
@@ -50570,10 +50654,10 @@
 	}
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Freq = __webpack_require__(34);
+	var Freq = __webpack_require__(35);
 	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Frequencies');
 
@@ -50658,7 +50742,7 @@
 	});
 
 	// Create a new visualiser from stream passing in an empty div
-	stream.visualiser(elVisualiser);
+	// stream.visualiser(elVisualiser);
 
 
 	// Should only happen once per tick
@@ -50682,7 +50766,7 @@
 	}
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports) {
 
 	// Overwrite properties of one object with another
@@ -50940,25 +51024,25 @@
 	module.exports = Freq;
 
 /***/ },
-/* 35 */
-/***/ function(module, exports) {
-
-	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * noise * displacement * 100. * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
-
-/***/ },
 /* 36 */
 /***/ function(module, exports) {
 
-	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
+	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float rumble;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * displacement * ((noise * 100. * rumble) + 1.) * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
 
 /***/ },
 /* 37 */
 /***/ function(module, exports) {
 
-	module.exports = "#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n#define ENVMAP_MODE_REFLECTION\n#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
 
 /***/ },
 /* 38 */
+/***/ function(module, exports) {
+
+	module.exports = "#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n#define ENVMAP_MODE_REFLECTION\n#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+
+/***/ },
+/* 39 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -53383,17 +53467,17 @@
 	};
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
-	var audioAnalyser = __webpack_require__(33);
+	var audioAnalyser = __webpack_require__(34);
 	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Background');
 	var shaders = {
 		vertex: __webpack_require__(25),
-		fragment: __webpack_require__(40)
+		fragment: __webpack_require__(41)
 	}
 
 	var swampMaterial, swampGeometry, swampMesh;
@@ -53466,13 +53550,13 @@
 	}
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports) {
 
 	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);\n}"
 
 /***/ },
-/* 41 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
@@ -53685,17 +53769,17 @@
 
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
 	var TWEEN = __webpack_require__(15);
 	var gui = __webpack_require__(20);
-	var mask = __webpack_require__(31);
+	var mask = __webpack_require__(32);
 	var guiFolder = gui.addFolder('Crystals');
-	var audioAnalyser = __webpack_require__(33);
-	var clock = __webpack_require__(32);
+	var audioAnalyser = __webpack_require__(34);
+	var clock = __webpack_require__(33);
 
 	var numCrystals = 5;
 	var crystals = [];
@@ -53802,21 +53886,64 @@
 
 
 /***/ },
-/* 43 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
+	var TWEEN = __webpack_require__(15);
 	var gui = __webpack_require__(20).addFolder('Ribbons');
-	var clock = __webpack_require__(32);
+	var clock = __webpack_require__(33);
+
+	var numFlashes = 0;
+	var flashing = false;
 
 	var params = {
-		ribbonCount: 3,
+		ribbonCount: 2,
 		ribbonFreq: 50,
 		ribbonRot: 0.005,
 		opacity: 1,
 		ribbonsActive: false,
 		waveActive: false,
+		randomFlash: function() {
+
+		
+
+			for (var i = numFlashes % 2; i < 10; i += 2) {
+
+				var ribbon = ribbons[i];
+
+				if (ribbon) {
+
+					var material = ribbon.mesh.material;
+
+					material.opacity = 1;
+
+
+					var tween = new TWEEN.Tween(material)
+				    .to({opacity: 0}, 500)
+				    .easing(TWEEN.Easing.Quintic.Out)
+				    .start()
+				    .onStart(function() {
+				    	flashing = true;
+				    })
+				    .onComplete(function() {
+				    	flashing = false;
+				    });
+
+				}
+				
+				
+			}
+
+
+			numFlashes ++;
+
+			
+			
+
+
+		},
 		startRibbons: function(wave) {
 			params.ribbonsActive = true;
 
@@ -53837,6 +53964,7 @@
 	gui.add(params, 'ribbonRot', 0, 0.03);
 	gui.add(params, 'opacity', 0, 1).name('Ribbon Opacity');
 	gui.add(params, 'ribbonsActive');
+	gui.add(params, 'randomFlash');
 
 	var ribbon;
 
@@ -53885,18 +54013,18 @@
 
 		var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 		
-		var material = new THREE.MeshPhongMaterial({
+		var material = new THREE.MeshBasicMaterial({
 			//wireframe: true,
 			side: THREE.DoubleSide,
-			shading: THREE.FlatShading,
-			transparent: true
+			transparent: true,
+			opacity: 0
 		});
 			
-		var mesh = new THREE.Mesh(geom, material);
+		this.mesh = new THREE.Mesh(geom, material);
 
-		mesh.position.x = radius;
+		this.mesh.position.x = radius;
 
-		this.container.add(mesh);
+		this.container.add(this.mesh);
 
 		this.container.rotation.z = Math.random() * Math.PI * 2;
 
@@ -53931,8 +54059,10 @@
 
 		this.update = function() {
 
-			material.opacity = params.opacity;
-
+			if (!flashing) {
+				material.opacity = params.opacity;
+			}
+			
 			var sequenceItem = sequence[sequenceIndex];
 
 			x += sequenceItem.dx * speed;
@@ -54033,26 +54163,28 @@
 	}
 
 /***/ },
-/* 44 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(33);
-	var clock = __webpack_require__(32);
+	var audioAnalyser = __webpack_require__(34);
+	var clock = __webpack_require__(33);
 
 	var now;
 
-	var cowbell = __webpack_require__(45);
+	var cowbell = __webpack_require__(46);
 	var cowbellIndex = 0;
 	var timelineIndex = 0;
 
 	var cowbellCamera = true;
+	var cowbellRibbons = false;
 
-	var mask = __webpack_require__(31);
-	var ribbons = __webpack_require__(43);
-	var crystals = __webpack_require__(42);
-	var leaves = __webpack_require__(41);
-	var background = __webpack_require__(39);
-	var camera = __webpack_require__(30);
+	var mask = __webpack_require__(32);
+	var ribbons = __webpack_require__(44);
+	var crystals = __webpack_require__(43);
+	var leaves = __webpack_require__(42);
+	var background = __webpack_require__(40);
+	var vLight = __webpack_require__(24);
+	var camera = __webpack_require__(31);
 
 
 	// Get time sig in seconds of specified bar / beat
@@ -54130,8 +54262,10 @@
 			time: barBeat(64, 0),
 			event: function() {
 				cowbellCamera = false;
+				cowbellRibbons = true;
 				camera.params.stopOrbit();
 				leaves.params.gotoCircle();
+				ribbons.params.startRibbons();
 				leaves.params.groupRotZ = 0.08;
 				leaves.params.speed = -0.4;
 			}
@@ -54152,6 +54286,19 @@
 			time: barBeat(76, 0),
 			event: function() {
 				leaves.params.gotoCircle()
+			}
+		},
+		{
+			time: barBeat(80, 0),
+			event: function() {
+				mask.params.startRumble();
+				vLight.params.fadeIn();
+			}
+		},
+		{
+			time: barBeat(96, 0),
+			event: function() {
+				mask.params.explode();
 			}
 		}
 	]
@@ -54174,6 +54321,10 @@
 			if (cowbellCamera) {
 				camera.params.startOrbit();
 			}
+
+			if (cowbellRibbons) {
+				ribbons.params.randomFlash();
+			}
 			
 			cowbellIndex++;
 		}
@@ -54190,7 +54341,7 @@
 	}
 
 /***/ },
-/* 45 */
+/* 46 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -54358,7 +54509,7 @@
 	];
 
 /***/ },
-/* 46 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var composers = __webpack_require__(19)

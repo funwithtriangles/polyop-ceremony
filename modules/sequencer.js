@@ -17,7 +17,7 @@ var leaves = require('./leaves');
 var background = require('./background');
 var vLight = require('./vLight');
 var camera = require('./camera');
-
+var titles = require('./titles');
 
 // Get time sig in seconds of specified bar / beat
 var barBeat = function(bar, beat) {
@@ -28,6 +28,22 @@ var barBeat = function(bar, beat) {
 }
 
 var timeline = [
+	{
+		time: 8.5,
+		event: titles.nudibranch.enter
+	},
+	{
+		time: 15,
+		event: titles.nudibranch.exit
+	},
+	{
+		time: 20,
+		event: titles.polyop.enter
+	},
+	{
+		time: 25,
+		event: titles.polyop.exitFancy
+	},
 	{
 		time: 25,
 		event: mask.params.enterScene

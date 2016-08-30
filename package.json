@@ -7,9 +7,11 @@
     "dat-gui": "^0.5.0",
     "json-loader": "^0.5.4",
     "stats.js": "^0.16.0",
+    "svg-mesh-3d": "^1.1.0",
     "three": "^0.78.0",
     "three-obj-loader": "^1.0.2",
     "three-orbit-controls": "^72.0.0",
+    "three-simplicial-complex": "^69.0.6",
     "tween.js": "^16.3.4"
   },
   "devDependencies": {
