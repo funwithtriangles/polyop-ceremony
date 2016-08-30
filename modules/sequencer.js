@@ -173,12 +173,17 @@ var checkChannels = function(time) {
 	// MIDI
 	while (time >= cowbell[cowbellIndex] * clock.params.spp) {
 
-		if (cowbellCamera) {
-			camera.params.startOrbit();
-		}
+		// Only fire if there isn't another event queued up ahead
+		if (cowbell[cowbellIndex+1] && time <= cowbell[cowbellIndex+1] * clock.params.spp) {
 
-		if (cowbellRibbons) {
-			ribbons.params.randomFlash();
+			if (cowbellCamera) {
+				camera.params.startOrbit();
+			}
+
+			if (cowbellRibbons) {
+				ribbons.params.randomFlash();
+			}
+
 		}
 		
 		cowbellIndex++;
