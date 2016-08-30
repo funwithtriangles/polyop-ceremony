@@ -74,11 +74,11 @@ var timeline = [
 	},
 	{
 		time: barBeat(40, 0),
-		event: function() {
-			crystals.params.changeSpeed(0.16);
+		event: function(skip) {
+			crystals.params.changeSpeed(skip, 0.16);
 			crystals.params.startSpeedFlux();
 			camera.params.stopOrbit();
-			mask.params.startDancing(10)
+			mask.params.startDancing(skip, 10)
 			leaves.params.speed = -0.2;
 			leaves.params.groupRotZ = 0.04;
 			background.params.scale = 4.0;
@@ -92,16 +92,16 @@ var timeline = [
 	},
 	{
 		time: barBeat(48, 0),
-		event: function() {
-			crystals.params.fadeOut();
+		event: function(skip) {
+			crystals.params.fadeOut(skip);
 			ribbons.params.startRibbons();
 		}
 	},
 	{
 		time: barBeat(56, 0),
-		event: function() {
+		event: function(skip) {
 			leaves.params.active = true;
-			mask.params.startDancing(2);
+			mask.params.startDancing(skip, 2);
 			ribbons.params.stopRibbons();
 			ribbons.params.opacity = 0;
 		}
@@ -138,15 +138,15 @@ var timeline = [
 	},
 	{
 		time: barBeat(80, 0),
-		event: function() {
-			mask.params.startRumble();
-			vLight.params.fadeIn();
+		event: function(skip) {
+			mask.params.startRumble(skip);
+			vLight.params.fadeIn(skip);
 		}
 	},
 	{
 		time: barBeat(96, 0),
-		event: function() {
-			mask.params.explode();
+		event: function(skip) {
+			mask.params.explode(skip);
 		}
 	}
 ]
@@ -157,8 +157,15 @@ var checkChannels = function(time) {
 
 	// EVENTS
 	while (timeline[timelineIndex] && time >= timeline[timelineIndex].time) {
+
+		// Skip event if user has skipped ahead and there 
+		// is more than one event queued up
+		if (timeline[timelineIndex+1] && time >= timeline[timelineIndex+1].time) {
+			timeline[timelineIndex].event(true);
+		} else {
+			timeline[timelineIndex].event();
+		}
 		
-		timeline[timelineIndex].event();
 		timelineIndex++;
 	}
 

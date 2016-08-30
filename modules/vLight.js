@@ -5,12 +5,21 @@ var gui = require('./gui').addFolder('vLight');
 
 var params = {
 	exposure: 0,
-	fadeIn: function() {
+	fadeIn: function(skip) {
 
-		var tween = new TWEEN.Tween(params)
-	    .to({exposure: 1}, 30000)
-	    .easing(TWEEN.Easing.Quadratic.In)
-	    .start();
+		if (!skip) {
+			
+			var tween = new TWEEN.Tween(params)
+		    .to({exposure: 1}, 30000)
+		    .easing(TWEEN.Easing.Quadratic.In)
+		    .start();
+
+		} else {
+
+			params.exposure = 1;
+
+		}
+		
 
 	}
 }

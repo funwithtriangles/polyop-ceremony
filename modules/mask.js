@@ -39,40 +39,69 @@ var params = {
 	explodeAmount: 0,
 	explodeSpeed: 0,
 	rumbling: false,
-	enterScene: function() {
+	enterScene: function(skip) {
 
-	
-		var tween = new TWEEN.Tween(params)
-	    .to({zGroupPos: 100}, 25000)
-	    .easing(TWEEN.Easing.Sinusoidal.Out)
-	    .start();
+		if (!skip) {
 
+			var tween = new TWEEN.Tween(params)
+		    .to({zGroupPos: 100}, 25000)
+		    .easing(TWEEN.Easing.Sinusoidal.Out)
+		    .start();
+
+		} else {
+
+			params.zGroupPos = 100;
+
+		}
 
 	},
-	startRumble: function() {
-		var tween = new TWEEN.Tween(params)
-	    .to({rumble: 1, explodeAmount: 15}, 30000)
-	    .easing(TWEEN.Easing.Quadratic.In)
-	    .start();
+	startRumble: function(skip) {
+
+		if (!skip) {
+
+			var tween = new TWEEN.Tween(params)
+		    .to({rumble: 1, explodeAmount: 15}, 30000)
+		    .easing(TWEEN.Easing.Quadratic.In)
+		    .start();
+
+		} else {
+
+			params.rumble = 1;
+			params.explodeAmount = 15;
+
+		}
+		
 	},
-	explode: function() {
+	explode: function(skip) {
 
 		params.rumble = 0;
-		params.explodeSpeed = 100;
-		params.yRotSpeed = 0.1;
+		params.dancing = false;
 
-		var tween = new TWEEN.Tween(params)
-	    .to({explodeSpeed: 1}, 1000)
-	    .easing(TWEEN.Easing.Exponential.Out)
-	    .start();
+		if (!skip) {
 
-	    var tween = new TWEEN.Tween(params)
-	    .to({yRotSpeed: 0.001}, 1500)
-	    .easing(TWEEN.Easing.Exponential.Out)
-	    .start();
+			params.explodeSpeed = 100;
+			params.yRotSpeed = 0.2;
+
+			var tween = new TWEEN.Tween(params)
+		    .to({explodeSpeed: 1}, 1000)
+		    .easing(TWEEN.Easing.Exponential.Out)
+		    .start();
+
+		    var tween = new TWEEN.Tween(params)
+		    .to({yRotSpeed: 0.004}, 1500)
+		    .easing(TWEEN.Easing.Exponential.Out)
+		    .start();
+
+		} else {
+
+			params.explodeAmount = 1500;
+			params.explodeSpeed = 1;
+			params.yRotSpeed = 0.004;
+		}
+		
 
 	},
-	startDancing: function(power) {
+	startDancing: function(skip, power) {
 
 		params.dancing = true;
 		params.dancePower = power;

@@ -19,22 +19,42 @@ var params = {
 	speedFlux: 0,
 	opacity: 0,
 	radius: 1,
-	fadeIn: function() {
-		var tween = new TWEEN.Tween(params)
-	    .to({opacity: 1}, 30000)
-	    .easing(TWEEN.Easing.Sinusoidal.Out)
-	    .start();
+	fadeIn: function(skip) {
+
+		if (!skip) {
+
+			var tween = new TWEEN.Tween(params)
+		    .to({opacity: 1}, 30000)
+		    .easing(TWEEN.Easing.Sinusoidal.Out)
+		    .start();
+
+		} else {
+
+			params.opacity = 1;
+
+		}
+		
 	},
-	fadeOut: function() {
-		var tween = new TWEEN.Tween(params)
-	    .to({opacity: 0}, 5000)
-	    .easing(TWEEN.Easing.Sinusoidal.Out)
-	    .start();
+	fadeOut: function(skip) {
+
+		if (!skip) {
+
+			var tween = new TWEEN.Tween(params)
+		    .to({opacity: 0}, 5000)
+		    .easing(TWEEN.Easing.Sinusoidal.Out)
+		    .start();
+
+		} else {
+
+			params.opacity = 0;
+
+		}
+
 	},
 	startSpeedFlux: function() {
 		params.speedFlux = 1;
 	},
-	changeSpeed: function(speed) {
+	changeSpeed: function(skip, speed) {
 		params.speed = speed;
 	}
 }

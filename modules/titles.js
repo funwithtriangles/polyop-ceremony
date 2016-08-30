@@ -41,13 +41,23 @@ var TextMesh = function(pathString, detail, scale) {
 		that.mesh.visible = false;
 	}
 
-	this.exitFancy = function() {
-		var tween = new TWEEN.Tween(material)
-	    .to({opacity: 0}, 5000)
-	    .start()
-	    .onComplete(function() {
-	    	that.mesh.visible = false;
-	    });
+	this.exitFancy = function(skip) {
+
+		if (!skip) {
+
+			var tween = new TWEEN.Tween(material)
+		    .to({opacity: 0}, 5000)
+		    .start()
+		    .onComplete(function() {
+		    	that.mesh.visible = false;
+		    });
+
+		} else {
+
+			that.mesh.visible = false;
+	
+		}
+		
 	}
 
 }
