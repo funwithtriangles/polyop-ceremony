@@ -51,8 +51,6 @@ var Line = function() {
 
 	var oclMesh = mesh.clone();
 
-	// oclMesh.material = material;
-
 	oclGroup.add(oclMesh);
 
 	this.flash = function() {
