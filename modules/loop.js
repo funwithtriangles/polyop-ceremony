@@ -22,6 +22,7 @@ var background = require('./background');
 var leaves = require('./leaves');
 var mask = require('./mask');
 var crystals = require('./crystals');
+var lines = require('./lines');
 var ribbons = require('./ribbons');
 var clock = require('./clock');
 var sequencer = require('./sequencer');
@@ -69,6 +70,7 @@ function loop() {
 	mask.draw(timePassed);
 	crystals.draw(timePassed);
 	ribbons.draw(timePassed);
+	lines.draw(timePassed);
 	camera.draw(timePassed);
 
 	composers.draw(timePassed);

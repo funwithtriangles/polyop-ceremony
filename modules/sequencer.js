@@ -15,6 +15,7 @@ var ribbons = require('./ribbons');
 var crystals = require('./crystals');
 var leaves = require('./leaves');
 var background = require('./background');
+var lines = require('./lines');
 var vLight = require('./vLight');
 var camera = require('./camera');
 var titles = require('./titles');
