@@ -5,7 +5,7 @@ var guiFolder = gui.addFolder('Frequencies');
 var audioContext, analyser, source, stream, freqs;
 
 var audio = new Audio();
-audio.src = 'ceremony.mp3';
+audio.src = 'ceremony.ogg';
 audio.controls = true;
 // audio.autoplay = true;
 document.body.appendChild(audio);
