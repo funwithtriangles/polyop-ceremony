@@ -1,10 +1,9 @@
 var audioAnalyser = require('./audioAnalyser');
 var clock = require('./clock');
 
-var now;
+var cowbellData = require('../assets/cowbell.json');
+var flutesData = require('../assets/flutes.json');
 
-var cowbell = require('../assets/cowbell.json');
-var cowbellIndex = 0;
 var timelineIndex = 0;
 
 var cowbellCamera = true;
@@ -19,6 +18,8 @@ var lines = require('./lines');
 var vLight = require('./vLight');
 var camera = require('./camera');
 var titles = require('./titles');
+
+var now;
 
 // Get time sig in seconds of specified bar / beat
 var barBeat = function(bar, beat) {
@@ -154,7 +155,7 @@ var timeline = [
 
 
 
-var checkChannels = function(time) {
+var checkTimeline = function(time) {
 
 	// EVENTS
 	while (timeline[timelineIndex] && time >= timeline[timelineIndex].time) {
@@ -171,30 +172,57 @@ var checkChannels = function(time) {
 	}
 
 
-	// MIDI
-	while (time >= cowbell[cowbellIndex] * clock.params.spp) {
+}
 
-		// Only fire if there isn't another event queued up ahead
-		if (cowbell[cowbellIndex+1] && time <= cowbell[cowbellIndex+1] * clock.params.spp) {
+var MidiPart = function(data, callback) {
 
-			if (cowbellCamera) {
-				camera.params.startOrbit();
+	var index = 0;
+
+	this.check = function(time) {
+
+		while (time >= data[index] * clock.params.spp) {
+
+			// Only fire if there isn't another event queued up ahead
+			if (data[index+1] && time <= data[index+1] * clock.params.spp) {
+
+				callback();
+
 			}
-
-			if (cowbellRibbons) {
-				ribbons.params.randomFlash();
-			}
+			
+			index++;
 
 		}
-		
-		cowbellIndex++;
+	
 	}
+
 }
+
+var cowbellPart = new MidiPart(cowbellData, function() {
+
+	if (cowbellCamera) {
+		camera.params.startOrbit();
+	}
+
+	if (cowbellRibbons) {
+		ribbons.params.randomFlash();
+	}
+
+})
+
+var flutesPart = new MidiPart(flutesData, function() {
+
+	lines.params.randomFlash();
+
+})
+
 
 var run = function() {
 	now = audioAnalyser.getTime();
 
-	checkChannels(now);
+	checkTimeline(now);
+	cowbellPart.check(now);
+	flutesPart.check(now);
+
 }
 
 module.exports = {

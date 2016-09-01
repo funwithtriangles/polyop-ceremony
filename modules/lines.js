@@ -3,7 +3,7 @@ var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
 var gui = require('./gui').addFolder('Lines');
 
-var numLines = 50;
+var numLines = 30;
 var lineLength = 1000;
 var lineWidth = 5;
 var lines = [];
