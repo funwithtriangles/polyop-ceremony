@@ -5,6 +5,9 @@ var gui = require('./gui').addFolder('vLight');
 
 var params = {
 	exposure: 0,
+	fDensity: 1,
+	fWeight: 0.3,
+	fClamp: 1,
 	fadeIn: function(skip) {
 
 		if (!skip) {
@@ -32,7 +35,14 @@ var mesh = new THREE.Mesh(
 );
 
 gui.add(params, 'exposure', 0, 1);
+
+gui.add(params, 'fDensity', 0, 1);
+gui.add(params, 'fClamp', 0, 1);
+gui.add(params, 'fWeight', 0, 1);
 gui.add(params, 'fadeIn');
+
+
+
 
 // mesh.position.y = 150;
 

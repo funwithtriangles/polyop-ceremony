@@ -163,6 +163,9 @@ var draw = function(timePassed) {
 	finalComposer.render( 0.1 );
 
 	grPass.uniforms.fExposure.value = vLight.params.exposure;
+	grPass.uniforms.fDensity.value = vLight.params.fDensity;
+	grPass.uniforms.fWeight.value = vLight.params.fWeight;
+	grPass.uniforms.fClamp.value = vLight.params.fClamp;
 
 }
 
