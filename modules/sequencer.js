@@ -44,11 +44,10 @@ var timeline = [
 	},
 	{
 		time: 25,
-		event: titles.polyop.exitFancy
-	},
-	{
-		time: 25,
-		event: mask.params.enterScene
+		event: function() {
+			titles.polyop.exitFancy();
+			mask.params.enterScene();
+		}
 	},
 	{
 		time: barBeat(20, 0),
