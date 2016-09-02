@@ -224,6 +224,7 @@ var flutesPart = new MidiPart(flutesData, function() {
 var manPart = new MidiPart(manData, function() {
 
 	crystals.params.pulseScale();
+	leaves.params.allFade();
 	//crystals.params.toggleVisible();
 
 })

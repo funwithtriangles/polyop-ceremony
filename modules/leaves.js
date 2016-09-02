@@ -17,6 +17,17 @@ var radius = window.innerHeight/2.5;
 var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
 
+
+var material = new THREE.MeshBasicMaterial(
+{
+	side: THREE.DoubleSide,
+	color: 0x73be73,
+	// transparent: true,
+	// blending: THREE.AdditiveBlending,
+	shading: THREE.FlatShading,
+	transparent: true
+});
+
 var params = {
 	groupRotX: 0,
 	groupRotY: 0,
@@ -24,6 +35,15 @@ var params = {
 	speed: -0.02,
 	leafOpacity: 1,
 	active: true,
+	allFade: function() {
+
+		material.opacity = 0.1;
+		var tween = new TWEEN.Tween(material)
+	    .to({opacity: 1}, 500)
+	    .easing(TWEEN.Easing.Quintic.Out)
+	    .start();
+
+	},
 	gotoCircle: function() {
 		gotoCircle();
 	},
@@ -40,21 +60,14 @@ guiFolder.add(params, 'groupRotY', 0, 1);
 guiFolder.add(params, 'groupRotZ', 0, 1);
 guiFolder.add(params, 'gotoCircle');
 guiFolder.add(params, 'resetLeaves');
+guiFolder.add(params, 'allFade');
 guiFolder.add(params, 'active');
 guiFolder.add(params, 'leafOpacity', 0, 1);
 
 
 loader.load('leaf.js', function ( geometry ) {
 
-		var material = new THREE.MeshBasicMaterial(
-			{
-				side: THREE.DoubleSide,
-				color: 0x73be73,
-				// transparent: true,
-				// blending: THREE.AdditiveBlending,
-				shading: THREE.FlatShading,
-				transparent: true
-			});
+		
 
 		
 		leafModel = new THREE.Mesh( geometry, material );
@@ -170,7 +183,7 @@ var draw = function(timePassed) {
 
 		var particle = particles[i];
 
-		particle.mesh.material.opacity = params.leafOpacity;
+		// particle.mesh.material.opacity = params.leafOpacity;
 		particle.mesh.position.z += particle.vz * params.speed * 10;
 		particle.mesh.rotation.x += 0.003;
 		particle.mesh.rotation.y += 0.003;
