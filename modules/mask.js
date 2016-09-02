@@ -31,13 +31,13 @@ threeEnv.scene.add(cubeCamera);
 
 var params = {
 	zGroupPos: -800,
+	//zGroupPos: 0,
 	xRotSpeed: 0,
 	yRotSpeed: 0,
 	zRotSpeed: 0,
 	xRot: 0,
 	yRot: 0,
 	zRot: 0,
-	//zGroupPos: 0,
 	dancing: false,
 	dancePower: 1,
 	rumble: 0,
@@ -221,7 +221,7 @@ var coreMaterial = new THREE.ShaderMaterial( {
 });
 
 
-// var coreMaterial = new THREE.MeshPhongMaterial( { 
+// var coreMaterial = new THREE.MeshLambertMaterial( { 
 // 	color: 0x555555, 
 // 	specular: 0x111111,
 // 	shininess: 50,
