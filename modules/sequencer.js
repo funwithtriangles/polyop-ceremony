@@ -1,5 +1,6 @@
 var audioAnalyser = require('./audioAnalyser');
 var clock = require('./clock');
+var TWEEN = require('tween.js');
 
 var cowbellData = require('../assets/cowbell.json');
 var flutesData = require('../assets/flutes.json');
@@ -155,7 +156,17 @@ var timeline = [
 		time: barBeat(80, 0),
 		event: function(skip) {
 			mask.params.startRumble(skip);
+			leaves.params.slowDown();
 			vLight.params.fadeIn(skip);
+			leaves.params.gotoCircle(15000, TWEEN.Easing.Quadratic.InOut);
+			leaves.params.particleRot = 0;
+		}
+	},
+	{
+		time: barBeat(95, 3),
+		event: function(skip) {
+			manLeaves = false;
+			leaves.params.opacity = 0;
 		}
 	},
 	{
@@ -165,7 +176,15 @@ var timeline = [
 		}
 	},
 	{
-		time: barBeat(128, 0),
+		time: barBeat(96, 0),
+		event: function(skip) {
+			mask.params.explode(skip);
+			manLeaves = false;
+			leaves.params.opacity = 0;
+		}
+	},
+	{
+		time: barBeat(127, 2),
 		event: function(skip) {
 			mask.params.implode(skip);
 		}

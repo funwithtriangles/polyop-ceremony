@@ -32,20 +32,30 @@ var params = {
 	groupRotX: 0,
 	groupRotY: 0,
 	groupRotZ: 0.005,
+	particleRot: 0.003,
 	speed: -0.02,
-	leafOpacity: 1,
+	opacity: 1,
 	active: true,
 	allFade: function() {
 
-		material.opacity = 0.1;
-		var tween = new TWEEN.Tween(material)
+		params.opacity = 0;
+		var tween = new TWEEN.Tween(params)
 	    .to({opacity: 1}, 500)
 	    .easing(TWEEN.Easing.Quintic.Out)
 	    .start();
 
 	},
-	gotoCircle: function() {
-		gotoCircle();
+	slowDown: function() {
+
+		var tween = new TWEEN.Tween(params)
+	    .to({speed: 0, groupRotZ: 0.005}, 15000)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+
+	},
+	gotoCircle: function(duration, tween) {
+
+		gotoCircle(duration, tween);
 	},
 	resetLeaves: function() {
 		resetAll();
@@ -62,7 +72,6 @@ guiFolder.add(params, 'gotoCircle');
 guiFolder.add(params, 'resetLeaves');
 guiFolder.add(params, 'allFade');
 guiFolder.add(params, 'active');
-guiFolder.add(params, 'leafOpacity', 0, 1);
 
 
 loader.load('leaf.js', function ( geometry ) {
@@ -109,7 +118,15 @@ var Leaf = function(i) {
 
 	}
 
-	this.circleTween = function() {
+	this.circleTween = function(duration, tween) {
+
+		if (!duration) {
+			var duration = 800;
+		}
+
+		if (!tween) {
+			var tween = TWEEN.Easing.Quintic.InOut;
+		}
 
 		var rot = 2 * Math.PI * that.index / numLeafs;
 
@@ -132,8 +149,8 @@ var Leaf = function(i) {
 		}
 
 		var tween = new TWEEN.Tween(params)
-	    .to(target, 800)
-	    .easing(TWEEN.Easing.Quintic.InOut)
+	    .to(target, duration)
+	    .easing(tween)
 	    .start();
 
 
@@ -151,10 +168,10 @@ var Leaf = function(i) {
 	
 }
 
-var gotoCircle = function() {
+var gotoCircle = function(duration, tween) {
 
 	for (var i = 0; i < numLeafs; i++) {
-		particles[i].circleTween();
+		particles[i].circleTween(duration, tween);
 	}
 
 }
@@ -175,19 +192,17 @@ var init = function() {
 
 var draw = function(timePassed) {
 
-	// leafGroup.rotation.x += params.groupRotX * 0.1;
-	// leafGroup.rotation.y += params.groupRotY * 0.1;
 	leafGroup.rotation.z += params.groupRotZ * 0.1;
+	material.opacity = params.opacity;
 
 	for (var i = 0; i < particles.length; i++) {
 
 		var particle = particles[i];
 
-		// particle.mesh.material.opacity = params.leafOpacity;
 		particle.mesh.position.z += particle.vz * params.speed * 10;
-		particle.mesh.rotation.x += 0.003;
-		particle.mesh.rotation.y += 0.003;
-		particle.mesh.rotation.z += 0.003;
+		particle.mesh.rotation.x += params.particleRot;
+		particle.mesh.rotation.y += params.particleRot;
+		particle.mesh.rotation.z += params.particleRot;
 
 
 
