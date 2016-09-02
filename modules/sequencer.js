@@ -4,11 +4,14 @@ var clock = require('./clock');
 var cowbellData = require('../assets/cowbell.json');
 var flutesData = require('../assets/flutes.json');
 var manData = require('../assets/man.json');
+var bongosData = require('../assets/bongos.json');
 
 var timelineIndex = 0;
 
 var cowbellCamera = true;
 var cowbellRibbons = false;
+var congosSpin = true;
+var manLeaves = true;
 
 var mask = require('./mask');
 var ribbons = require('./ribbons');
@@ -56,11 +59,11 @@ var timeline = [
 	},
 	{
 		time: barBeat(24, 0),
-		event: mask.params.defaultPos
-	},
-	{
-		time: barBeat(24, 0),
-		event: camera.params.startOrbit
+		event: function() {
+			mask.params.defaultPos();
+			camera.params.startOrbit();
+
+		}
 	},
 	{
 		time: barBeat(28, 0),
@@ -106,6 +109,7 @@ var timeline = [
 			mask.params.startDancing(skip, 2);
 			ribbons.params.stopRibbons();
 			ribbons.params.opacity = 0;
+			congosSpin = false;
 		}
 	},
 	{
@@ -224,10 +228,23 @@ var flutesPart = new MidiPart(flutesData, function() {
 var manPart = new MidiPart(manData, function() {
 
 	crystals.params.pulseScale();
-	leaves.params.allFade();
+
+	if (manLeaves) {
+		leaves.params.allFade();
+	}
+	
 	//crystals.params.toggleVisible();
 
 })
+
+var bongosPart = new MidiPart(bongosData, function() {
+
+	if (congosSpin) {
+		mask.params.spin();
+	}
+
+})
+
 
 
 var run = function() {
@@ -237,6 +254,7 @@ var run = function() {
 	cowbellPart.check(now);
 	flutesPart.check(now);
 	manPart.check(now);
+	bongosPart.check(now);
 
 }
 

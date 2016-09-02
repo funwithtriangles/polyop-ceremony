@@ -60,6 +60,15 @@ var params = {
 		}
 
 	},
+	spin: function() {
+
+		params.yRot = 0;
+		var tween = new TWEEN.Tween(params)
+	    .to({yRot: Math.PI*2}, 500)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+	    
+	},
 	startRumble: function(skip) {
 
 		if (!skip) {
@@ -169,6 +178,7 @@ gui.add(params, 'dancing');
 gui.add(params, 'dancePower', 1, 20);
 gui.add(params, 'explode');
 gui.add(params, 'implode');
+gui.add(params, 'spin');
 gui.add(params, 'startRumble');
 gui.add(params, 'explodeAmount', 0, 1500);
 gui.add(params, 'rumble', 0, 3);
@@ -326,25 +336,25 @@ var Mask = function(mask) {
 	mask.position.y = maskYOffset;
 	that.oclMask.position.y = maskYOffset;
 
-	var headTop = mask.getObjectByName( 'head_top' );
-	var headBottom = mask.getObjectByName( 'head_bottom' );
+	that.headTop = mask.getObjectByName( 'head_top' );
+	that.headBottom = mask.getObjectByName( 'head_bottom' );
 
-	headTop.geometry = makeExplodable(headTop.geometry);
-	headBottom.geometry = makeExplodable(headBottom.geometry);
+	that.headTop.geometry = makeExplodable(that.headTop.geometry);
+	that.headBottom.geometry = makeExplodable(that.headBottom.geometry);
 
 
 	// Give main head material
-	headTop.material = coreMaterial;
-	headBottom.material = coreMaterial;
+	that.headTop.material = coreMaterial;
+	that.headBottom.material = coreMaterial;
 
-	var oclHeadTop = headTop.clone();
-	oclHeadTop.material = oclMaterial;
+	that.oclHeadTop = that.headTop.clone();
+	that.oclHeadTop.material = oclMaterial;
 
-	var oclHeadBottom = headBottom.clone();
-	oclHeadBottom.material = oclMaterial;
+	that.oclHeadBottom = that.headBottom.clone();
+	that.oclHeadBottom.material = oclMaterial;
 
-	that.oclMask.add(oclHeadTop);
-	that.oclMask.add(oclHeadBottom);
+	that.oclMask.add(that.oclHeadTop);
+	that.oclMask.add(that.oclHeadBottom);
 
 
 	for (var i = 0; i < modelIds.outer.length; i++) {
@@ -470,6 +480,7 @@ var draw = function(time) {
 		var maskGroup = mainMask.group;
 		var oclMaskGroup = mainMask.oclGroup;
 
+		// mainMask.headTop.rotation.y += 0.01;
 
 		uniforms.time.value = time;
 
