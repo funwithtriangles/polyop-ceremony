@@ -8,6 +8,16 @@ var params = {
 	fDensity: 1,
 	fWeight: 0.3,
 	fClamp: 1,
+	pulse: function() {
+
+		params.exposure = 0.4;
+
+		var tween = new TWEEN.Tween(params)
+	    .to({exposure: 1}, 800)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+
+	},
 	fadeIn: function(skip) {
 
 		if (!skip) {
