@@ -23,7 +23,7 @@ var params = {
 	scale: 1,
 	pulseScale: function() {
 
-		params.scale = 1.5;
+		params.scale = 1.2;
 
 		var tween = new TWEEN.Tween(params)
 	    .to({scale: 1}, 200)
