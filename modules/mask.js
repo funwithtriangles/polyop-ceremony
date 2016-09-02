@@ -108,6 +108,38 @@ var params = {
 		
 
 	},
+	implode: function(skip) {
+
+		params.yRotSpeed = 0;
+		params.xRotSpeed = 0;
+		params.zRotSpeed = 0;
+
+		if (!skip) {
+
+			var tweenRot = new TWEEN.Tween(params)
+		    .to({xRot: 0, yRot: 0, zRot: 0}, 1000)
+		    .easing(TWEEN.Easing.Quadratic.InOut);
+
+			var tweenImp = new TWEEN.Tween(params)
+		    .to({explodeAmount: 0}, 500)
+		    .easing(TWEEN.Easing.Elastic.Out);
+
+		    tweenRot.start();
+		    tweenImp.delay(800);
+		    tweenImp.start();
+
+		    
+
+		} else {
+
+			params.xRot = 0;
+			params.yRot = 0;
+			params.zRot = 0;
+			params.explodeAmount = 0;
+
+		}
+
+	},
 	startDancing: function(skip, power) {
 
 		params.dancing = true;
@@ -136,6 +168,7 @@ gui.add(params, 'sweep');
 gui.add(params, 'dancing');
 gui.add(params, 'dancePower', 1, 20);
 gui.add(params, 'explode');
+gui.add(params, 'implode');
 gui.add(params, 'startRumble');
 gui.add(params, 'explodeAmount', 0, 1500);
 gui.add(params, 'rumble', 0, 3);

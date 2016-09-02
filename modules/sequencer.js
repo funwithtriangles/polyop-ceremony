@@ -149,7 +149,13 @@ var timeline = [
 		event: function(skip) {
 			mask.params.explode(skip);
 		}
-	}
+	},
+	{
+		time: barBeat(128, 0),
+		event: function(skip) {
+			mask.params.implode(skip);
+		}
+	},
 ]
 
 
