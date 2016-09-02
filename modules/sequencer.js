@@ -109,6 +109,7 @@ var timeline = [
 			mask.params.startDancing(skip, 2);
 			ribbons.params.stopRibbons();
 			ribbons.params.opacity = 0;
+			manLeaves = false;
 			congosSpin = false;
 		}
 	},
@@ -122,6 +123,7 @@ var timeline = [
 			ribbons.params.startRibbons();
 			leaves.params.groupRotZ = 0.08;
 			leaves.params.speed = -0.4;
+
 		}
 	},
 	{
@@ -131,9 +133,16 @@ var timeline = [
 		}
 	},
 	{
+		time: barBeat(69, 0),
+		event: function() {
+			manLeaves = true;
+		}
+	},
+	{
 		time: barBeat(72, 0),
 		event: function() {
 			leaves.params.gotoCircle()
+			
 		}
 	},
 	{
