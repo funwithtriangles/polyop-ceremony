@@ -3,6 +3,7 @@ var clock = require('./clock');
 
 var cowbellData = require('../assets/cowbell.json');
 var flutesData = require('../assets/flutes.json');
+var manData = require('../assets/man.json');
 
 var timelineIndex = 0;
 
@@ -220,6 +221,13 @@ var flutesPart = new MidiPart(flutesData, function() {
 
 })
 
+var manPart = new MidiPart(manData, function() {
+
+	crystals.params.pulseScale();
+	//crystals.params.toggleVisible();
+
+})
+
 
 var run = function() {
 	now = audioAnalyser.getTime();
@@ -227,6 +235,7 @@ var run = function() {
 	checkTimeline(now);
 	cowbellPart.check(now);
 	flutesPart.check(now);
+	manPart.check(now);
 
 }
 

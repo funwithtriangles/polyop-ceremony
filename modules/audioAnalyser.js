@@ -83,7 +83,7 @@ stream = analyser.createStream(source, {
 });
 
 // Create a new visualiser from stream passing in an empty div
-// stream.visualiser(elVisualiser);
+stream.visualiser(elVisualiser);
 
 
 // Should only happen once per tick

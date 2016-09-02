@@ -19,6 +19,21 @@ var params = {
 	speedFlux: 0,
 	opacity: 0,
 	radius: 1,
+	visible: true,
+	scale: 1,
+	pulseScale: function() {
+
+		params.scale = 1.5;
+
+		var tween = new TWEEN.Tween(params)
+	    .to({scale: 1}, 200)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+
+	},
+	toggleVisible: function() {
+		params.visible = !params.visible;
+	},
 	fadeIn: function(skip) {
 
 		if (!skip) {
@@ -68,18 +83,22 @@ var crystalMaterial = new THREE.MeshBasicMaterial({
 guiFolder.add(params, 'radius', 0, 10).name('Crystal Radius');
 guiFolder.add(params, 'speed', 0, 1).name('Crystal Speed');
 guiFolder.add(params, 'speedFlux', 0, 1).name('Speed Flux');
+guiFolder.add(params, 'toggleVisible');
 
 var Crystal = function() {
+
+	this.group = new THREE.Object3D();
 
 	this.size = (Math.random() * 15) + 5;
 	var geometry = new THREE.IcosahedronGeometry(this.size);
 	this.mesh = new THREE.Mesh(geometry, crystalMaterial);
 
-	mask.mask.group.add(this.mesh);
-
 	var light = new THREE.PointLight( 0xffffff, 1, 0 );
 
-	this.mesh.add(light);
+	this.group.add(light);
+	this.group.add(this.mesh);
+
+	mask.mask.group.add(this.group);
 
 
 }
@@ -112,9 +131,12 @@ var draw = function() {
 		var crystal = crystals[i];
 		var offset = i * 10;
 
-		crystal.mesh.position.x = Math.sin( (orbitAngle + offset) * 0.5 ) * 200 * params.radius;
-		crystal.mesh.position.y = Math.cos( (orbitAngle + offset) * 0.2 ) * 250 * params.radius;
-		crystal.mesh.position.z = Math.cos( (orbitAngle + offset) * 0.5 ) * 250 * params.radius;
+		crystal.mesh.visible = params.visible;
+		crystal.mesh.scale.set(params.scale, params.scale, params.scale);
+
+		crystal.group.position.x = Math.sin( (orbitAngle + offset) * 0.5 ) * 200 * params.radius;
+		crystal.group.position.y = Math.cos( (orbitAngle + offset) * 0.2 ) * 250 * params.radius;
+		crystal.group.position.z = Math.cos( (orbitAngle + offset) * 0.5 ) * 250 * params.radius;
 
 		crystal.mesh.rotation.x += levelsData[1].average * 0.5;
 		crystal.mesh.rotation.y += levelsData[2].average * 0.5;
