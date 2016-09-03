@@ -1,21 +1,19 @@
 var THREE = require('three');
 var TWEEN = require('tween.js');
 var threeEnv = require('./threeEnv');
+var clock = require('./clock');
 var gui = require('./gui').addFolder('vLight');
+
+var pulsing = false;
 
 var params = {
 	exposure: 0,
 	fDensity: 1,
 	fWeight: 0.3,
 	fClamp: 1,
-	pulse: function() {
+	startPulsing: function() {
 
-		params.exposure = 0.4;
-
-		var tween = new TWEEN.Tween(params)
-	    .to({exposure: 1}, 800)
-	    .easing(TWEEN.Easing.Quadratic.Out)
-	    .start();
+		pulsing = true;
 
 	},
 	fadeIn: function(skip) {
@@ -51,7 +49,13 @@ gui.add(params, 'fClamp', 0, 1);
 gui.add(params, 'fWeight', 0, 1);
 gui.add(params, 'fadeIn');
 
+var draw = function() {
 
+	if (pulsing) {
+		params.fDensity = 1 - ((clock.lfo.sineBar + 1 ) * 0.3);
+	}
+	
+}
 
 
 // mesh.position.y = 150;
@@ -60,5 +64,6 @@ threeEnv.oclScene.add( mesh );
 
 module.exports = {
 	params: params,
-	mesh: mesh
+	mesh: mesh,
+	draw: draw
 }

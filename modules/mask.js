@@ -93,13 +93,13 @@ var params = {
 
 		if (!skip) {
 
-			params.explodeSpeed = 100;
 			params.yRotSpeed = 0.2;
 			params.xRotSpeed = 0.004;
 			params.zRotSpeed = 0.004;
 
+			// This will result in explodeAmount = 766
 			var tween = new TWEEN.Tween(params)
-		    .to({explodeSpeed: 0}, 1000)
+		    .to({explodeAmount: 800}, 1000)
 		    .easing(TWEEN.Easing.Exponential.Out)
 		    .start();
 
@@ -110,11 +110,33 @@ var params = {
 
 		} else {
 
-			params.explodeAmount = 1500;
-			params.explodeSpeed = 0;
+			params.explodeAmount = 800;
 			params.yRotSpeed = 0.004;
 		}
 		
+
+	},
+	explodePulse: function() {
+
+		params.explodeAmount = 800;
+
+		var tween = new TWEEN.Tween(params)
+		    .to({explodeAmount: 760}, 100)
+		    .easing(TWEEN.Easing.Sinusoidal.InOut)
+		    .repeat(1)
+		    .yoyo(true)
+		    .start();
+	},
+	spinPulse: function() {
+
+		params.yRotSpeed = 0.1;
+		params.xRotSpeed = 0.1;
+		params.zRotSpeed = 0.1;
+
+		var tween = new TWEEN.Tween(params)
+	    .to({yRotSpeed: 0.004, xRotSpeed: 0.004, zRotSpeed: 0.004}, 200)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
 
 	},
 	implode: function(skip) {
@@ -177,6 +199,8 @@ gui.add(params, 'sweep');
 gui.add(params, 'dancing');
 gui.add(params, 'dancePower', 1, 20);
 gui.add(params, 'explode');
+gui.add(params, 'explodePulse');
+gui.add(params, 'spinPulse');
 gui.add(params, 'implode');
 gui.add(params, 'spin');
 gui.add(params, 'startRumble');

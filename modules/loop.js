@@ -16,6 +16,7 @@ var Stats = require('stats.js');
 var threeEnv = require('./threeEnv');
 var composers = require('./composers');
 var lights = require('./lights');
+var vLight = require('./vLight');
 var camera = require('./camera');
 var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
@@ -71,6 +72,7 @@ function loop() {
 	crystals.draw(timePassed);
 	ribbons.draw(timePassed);
 	lines.draw(timePassed);
+	vLight.draw(timePassed);
 	camera.draw(timePassed);
 
 	composers.draw(timePassed);

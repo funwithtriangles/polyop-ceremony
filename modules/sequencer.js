@@ -13,6 +13,7 @@ var cowbellCamera = true;
 var cowbellRibbons = false;
 var congosSpin = true;
 var congosPulse = false;
+var congosSpinPulse = false;
 var manLeaves = true;
 
 var mask = require('./mask');
@@ -174,15 +175,33 @@ var timeline = [
 		time: barBeat(96, 0),
 		event: function(skip) {
 			mask.params.explode(skip);
+			manLeaves = false;
+			leaves.params.opacity = 0;
+		}
+	},
+	{
+		time: barBeat(104, 0),
+		event: function(skip) {
 			congosPulse = true;
 		}
 	},
 	{
-		time: barBeat(96, 0),
+		time: barBeat(112, 0),
 		event: function(skip) {
-			mask.params.explode(skip);
-			manLeaves = false;
-			leaves.params.opacity = 0;
+			congosSpinPulse = true;
+		}
+	},
+	{
+		time: barBeat(119, 2),
+		event: function(skip) {
+			vLight.params.startPulsing();
+		}
+	},
+	{
+		time: barBeat(127, 0),
+		event: function(skip) {
+			congosPulse = false;
+			congosSpinPulse = false;
 		}
 	},
 	{
@@ -190,7 +209,7 @@ var timeline = [
 		event: function(skip) {
 			mask.params.implode(skip);
 		}
-	},
+	}
 ]
 
 
@@ -274,7 +293,12 @@ var bongosPart = new MidiPart(bongosData, function() {
 	}
 
 	if (congosPulse) {
-		vLight.params.pulse();
+		//vLight.params.pulse();
+		mask.params.explodePulse();
+	}
+
+	if (congosSpinPulse) {
+		mask.params.spinPulse();
 	}
 
 })
