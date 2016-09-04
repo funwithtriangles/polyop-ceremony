@@ -5,18 +5,19 @@ var threeEnv = require('./threeEnv');
 var gui = require('./gui');
 var guiFolder = gui.addFolder('Leaves');
 
+
+var leafData = require('../assets/leaf.json');
 var loader = new THREE.JSONLoader();
-var leafModel;
+
 var particles = [];
 var numLeafs = 50;
 
 var zLimit = 500;
 
-var radius = window.innerHeight/2.5;
+var radius = window.innerHeight * 0.35;
 
 var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
-
 
 var material = new THREE.MeshBasicMaterial(
 {
@@ -74,18 +75,8 @@ guiFolder.add(params, 'allFade');
 guiFolder.add(params, 'active');
 
 
-loader.load('leaf.js', function ( geometry ) {
-
-		
-
-		
-		leafModel = new THREE.Mesh( geometry, material );
-		leafModel.scale.set(5,5,5);
-
-		init();
-
-	}
-);
+var leafModel = new THREE.Mesh( loader.parse(leafData).geometry, material );
+leafModel.scale.set(10,10,10);
 
 function posNeg() {
 	return Math.random() > 0.5 ? 1 : -1;
@@ -225,6 +216,9 @@ var resetAll = function() {
 	}
 
 }
+
+
+init();
 
 module.exports = {
 	draw: draw,
