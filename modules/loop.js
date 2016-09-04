@@ -25,6 +25,7 @@ var mask = require('./mask');
 var crystals = require('./crystals');
 var lines = require('./lines');
 var ribbons = require('./ribbons');
+var controls = require('./controls');
 var clock = require('./clock');
 var sequencer = require('./sequencer');
 var performanceTest = require('./performanceTest');
@@ -66,6 +67,7 @@ function loop() {
 
 	clock.run();
 	sequencer.run();
+	controls.run(timePassed);
 
 	lights.draw(timePassed);
 	background.draw(timePassed);
@@ -76,6 +78,7 @@ function loop() {
 	lines.draw(timePassed);
 	vLight.draw(timePassed);
 	camera.draw(timePassed);
+
 
 	composers.draw(timePassed);
 	

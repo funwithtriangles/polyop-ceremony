@@ -18,6 +18,8 @@ var radius = 250;
 var constant = 0.0002;
 
 var params = {
+	x: 0,
+	y: 0,
 	startOrbit: function() {
 		orbiting = true;
 		orbitProgress ++;
@@ -35,19 +37,21 @@ var draw = function(timePassed) {
 
 
 	if (orbiting) {
+
 		camera.position.x = target.position.x + radius * Math.cos( constant * timePassed + orbitProgress );         
 		camera.position.z = target.position.z + radius * Math.sin( constant * timePassed + orbitProgress );
 		camera.position.y = target.position.y + radius * Math.cos( constant * timePassed + orbitProgress );
-		camera.lookAt( lookAt );
+	
 	} else {
 
-		camera.position.x = 0;
-		camera.position.y = 0;
+		camera.position.x = params.x;
+		camera.position.y = params.y;
 		camera.position.z = zReset;
-
-		camera.lookAt( lookAt );
+	
 	}
 	
+
+	camera.lookAt( lookAt );
 
 
 }
