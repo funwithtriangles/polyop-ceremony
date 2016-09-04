@@ -7,17 +7,19 @@ uniform float fDecay;
 uniform float fDensity;
 uniform float fWeight;
 uniform float fClamp;
+uniform int iSampleLimit;
 const int iSamples = 20;
 
 void main()
 {
 	vec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));
-	deltaTextCoord *= 1.0 /  float(iSamples) * fDensity;
+	deltaTextCoord *= 1.0 /  float(iSampleLimit) * fDensity;
 	vec2 coord = vUv;
 	float illuminationDecay = 1.0;
 	vec4 FragColor = vec4(0.0);
 	for(int i=0; i < iSamples ; i++)
 	{
+		if (i == iSampleLimit) break;
 		coord -= deltaTextCoord;
 		vec4 texel = texture2D(tDiffuse, coord);
 		texel *= illuminationDecay * fWeight;

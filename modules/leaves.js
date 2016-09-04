@@ -99,7 +99,7 @@ var Leaf = function(i) {
 
 	this.index = i;
 	
-	leafGroup.add(this.mesh);
+//	leafGroup.add(this.mesh);
 
 	this.reset = function() {
 

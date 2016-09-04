@@ -66,7 +66,8 @@ grPass = new THREE.ShaderPass({
 		fDecay: {type: "f", value: 0.93},
 		fDensity: {type: "f", value: 0.96},
 		fWeight: {type: "f", value: 0.4},
-		fClamp: {type: "f", value: 1.0}
+		fClamp: {type: "f", value: 1.0},
+		iSampleLimit: {type: "i", value: 20}
 	},
 	vertexShader: shaders.vertex,
 	fragmentShader: shaders.godRays
@@ -157,8 +158,8 @@ var draw = function(timePassed) {
 
 	filmPass.uniforms[ 'time' ].value  = .00025 * ( timePassed );
 
-	threeEnv.renderer.setClearColor(0x000000, 0);
- 	oclComposer.render( 0.1 );
+	// threeEnv.renderer.setClearColor(0x000000, 0);
+ // 	oclComposer.render( 0.1 );
  	threeEnv.renderer.setClearColor(0x4f6ab1);
 	finalComposer.render( 0.1 );
 
@@ -166,12 +167,13 @@ var draw = function(timePassed) {
 	grPass.uniforms.fDensity.value = vLight.params.fDensity;
 	grPass.uniforms.fWeight.value = vLight.params.fWeight;
 	grPass.uniforms.fClamp.value = vLight.params.fClamp;
+	grPass.uniforms.iSampleLimit.value = vLight.params.iSampleLimit;
 
 }
 
 var changeQuality = function(quality) {
-	renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
-	finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	// renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	// finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 }
 
 

@@ -11,6 +11,7 @@ var params = {
 	fDensity: 1,
 	fWeight: 0.3,
 	fClamp: 1,
+	iSampleLimit: 20,
 	startPulsing: function() {
 
 		pulsing = true;
@@ -47,6 +48,7 @@ gui.add(params, 'exposure', 0, 1);
 gui.add(params, 'fDensity', 0, 1);
 gui.add(params, 'fClamp', 0, 1);
 gui.add(params, 'fWeight', 0, 1);
+gui.add(params, 'iSampleLimit', 0, 20);
 gui.add(params, 'fadeIn');
 
 var draw = function() {

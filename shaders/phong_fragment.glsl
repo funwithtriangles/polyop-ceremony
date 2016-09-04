@@ -1,8 +1,8 @@
 #define PHONG
-#define USE_ENVMAP
-#define ENVMAP_TYPE_CUBE
-#define ENVMAP_MODE_REFLECTION
-#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY
+// #define USE_ENVMAP
+// #define ENVMAP_TYPE_CUBE
+// #define ENVMAP_MODE_REFLECTION
+// #define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY
 
 uniform vec3 diffuse;
 uniform vec3 emissive;

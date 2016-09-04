@@ -25,9 +25,9 @@ var explodeModifier = new THREE.ExplodeModifier();
 var tessellateModifier = new THREE.TessellateModifier( 8 );
 
 
-var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
+// var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 
-threeEnv.scene.add(cubeCamera);
+// threeEnv.scene.add(cubeCamera);
 
 var params = {
 	zGroupPos: -800,
@@ -179,23 +179,12 @@ var params = {
 	},
 	defaultPos: function() {
 		params.zGroupPos = 0;
-	},
-	sweep: function() {
-		mainMask.sweepFlash(modelIds.paintLeft, 'flash', true);
-		mainMask.sweepFlash(modelIds.paintRight, 'flash', true);
-	},
-	randomFlash: function() {
-		mainMask.randomFlash('flash');
-	},
-	randomEdgeFlash: function() {
-		mainMask.randomFlash('edges');
 	}
 }
 
 gui.add(params, 'zGroupPos', -800, 800);
 gui.add(params, 'enterScene');
-gui.add(params, 'randomEdgeFlash');
-gui.add(params, 'sweep');
+gui.add(params, 'defaultPos');
 gui.add(params, 'dancing');
 gui.add(params, 'dancePower', 1, 20);
 gui.add(params, 'explode');
@@ -209,23 +198,6 @@ gui.add(params, 'rumble', 0, 3);
 
 
 
-var outerMaterial = new THREE.MeshPhongMaterial({
-	transparent: true,
-	opacity: 0.0,
-	shininess: 50,
-	side: THREE.DoubleSide,
-	color: 0x2F8582
-});
-
-var flashMaterial = new THREE.MeshBasicMaterial({
-	transparent: true,
-	opacity: 0,
-	side: THREE.DoubleSide,
-	color: 0xffffff,
-	fog: false
-});
-
-
 var shader = THREE.ShaderLib[ "phong" ];
 
 var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
@@ -234,7 +206,7 @@ var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 uniforms.diffuse.value = new THREE.Color( 0x555555 );
 uniforms.specular.value = new THREE.Color( 0x111111 );
 uniforms.shininess.value = 50;
-uniforms.envMap.value = cubeCamera.renderTarget.texture;
+// uniforms.envMap.value = cubeCamera.renderTarget.texture;
 uniforms.explodeAmount = {type: "f", value: 0.0};
 uniforms.rumble = {type: "f", value: 0.0};
 uniforms.time = {type: "f", value: 0.0};
@@ -260,7 +232,7 @@ var coreMaterial = new THREE.ShaderMaterial( {
 // 	specular: 0x111111,
 // 	shininess: 50,
 // 	shading: THREE.FlatShading,
-// 	envMap: cubeCamera.renderTarget.texture,
+// 	//envMap: cubeCamera.renderTarget.texture,
 // 	//combine: THREE.AddOperation
 // } );
 
@@ -355,8 +327,6 @@ var Mask = function(mask) {
 
 	that.oclMask = new THREE.Object3D();
 
-	var outerObjs = [];
-
 	mask.position.y = maskYOffset;
 	that.oclMask.position.y = maskYOffset;
 
@@ -384,91 +354,6 @@ var Mask = function(mask) {
 	for (var i = 0; i < modelIds.outer.length; i++) {
 
 		var mesh = mask.getObjectByName( modelIds.outer[i] );
-
-		// Give outer decorations materials
-		mesh.material = outerMaterial;
-
-
-		// Give each outer decoration a "flash" clone
-		var flash = mesh.clone();
-
-		flash.name = "flash";
-
-		mesh.add(flash);
-
-		flash.rotation.x = 0;
-		flash.rotation.y = 0;
-		flash.rotation.z = 0;
-		flash.position.z = 0.1;
-		flash.material = flashMaterial.clone();
-
-		var edges = new THREE.EdgesHelper( flash, 0xffffff, 55 );
-
-		edges.matrix = flash.matrix;
-		edges.matrixAutoUpdate = true;
-		edges.position.z = 0.2;
-		edges.name = "edges";
-		mesh.add(edges);
-
-		edges.material.lineWidth = 10;
-		edges.material.transparent = true;
-		edges.material.opacity = 0;
-
-	}
-
-	this.flashOuter = function(name, type) {
-
-		if (!type) {
-			type = 'flash';
-		}
-
-		var mesh = mask.getObjectByName( name );
-
-		var material = mesh.getObjectByName( type ).material;
-
-		var target = {
-			opacity: 1
-		}
-
-		material.opacity = target.opacity;
-
-		var tween = new TWEEN.Tween(target)
-	    .to({opacity: 0}, 800)
-	    .easing(TWEEN.Easing.Quintic.Out)
-	    .start();
-
-	    tween.onUpdate(function(){
-		    material.opacity = target.opacity;
-		});
-
-	}
-
-	this.randomFlash = function(type) {
-		that.flashOuter(modelIds.outer[parseInt(Math.random() * modelIds.outer.length)], type);
-	}
-
-	this.sweepFlash = function(array, type, reverse) {
-
-		if (reverse) {
-			var array = array.slice().reverse();
-		}
-
-		function timedFlash(i) {
-
-			setTimeout(function() {
-
-				that.flashOuter(array[i], type);
-
-			}, 50 * i);
-
-		}
-
-		for (var i = 0; i < array.length; i++) {
-
-			timedFlash(i);
-
-		}
-
 
 	}
 
@@ -548,10 +433,10 @@ var draw = function(time) {
 		}
 
 
-		cubeCamera.position.copy( mainMask.mask.position );
-		cubeCamera.position.y += 150;
+		// cubeCamera.position.copy( mainMask.mask.position );
+		// cubeCamera.position.y += 150;
 
-		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+		// cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 
 	
 
