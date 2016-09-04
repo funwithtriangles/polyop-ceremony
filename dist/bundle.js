@@ -416,16 +416,17 @@
 	var Stats = __webpack_require__(16);
 	var threeEnv = __webpack_require__(17);
 	var composers = __webpack_require__(19);
-	var lights = __webpack_require__(30);
-	var camera = __webpack_require__(31);
-	var audioAnalyser = __webpack_require__(34);
+	var lights = __webpack_require__(33);
+	var vLight = __webpack_require__(24);
+	var camera = __webpack_require__(34);
+	var audioAnalyser = __webpack_require__(26);
 	var background = __webpack_require__(40);
 	var leaves = __webpack_require__(42);
-	var mask = __webpack_require__(32);
+	var mask = __webpack_require__(35);
 	var crystals = __webpack_require__(43);
 	var lines = __webpack_require__(44);
 	var ribbons = __webpack_require__(45);
-	var clock = __webpack_require__(33);
+	var clock = __webpack_require__(25);
 	var sequencer = __webpack_require__(46);
 	var performanceTest = __webpack_require__(127);
 
@@ -472,6 +473,7 @@
 		crystals.draw(timePassed);
 		ribbons.draw(timePassed);
 		lines.draw(timePassed);
+		vLight.draw(timePassed);
 		camera.draw(timePassed);
 
 		composers.draw(timePassed);
@@ -45301,11 +45303,11 @@
 	var shaderGui = __webpack_require__(20).addFolder('Shaders');
 	var vLight = __webpack_require__(24);
 	var shaders = {
-		vertex: __webpack_require__(25),
-		godRays: __webpack_require__(26),
-		hBlur: __webpack_require__(27),
-		vBlur: __webpack_require__(28),
-		additive: __webpack_require__(29)
+		vertex: __webpack_require__(28),
+		godRays: __webpack_require__(29),
+		hBlur: __webpack_require__(30),
+		vBlur: __webpack_require__(31),
+		additive: __webpack_require__(32)
 	}
 
 	var hBlur, vBlur;
@@ -49945,21 +49947,19 @@
 	var THREE = __webpack_require__(6);
 	var TWEEN = __webpack_require__(15);
 	var threeEnv = __webpack_require__(17);
+	var clock = __webpack_require__(25);
 	var gui = __webpack_require__(20).addFolder('vLight');
+
+	var pulsing = false;
 
 	var params = {
 		exposure: 0,
 		fDensity: 1,
 		fWeight: 0.3,
 		fClamp: 1,
-		pulse: function() {
+		startPulsing: function() {
 
-			params.exposure = 0.4;
-
-			var tween = new TWEEN.Tween(params)
-		    .to({exposure: 1}, 800)
-		    .easing(TWEEN.Easing.Quadratic.Out)
-		    .start();
+			pulsing = true;
 
 		},
 		fadeIn: function(skip) {
@@ -49995,7 +49995,13 @@
 	gui.add(params, 'fWeight', 0, 1);
 	gui.add(params, 'fadeIn');
 
+	var draw = function() {
 
+		if (pulsing) {
+			params.fDensity = 1 - ((clock.lfo.sineBar + 1 ) * 0.3);
+		}
+		
+	}
 
 
 	// mesh.position.y = 150;
@@ -50004,41 +50010,474 @@
 
 	module.exports = {
 		params: params,
-		mesh: mesh
+		mesh: mesh,
+		draw: draw
 	}
 
 /***/ },
 /* 25 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
+	var audioAnalyser = __webpack_require__(26);
+
+	var params = {
+		bpm: 115,
+		ppq: 480,  // pulses per quarter note (per beat)
+		spp: 60/(115*480)
+	}
+
+	var lfo = {
+		sine: 0,
+		sineHalf: 0
+	}
+
+	var tick = 0;
+
+
+	var deltaStep = Math.PI / params.ppq;
+	var marker = audioAnalyser.getTime();
+	var now;
+
+	var pulse = function() {
+		tick++;
+
+		// Every beat
+		if (tick % params.ppq == 0) {
+
+		}
+
+		lfo.sine = Math.sin(deltaStep * tick);
+		lfo.sineHalf = Math.sin(deltaStep * 2 * tick);
+		lfo.sineTwo = Math.sin(deltaStep / 2 * tick);
+		lfo.sineBar = Math.sin(deltaStep / 4 * tick);
+
+	}
+
+
+	var run = function() {
+		now = audioAnalyser.getTime();
+
+		// Check to see if time passed is more than time per pulse
+		var result = now - marker;
+
+		while (result > params.spp) {
+			// Pulse if so
+			pulse();
+			// Increase next time to check against by time per pulse
+			marker+=params.spp;
+			// Loop over in case missed more than one pulse
+			result-=params.spp;
+		}
+	}
+
+	module.exports = {
+		run: run,
+		params: params,
+		lfo: lfo
+	}
 
 /***/ },
 /* 26 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSamples) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
+	var Freq = __webpack_require__(27);
+	var gui = __webpack_require__(20);
+	var guiFolder = gui.addFolder('Frequencies');
+
+	var audioContext, analyser, source, stream, freqs;
+
+	var audio = new Audio();
+	audio.src = 'ceremony.mp3';
+	audio.controls = true;
+	// audio.autoplay = true;
+	document.body.appendChild(audio);
+
+	var elVisualiser = document.createElement("div");
+	elVisualiser.className = "debug-visualiser";
+	document.body.appendChild( elVisualiser );
+
+
+	audioContext = new( window.AudioContext || window.webkitAudioContext );
+
+	source = audioContext.createMediaElementSource(audio);
+
+	// Set up audio lib
+	analyser = new Freq(audioContext);
+
+	var params = {
+		'a0': 0,
+		'a1': 0.01,
+		'b0': 0.1,
+		'b1': 0.5,
+		'c0': 0.5,
+		'c1': 1,
+		'smoothing': 0.85
+	}
+
+
+	// gui.remember(params);
+
+	var a0 = guiFolder.add(params, 'a0', 0, 1);
+	var a1 = guiFolder.add(params, 'a1', 0, 1);
+	var b0 = guiFolder.add(params, 'b0', 0, 1);
+	var b1 = guiFolder.add(params, 'b1', 0, 1);
+	var c0 = guiFolder.add(params, 'c0', 0, 1);
+	var c1 = guiFolder.add(params, 'c1', 0, 1);
+	var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
+
+
+	a0.onChange(function(value) {
+		stream.bands[0].updateLower(value);
+	});
+
+	a1.onChange(function(value) {
+		stream.bands[0].updateUpper(value);
+	});
+
+	b0.onChange(function(value) {
+		stream.bands[1].updateLower(value);
+	});
+
+	b1.onChange(function(value) {
+		stream.bands[1].updateUpper(value);
+	});
+
+	c0.onChange(function(value) {
+		stream.bands[2].updateLower(value);
+	});
+
+	c1.onChange(function(value) {
+		stream.bands[2].updateUpper(value);
+	});
+
+	smoothing.onChange(function(value) {
+		stream.updateSmoothing(value);
+	});
+
+	// Create a stream
+	stream = analyser.createStream(source, {
+		bandVals: [
+			[ params['a0'], params['a1'] ],
+			[ params['b0'], params['b1'] ],
+			[ params['c0'], params['c1'] ]
+		],
+		smoothing: params.smoothing
+	});
+
+	// Create a new visualiser from stream passing in an empty div
+	// stream.visualiser(elVisualiser);
+
+
+	// Should only happen once per tick
+	var updateLevels = function() {
+		stream.update();
+	}
+
+	// Can be used to get data in many modules
+	var getLevels = function() {
+		return stream.read();
+	}
+
+	var getTime = function() {
+		return audio.currentTime
+	}
+
+	module.exports = {
+		getLevels: getLevels,
+		updateLevels: updateLevels,
+		getTime: getTime
+	}
 
 /***/ },
 /* 27 */
 /***/ function(module, exports) {
 
-	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+	// Overwrite properties of one object with another
+	var extend = function() {
+	  var extended = {};
+
+	  for(key in arguments) {
+	    var argument = arguments[key];
+	    for (prop in argument) {
+	      if (Object.prototype.hasOwnProperty.call(argument, prop)) {
+	        extended[prop] = argument[prop];
+	      }
+	    }
+	  }
+
+	  return extended;
+	};
+
+	Freq = function() {
+		this.streams = [];
+	};
+
+	Freq.prototype.createStream = function( source, settings ) {
+
+		var stream = new this.Stream( source, settings );
+
+		this.streams.push( stream );
+
+		return stream;
+	}
+
+	Freq.prototype.Stream = function( source, settings ) {
+
+		this.defaults = {
+			bandVals: [
+				[ 0, 0.25 ],
+				[ 0.25, 0.5 ],
+				[ 0.5, 0.75 ],
+				[ 0.75, 1]
+			],
+			smoothing: 0.85
+		}
+
+		// Extend the defaults with any settings defined
+		this.settings = extend(this.defaults, settings);
+
+		// Create bands array to hold band objs
+		this.bands = [];
+		
+
+		var context = source.context;
+
+		//create analyser node
+		this.analyser = context.createAnalyser();
+
+		//set size of how many bits we analyse on
+		this.analyser.fftSize = 1024;
+
+		// Setup frequency array
+		this.freqDomain = new Uint8Array( this.analyser.frequencyBinCount );
+
+		this.analyser.smoothingTimeConstant = settings.smoothing;
+
+		//connect to source
+		source.connect( this.analyser );
+
+		//pipe to speakers
+		this.analyser.connect( context.destination );
+
+		// Create array of band objs
+		for ( var i = 0; i < this.settings.bandVals.length; i++ ) {
+
+			var lower = this.settings.bandVals[ i ][ 0 ];
+			var upper = this.settings.bandVals[ i ][ 1 ];
+
+			this.bands.push( new Band( lower, upper, this.freqDomain ) );
+		}
+
+	}
+
+	// Update band data (should only happen once per tick)
+	Freq.prototype.Stream.prototype.update = function() {
+
+		this.analyser.getByteFrequencyData( this.freqDomain );
+
+		// Array that will store the returned data
+		this.bandData = [];
+
+		var numBands = this.bands.length;
+		
+
+		for ( var i = 0; i < numBands; i++ ) {
+
+			band = this.bands[ i ];
+
+			this.bandData.push( {
+				width: band.widthPerc,
+				location: band.lowerPerc,
+				average: band.getAverage(),
+			} );
+
+		}
+
+	}
+
+	// Band data can then be read by many modules
+	Freq.prototype.Stream.prototype.read = function() {
+		return {
+			bands: this.bandData,
+			rawFreqs: this.freqDomain
+		}
+	}
+
+	// Band data can then be read by many modules
+	Freq.prototype.Stream.prototype.updateSmoothing = function(value) {
+		this.analyser.smoothingTimeConstant = value;
+	}
+
+
+
+	Freq.prototype.Stream.prototype.visualiser = function( containerElement ) {
+
+		var stream = this;
+
+		// Create canvas and context
+		var canvasElement = document.createElement( 'canvas' );
+		var visualContext = canvasElement.getContext( "2d" );
+		containerElement.appendChild( canvasElement );
+
+		var WIDTH = containerElement.offsetWidth;
+		var HEIGHT = containerElement.offsetHeight;
+		canvasElement.width = WIDTH;
+		canvasElement.height = HEIGHT;
+
+		var barWidth = WIDTH / this.analyser.frequencyBinCount;
+
+		// Function to draw graph
+		var drawGraph = function() {
+
+			var data = stream.read();
+
+			// Create background bars
+			for ( var i = 0; i < stream.analyser.frequencyBinCount; i++ ) {
+
+				var value = stream.freqDomain[ i ];
+				var percent = value / 256;
+				var height = HEIGHT * percent;
+				var offset = HEIGHT - height - 1;
+				var hue = i / stream.analyser.frequencyBinCount * 360;
+
+				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
+				visualContext.fillRect( i * barWidth, offset, barWidth, height );
+
+			}
+
+			// Create band bars
+			for ( var i = 0; i < stream.settings.bandVals.length; i++ ) {
+
+				var bandWidth = data.bands[ i ].width * WIDTH;
+				var location = data.bands[ i ].location * WIDTH;
+				var height = HEIGHT * data.bands[ i ].average;
+				var offset = HEIGHT - height - 1;
+				var hue = i / stream.settings.bandVals.length * 360;
+
+				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
+				visualContext.fillRect( location, offset, bandWidth, height );
+
+			}
+		}
+
+		// Animation loop
+		var draw = function() {
+
+			visualContext.fillStyle = 'black';
+			visualContext.fillRect( 0, 0, WIDTH, HEIGHT );
+
+			drawGraph();
+
+			window.requestAnimationFrame( draw );
+		}
+
+		// Start loop
+		window.requestAnimationFrame( draw );
+
+	}
+
+	var Band = function( lower, upper, freqDomain ) {
+
+		this.binCount = freqDomain.length;
+		this.freqDomain = freqDomain;
+
+		this.lowerPerc = lower;
+		this.upperPerc = upper;
+
+		this.calculate();
+
+	}
+
+	Band.prototype.calculate = function() {
+
+		this.widthPerc = this.upperPerc - this.lowerPerc;
+		this.widthFreq = Math.floor( this.binCount * this.widthPerc );
+		this.startFreq = Math.floor( this.lowerPerc * this.binCount );
+
+	}
+
+	// Calculate average value for frequencies inside a band
+	Band.prototype.getAverage = function() {
+
+		var bandTotal = 0;
+
+		for ( var j = 0; j < this.widthFreq; j++ ) {
+			bandTotal += this.freqDomain[ this.startFreq + j ];
+		}
+
+		// Return an average of the band
+		return (bandTotal / this.widthFreq) / 256;
+
+	}
+
+	Band.prototype.updatePosition = function( perc ) {
+
+		this.lowerPerc = perc;
+		this.upperPerc = perc + this.widthPerc;
+		this.calculate();
+
+	}
+
+	Band.prototype.updateLower = function( perc ) {
+
+		this.lowerPerc = perc;
+		this.calculate();
+
+	}
+
+	Band.prototype.updateUpper = function( perc ) {
+
+		this.upperPerc = perc;
+		this.calculate();
+
+	}
+
+	// Updates width from upper and lower equally (i.e. center aligned)
+	Band.prototype.updateWidth = function( perc ) {
+
+		var centerPerc = this.lowerPerc + ( this.widthPerc / 2 );
+
+		this.lowerPerch = centerPerc - ( perc / 2 );
+		this.upperPerc = centerPerc + ( perc / 2 );
+
+		this.calculate();
+
+	}
+
+	module.exports = Freq;
 
 /***/ },
 /* 28 */
 /***/ function(module, exports) {
 
-	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
 
 /***/ },
 /* 29 */
 /***/ function(module, exports) {
 
-	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
+	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSamples) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
 
 /***/ },
 /* 30 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+
+/***/ },
+/* 31 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
+
+/***/ },
+/* 32 */
+/***/ function(module, exports) {
+
+	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
+
+/***/ },
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
@@ -50096,13 +50535,13 @@
 	}
 
 /***/ },
-/* 31 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
 	var guiFolder = __webpack_require__(20).addFolder('Camera');
-	var mask = __webpack_require__(32);
+	var mask = __webpack_require__(35);
 
 	var camera = threeEnv.camera;
 	var target = mask.mask.mask;
@@ -50160,13 +50599,13 @@
 	}
 
 /***/ },
-/* 32 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
 	var TWEEN = __webpack_require__(15);
 	var threeEnv = __webpack_require__(17);
-	var clock = __webpack_require__(33);
+	var clock = __webpack_require__(25);
 
 	var gui = __webpack_require__(20).addFolder('Mask');
 
@@ -50258,13 +50697,13 @@
 
 			if (!skip) {
 
-				params.explodeSpeed = 100;
 				params.yRotSpeed = 0.2;
 				params.xRotSpeed = 0.004;
 				params.zRotSpeed = 0.004;
 
+				// This will result in explodeAmount = 766
 				var tween = new TWEEN.Tween(params)
-			    .to({explodeSpeed: 0}, 1000)
+			    .to({explodeAmount: 800}, 1000)
 			    .easing(TWEEN.Easing.Exponential.Out)
 			    .start();
 
@@ -50275,11 +50714,33 @@
 
 			} else {
 
-				params.explodeAmount = 1500;
-				params.explodeSpeed = 0;
+				params.explodeAmount = 800;
 				params.yRotSpeed = 0.004;
 			}
 			
+
+		},
+		explodePulse: function() {
+
+			params.explodeAmount = 800;
+
+			var tween = new TWEEN.Tween(params)
+			    .to({explodeAmount: 760}, 100)
+			    .easing(TWEEN.Easing.Sinusoidal.InOut)
+			    .repeat(1)
+			    .yoyo(true)
+			    .start();
+		},
+		spinPulse: function() {
+
+			params.yRotSpeed = 0.1;
+			params.xRotSpeed = 0.1;
+			params.zRotSpeed = 0.1;
+
+			var tween = new TWEEN.Tween(params)
+		    .to({yRotSpeed: 0.004, xRotSpeed: 0.004, zRotSpeed: 0.004}, 200)
+		    .easing(TWEEN.Easing.Quadratic.Out)
+		    .start();
 
 		},
 		implode: function(skip) {
@@ -50342,6 +50803,8 @@
 	gui.add(params, 'dancing');
 	gui.add(params, 'dancePower', 1, 20);
 	gui.add(params, 'explode');
+	gui.add(params, 'explodePulse');
+	gui.add(params, 'spinPulse');
 	gui.add(params, 'implode');
 	gui.add(params, 'spin');
 	gui.add(params, 'startRumble');
@@ -50714,438 +51177,6 @@
 
 
 
-
-/***/ },
-/* 33 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var audioAnalyser = __webpack_require__(34);
-
-	var params = {
-		bpm: 115,
-		ppq: 480,  // pulses per quarter note (per beat)
-		spp: 60/(115*480)
-	}
-
-	var lfo = {
-		sine: 0,
-		sineHalf: 0
-	}
-
-	var tick = 0;
-
-
-	var deltaStep = Math.PI / params.ppq;
-	var marker = audioAnalyser.getTime();
-	var now;
-
-	var pulse = function() {
-		tick++;
-
-		// Every beat
-		if (tick % params.ppq == 0) {
-
-		}
-
-		lfo.sine = Math.sin(deltaStep * tick);
-		lfo.sineHalf = Math.sin(deltaStep * 2 * tick);
-		lfo.sineTwo = Math.sin(deltaStep / 2 * tick);
-		lfo.sineBar = Math.sin(deltaStep / 4 * tick);
-
-	}
-
-
-	var run = function() {
-		now = audioAnalyser.getTime();
-
-		// Check to see if time passed is more than time per pulse
-		var result = now - marker;
-
-		while (result > params.spp) {
-			// Pulse if so
-			pulse();
-			// Increase next time to check against by time per pulse
-			marker+=params.spp;
-			// Loop over in case missed more than one pulse
-			result-=params.spp;
-		}
-	}
-
-	module.exports = {
-		run: run,
-		params: params,
-		lfo: lfo
-	}
-
-/***/ },
-/* 34 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Freq = __webpack_require__(35);
-	var gui = __webpack_require__(20);
-	var guiFolder = gui.addFolder('Frequencies');
-
-	var audioContext, analyser, source, stream, freqs;
-
-	var audio = new Audio();
-	audio.src = 'ceremony.ogg';
-	audio.controls = true;
-	// audio.autoplay = true;
-	document.body.appendChild(audio);
-
-	var elVisualiser = document.createElement("div");
-	elVisualiser.className = "debug-visualiser";
-	document.body.appendChild( elVisualiser );
-
-
-	audioContext = new( window.AudioContext || window.webkitAudioContext );
-
-	source = audioContext.createMediaElementSource(audio);
-
-	// Set up audio lib
-	analyser = new Freq(audioContext);
-
-	var params = {
-		'a0': 0,
-		'a1': 0.01,
-		'b0': 0.1,
-		'b1': 0.5,
-		'c0': 0.5,
-		'c1': 1,
-		'smoothing': 0.85
-	}
-
-
-	// gui.remember(params);
-
-	var a0 = guiFolder.add(params, 'a0', 0, 1);
-	var a1 = guiFolder.add(params, 'a1', 0, 1);
-	var b0 = guiFolder.add(params, 'b0', 0, 1);
-	var b1 = guiFolder.add(params, 'b1', 0, 1);
-	var c0 = guiFolder.add(params, 'c0', 0, 1);
-	var c1 = guiFolder.add(params, 'c1', 0, 1);
-	var smoothing = guiFolder.add(params, 'smoothing', 0, 1);
-
-
-	a0.onChange(function(value) {
-		stream.bands[0].updateLower(value);
-	});
-
-	a1.onChange(function(value) {
-		stream.bands[0].updateUpper(value);
-	});
-
-	b0.onChange(function(value) {
-		stream.bands[1].updateLower(value);
-	});
-
-	b1.onChange(function(value) {
-		stream.bands[1].updateUpper(value);
-	});
-
-	c0.onChange(function(value) {
-		stream.bands[2].updateLower(value);
-	});
-
-	c1.onChange(function(value) {
-		stream.bands[2].updateUpper(value);
-	});
-
-	smoothing.onChange(function(value) {
-		stream.updateSmoothing(value);
-	});
-
-	// Create a stream
-	stream = analyser.createStream(source, {
-		bandVals: [
-			[ params['a0'], params['a1'] ],
-			[ params['b0'], params['b1'] ],
-			[ params['c0'], params['c1'] ]
-		],
-		smoothing: params.smoothing
-	});
-
-	// Create a new visualiser from stream passing in an empty div
-	// stream.visualiser(elVisualiser);
-
-
-	// Should only happen once per tick
-	var updateLevels = function() {
-		stream.update();
-	}
-
-	// Can be used to get data in many modules
-	var getLevels = function() {
-		return stream.read();
-	}
-
-	var getTime = function() {
-		return audio.currentTime
-	}
-
-	module.exports = {
-		getLevels: getLevels,
-		updateLevels: updateLevels,
-		getTime: getTime
-	}
-
-/***/ },
-/* 35 */
-/***/ function(module, exports) {
-
-	// Overwrite properties of one object with another
-	var extend = function() {
-	  var extended = {};
-
-	  for(key in arguments) {
-	    var argument = arguments[key];
-	    for (prop in argument) {
-	      if (Object.prototype.hasOwnProperty.call(argument, prop)) {
-	        extended[prop] = argument[prop];
-	      }
-	    }
-	  }
-
-	  return extended;
-	};
-
-	Freq = function() {
-		this.streams = [];
-	};
-
-	Freq.prototype.createStream = function( source, settings ) {
-
-		var stream = new this.Stream( source, settings );
-
-		this.streams.push( stream );
-
-		return stream;
-	}
-
-	Freq.prototype.Stream = function( source, settings ) {
-
-		this.defaults = {
-			bandVals: [
-				[ 0, 0.25 ],
-				[ 0.25, 0.5 ],
-				[ 0.5, 0.75 ],
-				[ 0.75, 1]
-			],
-			smoothing: 0.85
-		}
-
-		// Extend the defaults with any settings defined
-		this.settings = extend(this.defaults, settings);
-
-		// Create bands array to hold band objs
-		this.bands = [];
-		
-
-		var context = source.context;
-
-		//create analyser node
-		this.analyser = context.createAnalyser();
-
-		//set size of how many bits we analyse on
-		this.analyser.fftSize = 1024;
-
-		// Setup frequency array
-		this.freqDomain = new Uint8Array( this.analyser.frequencyBinCount );
-
-		this.analyser.smoothingTimeConstant = settings.smoothing;
-
-		//connect to source
-		source.connect( this.analyser );
-
-		//pipe to speakers
-		this.analyser.connect( context.destination );
-
-		// Create array of band objs
-		for ( var i = 0; i < this.settings.bandVals.length; i++ ) {
-
-			var lower = this.settings.bandVals[ i ][ 0 ];
-			var upper = this.settings.bandVals[ i ][ 1 ];
-
-			this.bands.push( new Band( lower, upper, this.freqDomain ) );
-		}
-
-	}
-
-	// Update band data (should only happen once per tick)
-	Freq.prototype.Stream.prototype.update = function() {
-
-		this.analyser.getByteFrequencyData( this.freqDomain );
-
-		// Array that will store the returned data
-		this.bandData = [];
-
-		var numBands = this.bands.length;
-		
-
-		for ( var i = 0; i < numBands; i++ ) {
-
-			band = this.bands[ i ];
-
-			this.bandData.push( {
-				width: band.widthPerc,
-				location: band.lowerPerc,
-				average: band.getAverage(),
-			} );
-
-		}
-
-	}
-
-	// Band data can then be read by many modules
-	Freq.prototype.Stream.prototype.read = function() {
-		return {
-			bands: this.bandData,
-			rawFreqs: this.freqDomain
-		}
-	}
-
-	// Band data can then be read by many modules
-	Freq.prototype.Stream.prototype.updateSmoothing = function(value) {
-		this.analyser.smoothingTimeConstant = value;
-	}
-
-
-
-	Freq.prototype.Stream.prototype.visualiser = function( containerElement ) {
-
-		var stream = this;
-
-		// Create canvas and context
-		var canvasElement = document.createElement( 'canvas' );
-		var visualContext = canvasElement.getContext( "2d" );
-		containerElement.appendChild( canvasElement );
-
-		var WIDTH = containerElement.offsetWidth;
-		var HEIGHT = containerElement.offsetHeight;
-		canvasElement.width = WIDTH;
-		canvasElement.height = HEIGHT;
-
-		var barWidth = WIDTH / this.analyser.frequencyBinCount;
-
-		// Function to draw graph
-		var drawGraph = function() {
-
-			var data = stream.read();
-
-			// Create background bars
-			for ( var i = 0; i < stream.analyser.frequencyBinCount; i++ ) {
-
-				var value = stream.freqDomain[ i ];
-				var percent = value / 256;
-				var height = HEIGHT * percent;
-				var offset = HEIGHT - height - 1;
-				var hue = i / stream.analyser.frequencyBinCount * 360;
-
-				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
-				visualContext.fillRect( i * barWidth, offset, barWidth, height );
-
-			}
-
-			// Create band bars
-			for ( var i = 0; i < stream.settings.bandVals.length; i++ ) {
-
-				var bandWidth = data.bands[ i ].width * WIDTH;
-				var location = data.bands[ i ].location * WIDTH;
-				var height = HEIGHT * data.bands[ i ].average;
-				var offset = HEIGHT - height - 1;
-				var hue = i / stream.settings.bandVals.length * 360;
-
-				visualContext.fillStyle = 'hsla(' + hue + ', 100%, 50%, 0.5)';
-				visualContext.fillRect( location, offset, bandWidth, height );
-
-			}
-		}
-
-		// Animation loop
-		var draw = function() {
-
-			visualContext.fillStyle = 'black';
-			visualContext.fillRect( 0, 0, WIDTH, HEIGHT );
-
-			drawGraph();
-
-			window.requestAnimationFrame( draw );
-		}
-
-		// Start loop
-		window.requestAnimationFrame( draw );
-
-	}
-
-	var Band = function( lower, upper, freqDomain ) {
-
-		this.binCount = freqDomain.length;
-		this.freqDomain = freqDomain;
-
-		this.lowerPerc = lower;
-		this.upperPerc = upper;
-
-		this.calculate();
-
-	}
-
-	Band.prototype.calculate = function() {
-
-		this.widthPerc = this.upperPerc - this.lowerPerc;
-		this.widthFreq = Math.floor( this.binCount * this.widthPerc );
-		this.startFreq = Math.floor( this.lowerPerc * this.binCount );
-
-	}
-
-	// Calculate average value for frequencies inside a band
-	Band.prototype.getAverage = function() {
-
-		var bandTotal = 0;
-
-		for ( var j = 0; j < this.widthFreq; j++ ) {
-			bandTotal += this.freqDomain[ this.startFreq + j ];
-		}
-
-		// Return an average of the band
-		return (bandTotal / this.widthFreq) / 256;
-
-	}
-
-	Band.prototype.updatePosition = function( perc ) {
-
-		this.lowerPerc = perc;
-		this.upperPerc = perc + this.widthPerc;
-		this.calculate();
-
-	}
-
-	Band.prototype.updateLower = function( perc ) {
-
-		this.lowerPerc = perc;
-		this.calculate();
-
-	}
-
-	Band.prototype.updateUpper = function( perc ) {
-
-		this.upperPerc = perc;
-		this.calculate();
-
-	}
-
-	// Updates width from upper and lower equally (i.e. center aligned)
-	Band.prototype.updateWidth = function( perc ) {
-
-		var centerPerc = this.lowerPerc + ( this.widthPerc / 2 );
-
-		this.lowerPerch = centerPerc - ( perc / 2 );
-		this.upperPerc = centerPerc + ( perc / 2 );
-
-		this.calculate();
-
-	}
-
-	module.exports = Freq;
 
 /***/ },
 /* 36 */
@@ -53596,11 +53627,11 @@
 
 	var THREE = __webpack_require__(6);
 	var threeEnv = __webpack_require__(17);
-	var audioAnalyser = __webpack_require__(34);
+	var audioAnalyser = __webpack_require__(26);
 	var gui = __webpack_require__(20);
 	var guiFolder = gui.addFolder('Background');
 	var shaders = {
-		vertex: __webpack_require__(25),
+		vertex: __webpack_require__(28),
 		fragment: __webpack_require__(41)
 	}
 
@@ -53928,10 +53959,10 @@
 	var threeEnv = __webpack_require__(17);
 	var TWEEN = __webpack_require__(15);
 	var gui = __webpack_require__(20);
-	var mask = __webpack_require__(32);
+	var mask = __webpack_require__(35);
 	var guiFolder = gui.addFolder('Crystals');
-	var audioAnalyser = __webpack_require__(34);
-	var clock = __webpack_require__(33);
+	var audioAnalyser = __webpack_require__(26);
+	var clock = __webpack_require__(25);
 
 	var numCrystals = 5;
 	var crystals = [];
@@ -54187,7 +54218,7 @@
 	var threeEnv = __webpack_require__(17);
 	var TWEEN = __webpack_require__(15);
 	var gui = __webpack_require__(20).addFolder('Ribbons');
-	var clock = __webpack_require__(33);
+	var clock = __webpack_require__(25);
 
 	var numFlashes = 0;
 	var flashing = false;
@@ -54460,8 +54491,8 @@
 /* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(34);
-	var clock = __webpack_require__(33);
+	var audioAnalyser = __webpack_require__(26);
+	var clock = __webpack_require__(25);
 	var TWEEN = __webpack_require__(15);
 
 	var cowbellData = __webpack_require__(47);
@@ -54475,16 +54506,17 @@
 	var cowbellRibbons = false;
 	var congosSpin = true;
 	var congosPulse = false;
+	var congosSpinPulse = false;
 	var manLeaves = true;
 
-	var mask = __webpack_require__(32);
+	var mask = __webpack_require__(35);
 	var ribbons = __webpack_require__(45);
 	var crystals = __webpack_require__(43);
 	var leaves = __webpack_require__(42);
 	var background = __webpack_require__(40);
 	var lines = __webpack_require__(44);
 	var vLight = __webpack_require__(24);
-	var camera = __webpack_require__(31);
+	var camera = __webpack_require__(34);
 	var titles = __webpack_require__(51);
 
 	var now;
@@ -54636,15 +54668,33 @@
 			time: barBeat(96, 0),
 			event: function(skip) {
 				mask.params.explode(skip);
+				manLeaves = false;
+				leaves.params.opacity = 0;
+			}
+		},
+		{
+			time: barBeat(104, 0),
+			event: function(skip) {
 				congosPulse = true;
 			}
 		},
 		{
-			time: barBeat(96, 0),
+			time: barBeat(112, 0),
 			event: function(skip) {
-				mask.params.explode(skip);
-				manLeaves = false;
-				leaves.params.opacity = 0;
+				congosSpinPulse = true;
+			}
+		},
+		{
+			time: barBeat(119, 2),
+			event: function(skip) {
+				vLight.params.startPulsing();
+			}
+		},
+		{
+			time: barBeat(127, 0),
+			event: function(skip) {
+				congosPulse = false;
+				congosSpinPulse = false;
 			}
 		},
 		{
@@ -54652,7 +54702,7 @@
 			event: function(skip) {
 				mask.params.implode(skip);
 			}
-		},
+		}
 	]
 
 
@@ -54736,7 +54786,12 @@
 		}
 
 		if (congosPulse) {
-			vLight.params.pulse();
+			//vLight.params.pulse();
+			mask.params.explodePulse();
+		}
+
+		if (congosSpinPulse) {
+			mask.params.spinPulse();
 		}
 
 	})

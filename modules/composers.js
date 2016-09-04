@@ -170,8 +170,8 @@ var draw = function(timePassed) {
 }
 
 var changeQuality = function(quality) {
-	// renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
-	// finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 }
 
 
