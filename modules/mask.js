@@ -246,38 +246,6 @@ var oclMaterial = new THREE.ShaderMaterial( {
 
 });
 
-
-//var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
-
-
-var modelIds = {
-	outer: [
-		'feather_1',
-		'feather_2',
-		'feather_3',
-		'feather_4',
-		'feather_5',
-		'feather_6',
-		'paint_1',
-		'paint_2',
-		'paint_3',
-		'paint_4',
-		'paint_5',
-		'paint_6',
-		'nose'
-	],
-	paintLeft: [
-		'paint_1',
-		'paint_2',
-		'paint_3'
-	],
-	paintRight: [
-		'paint_4',
-		'paint_5',
-		'paint_6'
-	]
-}
-
 var makeExplodable = function(geometry) {
 
 	explodeModifier.modify( geometry );
@@ -349,13 +317,6 @@ var Mask = function(mask) {
 
 	that.oclMask.add(that.oclHeadTop);
 	that.oclMask.add(that.oclHeadBottom);
-
-
-	for (var i = 0; i < modelIds.outer.length; i++) {
-
-		var mesh = mask.getObjectByName( modelIds.outer[i] );
-
-	}
 
 	that.group.add(mask);
 	that.oclGroup.add(that.oclMask);
