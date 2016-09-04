@@ -52,13 +52,15 @@ function loop() {
 	var thisLoop = new Date;
     var fps = 1000 / (thisLoop - lastLoop);
     lastLoop = thisLoop;
-    performanceTest.check(fps);
+   
 
 	stats.begin();
 
 	TWEEN.update();
 
 	timePassed = Date.now() - start;
+
+	 performanceTest.check(timePassed, fps);
 
 	audioAnalyser.updateLevels();
 

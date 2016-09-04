@@ -11,8 +11,8 @@
 
 
 #define PHONG
-// #define USE_ENVMAP
-// #define ENVMAP_TYPE_CUBE
+#define USE_ENVMAP
+#define ENVMAP_TYPE_CUBE
 
 attribute vec3 displacement;
 

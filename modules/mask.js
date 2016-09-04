@@ -24,14 +24,13 @@ var explodeModifier = new THREE.ExplodeModifier();
 
 var tessellateModifier = new THREE.TessellateModifier( 8 );
 
+var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 
-// var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
-
-// threeEnv.scene.add(cubeCamera);
+threeEnv.scene.add(cubeCamera);
 
 var params = {
-	zGroupPos: -800,
-	//zGroupPos: 0,
+	//zGroupPos: -800,
+	zGroupPos: 0,
 	xRotSpeed: 0,
 	yRotSpeed: 0,
 	zRotSpeed: 0,
@@ -44,6 +43,7 @@ var params = {
 	explodeAmount: 0,
 	explodeSpeed: 0,
 	rumbling: false,
+	cubeCamera: true,
 	enterScene: function(skip) {
 
 		if (!skip) {
@@ -206,7 +206,7 @@ var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 uniforms.diffuse.value = new THREE.Color( 0x555555 );
 uniforms.specular.value = new THREE.Color( 0x111111 );
 uniforms.shininess.value = 50;
-// uniforms.envMap.value = cubeCamera.renderTarget.texture;
+uniforms.envMap.value = cubeCamera.renderTarget.texture;
 uniforms.explodeAmount = {type: "f", value: 0.0};
 uniforms.rumble = {type: "f", value: 0.0};
 uniforms.time = {type: "f", value: 0.0};
@@ -425,18 +425,14 @@ var draw = function(time) {
 		mask.rotation.z = params.zRot;
 		oclMask.rotation.z = params.zRot;
 
-		
 
-		if (params.rumbling) {
-			//params.rumble += 0.001;
-			// params.explodeAmount += 0.02;
+		if (params.cubeCamera) {
+			cubeCamera.position.copy( mainMask.mask.position );
+			cubeCamera.position.y += 150;
+
+			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 		}
-
-
-		// cubeCamera.position.copy( mainMask.mask.position );
-		// cubeCamera.position.y += 150;
-
-		// cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+		
 
 	
 

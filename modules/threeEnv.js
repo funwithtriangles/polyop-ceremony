@@ -4,7 +4,8 @@ var OrbitControls = require('three-orbit-controls')(THREE)
 var renderer, scene, camera, controls, axes;
 var box = {
 	width: window.innerWidth,
-	height: window.innerHeight
+	height: window.innerHeight,
+	area: window.innerWidth * window.innerHeight * window.devicePixelRatio
 }
 
 renderer = new THREE.WebGLRenderer({
