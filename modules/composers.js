@@ -172,8 +172,8 @@ var draw = function(timePassed) {
 }
 
 var changeQuality = function(quality) {
-	// renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
-	// finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+	renderTargetOcl.setSize(threeEnv.box.width/quality/2, threeEnv.box.height/quality/2);
+	finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 }
 
 
