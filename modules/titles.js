@@ -22,11 +22,13 @@ var TextMesh = function(pathString, detail, scale) {
 	var material = new THREE.MeshBasicMaterial({
 	  side: THREE.BackSide,
 	  transparent: true,
-	  opacity: 0
+	  opacity: 1
 	  // wireframe: true
 	});
 	
 	this.mesh = new THREE.Mesh(geometry, material);
+
+	this.mesh.visible = false;
 
 	this.mesh.scale.set(scale, scale, scale);
 
@@ -34,7 +36,7 @@ var TextMesh = function(pathString, detail, scale) {
 
 
 	this.enter = function() {
-		material.opacity = 1;
+		that.mesh.visible = true;
 	}
 
 	this.exit = function() {
