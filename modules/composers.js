@@ -158,8 +158,8 @@ var draw = function(timePassed) {
 
 	filmPass.uniforms[ 'time' ].value  = .00025 * ( timePassed );
 
-	// threeEnv.renderer.setClearColor(0x000000, 0);
- // 	oclComposer.render( 0.1 );
+	threeEnv.renderer.setClearColor(0x000000, 0);
+ 	oclComposer.render( 0.1 );
  	threeEnv.renderer.setClearColor(0x4f6ab1);
 	finalComposer.render( 0.1 );
 
