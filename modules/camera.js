@@ -41,6 +41,7 @@ var draw = function(timePassed) {
 		camera.position.x = target.position.x + radius * Math.cos( constant * timePassed + orbitProgress );         
 		camera.position.z = target.position.z + radius * Math.sin( constant * timePassed + orbitProgress );
 		camera.position.y = target.position.y + radius * Math.cos( constant * timePassed + orbitProgress );
+		camera.lookAt( lookAt );
 	
 	} else {
 
@@ -51,7 +52,7 @@ var draw = function(timePassed) {
 	}
 	
 
-	camera.lookAt( lookAt );
+//	
 
 
 }

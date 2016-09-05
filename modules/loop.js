@@ -1,3 +1,5 @@
+require('webvr-polyfill');
+
 var THREE = require('three');
 
 // These will get added to the THREE namespace
@@ -9,6 +11,9 @@ require('../threeExtras/FilmShader');
 require('../threeExtras/RGBShiftShader');
 require('../threeExtras/ExplodeModifier');
 require('../threeExtras/TessellateModifier');
+require('../threeExtras/DeviceOrientationControls');
+require('../threeExtras/VRControls');
+require('../threeExtras/VREffect');
 
 
 var TWEEN = require('tween.js');

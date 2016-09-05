@@ -191,8 +191,8 @@ shaderGui.add(rgbPass.uniforms.amount, 'value').min(0).max(0.1).name("RGBAmount"
 shaderGui.add(rgbPass.uniforms.angle, 'value').min(0).max(Math.PI*2).name("RGBAngle");
 
 
-
 module.exports = {
 	draw: draw,
-	changeQuality: changeQuality
+	changeQuality: changeQuality,
+	finalComposer: finalComposer
 }

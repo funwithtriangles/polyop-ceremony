@@ -410,25 +410,27 @@
 	__webpack_require__(12);
 	__webpack_require__(13);
 	__webpack_require__(14);
+	__webpack_require__(15);
 
 
-	var TWEEN = __webpack_require__(15);
-	var Stats = __webpack_require__(16);
-	var threeEnv = __webpack_require__(17);
-	var composers = __webpack_require__(19);
-	var lights = __webpack_require__(33);
-	var vLight = __webpack_require__(24);
-	var camera = __webpack_require__(34);
-	var audioAnalyser = __webpack_require__(26);
-	var background = __webpack_require__(40);
-	var leaves = __webpack_require__(42);
-	var mask = __webpack_require__(35);
-	var crystals = __webpack_require__(43);
-	var lines = __webpack_require__(44);
-	var ribbons = __webpack_require__(45);
-	var clock = __webpack_require__(25);
-	var sequencer = __webpack_require__(46);
-	var performanceTest = __webpack_require__(127);
+	var TWEEN = __webpack_require__(16);
+	var Stats = __webpack_require__(17);
+	var threeEnv = __webpack_require__(18);
+	var composers = __webpack_require__(20);
+	var lights = __webpack_require__(34);
+	var vLight = __webpack_require__(25);
+	var camera = __webpack_require__(35);
+	var audioAnalyser = __webpack_require__(27);
+	var background = __webpack_require__(41);
+	var leaves = __webpack_require__(43);
+	var mask = __webpack_require__(36);
+	var crystals = __webpack_require__(45);
+	var lines = __webpack_require__(46);
+	var ribbons = __webpack_require__(47);
+	var controls = __webpack_require__(48);
+	var clock = __webpack_require__(26);
+	var sequencer = __webpack_require__(49);
+	var performanceTest = __webpack_require__(130);
 
 	var lastLoop = new Date;
 
@@ -453,7 +455,7 @@
 		var thisLoop = new Date;
 	    var fps = 1000 / (thisLoop - lastLoop);
 	    lastLoop = thisLoop;
-	    performanceTest.check(fps);
+	   
 
 		stats.begin();
 
@@ -461,10 +463,13 @@
 
 		timePassed = Date.now() - start;
 
+		 performanceTest.check(timePassed, fps);
+
 		audioAnalyser.updateLevels();
 
 		clock.run();
 		sequencer.run();
+		controls.run(timePassed);
 
 		lights.draw(timePassed);
 		background.draw(timePassed);
@@ -475,6 +480,7 @@
 		lines.draw(timePassed);
 		vLight.draw(timePassed);
 		camera.draw(timePassed);
+
 
 		composers.draw(timePassed);
 		
@@ -43209,6 +43215,124 @@
 /* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var THREE = __webpack_require__(6);
+
+	/**
+	 * @author richt / http://richt.me
+	 * @author WestLangley / http://github.com/WestLangley
+	 *
+	 * W3C Device Orientation control (http://w3c.github.io/deviceorientation/spec-source-orientation.html)
+	 */
+
+	THREE.DeviceOrientationControls = function( object ) {
+
+		var scope = this;
+
+		this.object = object;
+		this.object.rotation.reorder( "YXZ" );
+
+		this.enabled = true;
+
+		this.deviceOrientation = {};
+		this.screenOrientation = 0;
+
+		this.alpha = 0;
+		this.alphaOffsetAngle = 0;
+
+
+		var onDeviceOrientationChangeEvent = function( event ) {
+
+			scope.deviceOrientation = event;
+
+		};
+
+		var onScreenOrientationChangeEvent = function() {
+
+			scope.screenOrientation = window.orientation || 0;
+
+		};
+
+		// The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
+
+		var setObjectQuaternion = function() {
+
+			var zee = new THREE.Vector3( 0, 0, 1 );
+
+			var euler = new THREE.Euler();
+
+			var q0 = new THREE.Quaternion();
+
+			var q1 = new THREE.Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) ); // - PI/2 around the x-axis
+
+			return function( quaternion, alpha, beta, gamma, orient ) {
+
+				euler.set( beta, alpha, - gamma, 'YXZ' ); // 'ZXY' for the device, but 'YXZ' for us
+
+				quaternion.setFromEuler( euler ); // orient the device
+
+				quaternion.multiply( q1 ); // camera looks out the back of the device, not the top
+
+				quaternion.multiply( q0.setFromAxisAngle( zee, - orient ) ); // adjust for screen orientation
+
+			}
+
+		}();
+
+		this.connect = function() {
+
+			onScreenOrientationChangeEvent(); // run once on load
+
+			window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
+			window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
+
+			scope.enabled = true;
+
+		};
+
+		this.disconnect = function() {
+
+			window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
+			window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
+
+			scope.enabled = false;
+
+		};
+
+		this.update = function() {
+
+			if ( scope.enabled === false ) return;
+
+			var alpha = scope.deviceOrientation.alpha ? THREE.Math.degToRad( scope.deviceOrientation.alpha ) + this.alphaOffsetAngle : 0; // Z
+			var beta = scope.deviceOrientation.beta ? THREE.Math.degToRad( scope.deviceOrientation.beta ) : 0; // X'
+			var gamma = scope.deviceOrientation.gamma ? THREE.Math.degToRad( scope.deviceOrientation.gamma ) : 0; // Y''
+			var orient = scope.screenOrientation ? THREE.Math.degToRad( scope.screenOrientation ) : 0; // O
+
+			setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
+			this.alpha = alpha;
+
+		};
+
+		this.updateAlphaOffsetAngle = function( angle ) {
+
+			this.alphaOffsetAngle = angle;
+			this.update();
+
+		};
+
+		this.dispose = function() {
+
+			this.disconnect();
+
+		};
+
+		this.connect();
+
+	};
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
 	 * Tween.js - Licensed under the MIT license
 	 * https://github.com/tweenjs/tween.js
@@ -44102,7 +44226,7 @@
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports) {
 
 	// stats.js - http://github.com/mrdoob/stats.js
@@ -44113,16 +44237,17 @@
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var OrbitControls = __webpack_require__(18)(THREE)
+	var OrbitControls = __webpack_require__(19)(THREE)
 
 	var renderer, scene, camera, controls, axes;
 	var box = {
 		width: window.innerWidth,
-		height: window.innerHeight
+		height: window.innerHeight,
+		area: window.innerWidth * window.innerHeight * window.devicePixelRatio
 	}
 
 	renderer = new THREE.WebGLRenderer({
@@ -44152,6 +44277,7 @@
 	scene.add(camera);
 	bgScene.add(bgCamera);
 
+
 	// controls = new OrbitControls(camera);
 
 	// var axes = new THREE.AxisHelper(50);
@@ -44169,7 +44295,7 @@
 	}
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 	module.exports = function(THREE) {
@@ -45294,20 +45420,20 @@
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(17);
+	var threeEnv = __webpack_require__(18);
 	// var vLightGui = require('./gui').addFolder('vLight');
-	var shaderGui = __webpack_require__(20).addFolder('Shaders');
-	var vLight = __webpack_require__(24);
+	var shaderGui = __webpack_require__(21).addFolder('Shaders');
+	var vLight = __webpack_require__(25);
 	var shaders = {
-		vertex: __webpack_require__(28),
-		godRays: __webpack_require__(29),
-		hBlur: __webpack_require__(30),
-		vBlur: __webpack_require__(31),
-		additive: __webpack_require__(32)
+		vertex: __webpack_require__(29),
+		godRays: __webpack_require__(30),
+		hBlur: __webpack_require__(31),
+		vBlur: __webpack_require__(32),
+		additive: __webpack_require__(33)
 	}
 
 	var hBlur, vBlur;
@@ -45457,8 +45583,8 @@
 
 		filmPass.uniforms[ 'time' ].value  = .00025 * ( timePassed );
 
-		// threeEnv.renderer.setClearColor(0x000000, 0);
-	 // 	oclComposer.render( 0.1 );
+		threeEnv.renderer.setClearColor(0x000000, 0);
+	 	oclComposer.render( 0.1 );
 	 	threeEnv.renderer.setClearColor(0x4f6ab1);
 		finalComposer.render( 0.1 );
 
@@ -45471,8 +45597,8 @@
 	}
 
 	var changeQuality = function(quality) {
-		// renderTarget.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
-		// finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
+		renderTargetOcl.setSize(threeEnv.box.width/quality/2, threeEnv.box.height/quality/2);
+		finalComposer.setSize(threeEnv.box.width/quality, threeEnv.box.height/quality);
 	}
 
 
@@ -45498,10 +45624,10 @@
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var dat = __webpack_require__(21);
+	var dat = __webpack_require__(22);
 
 	var gui = new dat.GUI();
 
@@ -45511,14 +45637,14 @@
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(22)
-	module.exports.color = __webpack_require__(23)
+	module.exports = __webpack_require__(23)
+	module.exports.color = __webpack_require__(24)
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	/**
@@ -49183,7 +49309,7 @@
 	dat.utils.common);
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	/**
@@ -49943,14 +50069,14 @@
 	dat.utils.common);
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(15);
-	var threeEnv = __webpack_require__(17);
-	var clock = __webpack_require__(25);
-	var gui = __webpack_require__(20).addFolder('vLight');
+	var TWEEN = __webpack_require__(16);
+	var threeEnv = __webpack_require__(18);
+	var clock = __webpack_require__(26);
+	var gui = __webpack_require__(21).addFolder('vLight');
 
 	var pulsing = false;
 
@@ -50019,10 +50145,10 @@
 	}
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(26);
+	var audioAnalyser = __webpack_require__(27);
 
 	var params = {
 		bpm: 115,
@@ -50081,11 +50207,11 @@
 	}
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Freq = __webpack_require__(27);
-	var gui = __webpack_require__(20);
+	var Freq = __webpack_require__(28);
+	var gui = __webpack_require__(21);
 	var guiFolder = gui.addFolder('Frequencies');
 
 	var audioContext, analyser, source, stream, freqs;
@@ -50193,7 +50319,7 @@
 	}
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports) {
 
 	// Overwrite properties of one object with another
@@ -50451,43 +50577,43 @@
 	module.exports = Freq;
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports) {
 
 	module.exports = "varying vec2 vUv;\n\nvoid main() {\n\n    vUv = uv;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n\n}"
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports) {
 
 	module.exports = "varying vec2 vUv;\nuniform sampler2D tDiffuse;\nuniform float fX;\nuniform float fY;\nuniform float fExposure;\nuniform float fDecay;\nuniform float fDensity;\nuniform float fWeight;\nuniform float fClamp;\nuniform int iSampleLimit;\nconst int iSamples = 20;\n\nvoid main()\n{\n\tvec2 deltaTextCoord = vec2(vUv - vec2(fX,fY));\n\tdeltaTextCoord *= 1.0 /  float(iSampleLimit) * fDensity;\n\tvec2 coord = vUv;\n\tfloat illuminationDecay = 1.0;\n\tvec4 FragColor = vec4(0.0);\n\tfor(int i=0; i < iSamples ; i++)\n\t{\n\t\tif (i == iSampleLimit) break;\n\t\tcoord -= deltaTextCoord;\n\t\tvec4 texel = texture2D(tDiffuse, coord);\n\t\ttexel *= illuminationDecay * fWeight;\n\t\tFragColor += texel;\n\t\tilluminationDecay *= fDecay;\n\t}\n\tFragColor *= fExposure;\n\tFragColor = clamp(FragColor, 0.0, fClamp);\n\tgl_FragColor = FragColor;\n}"
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports) {
 
 	module.exports = "uniform sampler2D tDiffuse;\nuniform float h;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 4.0 * h, vUv.y ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x - 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 1.0 * h, vUv.y ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 2.0 * h, vUv.y ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 3.0 * h, vUv.y ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x + 4.0 * h, vUv.y ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports) {
 
 	module.exports = "uniform sampler2D tDiffuse;\nuniform float v;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 sum = vec4( 0.0 );\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 4.0 * v ) ) * 0.051;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y - 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y ) ) * 0.1633;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 1.0 * v ) ) * 0.1531;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 2.0 * v ) ) * 0.12245;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 3.0 * v ) ) * 0.0918;\n\tsum += texture2D( tDiffuse, vec2( vUv.x, vUv.y + 4.0 * v ) ) * 0.051;\n\tgl_FragColor = sum;\n}"
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports) {
 
 	module.exports = "uniform sampler2D tDiffuse;\nuniform sampler2D tAdd;\nuniform float fCoeff;\nvarying vec2 vUv;\n\nvoid main() {\n\tvec4 texel = texture2D( tDiffuse, vUv );\n\tvec4 add = texture2D( tAdd, vUv );\n\tgl_FragColor = texel + add * fCoeff;\n}"
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(15);
-	var threeEnv = __webpack_require__(17);
-	var gui = __webpack_require__(20).addFolder('Lights');
+	var TWEEN = __webpack_require__(16);
+	var threeEnv = __webpack_require__(18);
+	var gui = __webpack_require__(21).addFolder('Lights');
 
 
 	var params = {
@@ -50504,24 +50630,24 @@
 	directionalLight.position.set( 0, 0.5, -0.5 );
 
 
-	var lights = [];
+	// var lights = [];
 
-	lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-	lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	// lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	// lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+	// lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
 
-	threeEnv.scene.add( lights[ 0 ] );
-	threeEnv.scene.add( lights[ 1 ] );
-	threeEnv.scene.add( lights[ 2 ] );
+	// threeEnv.scene.add( lights[ 0 ] );
+	// threeEnv.scene.add( lights[ 1 ] );
+	// threeEnv.scene.add( lights[ 2 ] );
 
 	threeEnv.scene.add( ambientLight );
 	threeEnv.scene.add( directionalLight );
 
 	var randomPositions = function() {
 
-		lights[ 0 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
-		lights[ 1 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
-		lights[ 2 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+		// lights[ 0 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+		// lights[ 1 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
+		// lights[ 2 ].position.set( (Math.random() * 500) - 250, (Math.random() * 500) - 250, (Math.random() * 500) - 250 );
 
 	}
 
@@ -50539,13 +50665,13 @@
 	}
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(17);
-	var guiFolder = __webpack_require__(20).addFolder('Camera');
-	var mask = __webpack_require__(35);
+	var threeEnv = __webpack_require__(18);
+	var guiFolder = __webpack_require__(21).addFolder('Camera');
+	var mask = __webpack_require__(36);
 
 	var camera = threeEnv.camera;
 	var target = mask.mask.mask;
@@ -50562,6 +50688,8 @@
 	var constant = 0.0002;
 
 	var params = {
+		x: 0,
+		y: 0,
 		startOrbit: function() {
 			orbiting = true;
 			orbitProgress ++;
@@ -50579,19 +50707,22 @@
 
 
 		if (orbiting) {
+
 			camera.position.x = target.position.x + radius * Math.cos( constant * timePassed + orbitProgress );         
 			camera.position.z = target.position.z + radius * Math.sin( constant * timePassed + orbitProgress );
 			camera.position.y = target.position.y + radius * Math.cos( constant * timePassed + orbitProgress );
 			camera.lookAt( lookAt );
+		
 		} else {
 
-			camera.position.x = 0;
-			camera.position.y = 0;
+			camera.position.x = params.x;
+			camera.position.y = params.y;
 			camera.position.z = zReset;
-
-			camera.lookAt( lookAt );
+		
 		}
 		
+
+	//	
 
 
 	}
@@ -50603,24 +50734,24 @@
 	}
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(15);
-	var threeEnv = __webpack_require__(17);
-	var clock = __webpack_require__(25);
+	var TWEEN = __webpack_require__(16);
+	var threeEnv = __webpack_require__(18);
+	var clock = __webpack_require__(26);
 
-	var gui = __webpack_require__(20).addFolder('Mask');
+	var gui = __webpack_require__(21).addFolder('Mask');
 
 
 	var shaders = {
-		explode: __webpack_require__(36),
-		simple: __webpack_require__(37),
-		phong: __webpack_require__(38)
+		explode: __webpack_require__(37),
+		simple: __webpack_require__(38),
+		phong: __webpack_require__(39)
 	}
 
-	var maskModel = __webpack_require__(39);
+	var maskModel = __webpack_require__(40);
 
 	var loader = new THREE.ObjectLoader();
 
@@ -50632,10 +50763,9 @@
 
 	var tessellateModifier = new THREE.TessellateModifier( 8 );
 
+	var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 
-	// var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
-
-	// threeEnv.scene.add(cubeCamera);
+	threeEnv.scene.add(cubeCamera);
 
 	var params = {
 		zGroupPos: -800,
@@ -50652,6 +50782,7 @@
 		explodeAmount: 0,
 		explodeSpeed: 0,
 		rumbling: false,
+		cubeCamera: true,
 		enterScene: function(skip) {
 
 			if (!skip) {
@@ -50814,7 +50945,7 @@
 	uniforms.diffuse.value = new THREE.Color( 0x555555 );
 	uniforms.specular.value = new THREE.Color( 0x111111 );
 	uniforms.shininess.value = 50;
-	// uniforms.envMap.value = cubeCamera.renderTarget.texture;
+	uniforms.envMap.value = cubeCamera.renderTarget.texture;
 	uniforms.explodeAmount = {type: "f", value: 0.0};
 	uniforms.rumble = {type: "f", value: 0.0};
 	uniforms.time = {type: "f", value: 0.0};
@@ -50853,38 +50984,6 @@
 		fragmentShader: shaders.phong
 
 	});
-
-
-	//var oclMaterial = new THREE.MeshLambertMaterial( { color: 0x000000, fog: false } );
-
-
-	var modelIds = {
-		outer: [
-			'feather_1',
-			'feather_2',
-			'feather_3',
-			'feather_4',
-			'feather_5',
-			'feather_6',
-			'paint_1',
-			'paint_2',
-			'paint_3',
-			'paint_4',
-			'paint_5',
-			'paint_6',
-			'nose'
-		],
-		paintLeft: [
-			'paint_1',
-			'paint_2',
-			'paint_3'
-		],
-		paintRight: [
-			'paint_4',
-			'paint_5',
-			'paint_6'
-		]
-	}
 
 	var makeExplodable = function(geometry) {
 
@@ -50958,13 +51057,6 @@
 		that.oclMask.add(that.oclHeadTop);
 		that.oclMask.add(that.oclHeadBottom);
 
-
-		for (var i = 0; i < modelIds.outer.length; i++) {
-
-			var mesh = mask.getObjectByName( modelIds.outer[i] );
-
-		}
-
 		that.group.add(mask);
 		that.oclGroup.add(that.oclMask);
 		threeEnv.scene.add(that.group);
@@ -51033,18 +51125,14 @@
 			mask.rotation.z = params.zRot;
 			oclMask.rotation.z = params.zRot;
 
-			
 
-			if (params.rumbling) {
-				//params.rumble += 0.001;
-				// params.explodeAmount += 0.02;
+			if (params.cubeCamera) {
+				cubeCamera.position.copy( mainMask.mask.position );
+				cubeCamera.position.y += 150;
+
+				cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
 			}
-
-
-			// cubeCamera.position.copy( mainMask.mask.position );
-			// cubeCamera.position.y += 150;
-
-			// cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+			
 
 		
 
@@ -51068,25 +51156,25 @@
 
 
 /***/ },
-/* 36 */
-/***/ function(module, exports) {
-
-	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n// #define USE_ENVMAP\n// #define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float rumble;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * displacement * ((noise * 100. * rumble) + 1.) * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
-
-/***/ },
 /* 37 */
 /***/ function(module, exports) {
 
-	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
+	module.exports = "// varying vec3 vNormal;\n\n// void main() {\n\n// \tvNormal = normal;\n\n// \tvec3 newPosition = position + normal * 10.0;\n// \tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n// }\n\n\n#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n\nattribute vec3 displacement;\n\nvarying vec3 vViewPosition;\nvarying vec3 tempPosition;\nvarying float noise;\n\nuniform float explodeAmount;\nuniform float rumble;\nuniform float time;\n\n#ifndef FLAT_SHADED\n\n\tvarying vec3 vNormal;\n\n#endif\n\n#include <common>\n#include <uv_pars_vertex>\n#include <uv2_pars_vertex>\n#include <displacementmap_pars_vertex>\n#include <envmap_pars_vertex>\n#include <color_pars_vertex>\n#include <morphtarget_pars_vertex>\n#include <skinning_pars_vertex>\n#include <shadowmap_pars_vertex>\n#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nfloat turbulence( vec3 p ) {\n    float w = 100.0;\n    float t = -.5;\n    for (float f = 1.0 ; f <= 10.0 ; f++ ){\n        float power = pow( 2.0, f );\n        t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );\n    }\n    return t;\n}\n\n\n\n\nvoid main() {\n\n\t#include <uv_vertex>\n\t#include <uv2_vertex>\n\t#include <color_vertex>\n\n\t#include <beginnormal_vertex>\n\t#include <morphnormal_vertex>\n\t#include <skinbase_vertex>\n\t#include <skinnormal_vertex>\n\t#include <defaultnormal_vertex>\n\n#ifndef FLAT_SHADED // Normal computed with derivatives when FLAT_SHADED\n\n\tvNormal = normalize( transformedNormal );\n\n#endif\n\n\t#include <begin_vertex>\n\t#include <displacementmap_vertex>\n\t#include <morphtarget_vertex>\n\t#include <skinning_vertex>\n\t#include <project_vertex>\n\t#include <logdepthbuf_vertex>\n\t#include <clipping_planes_vertex>\n\n\tvViewPosition = - mvPosition.xyz;\n\n\t#include <worldpos_vertex>\n\t#include <envmap_vertex>\n\t#include <shadowmap_vertex>\n\n\t // get a turbulent 3d noise using the normal, normal to high freq\n\tnoise = 1.0 * .1 * turbulence( .5 * normal + time);\n\n\tfloat b = pnoise( 0.05 * position, vec3( 1.0 ) );\n\n//\ttempPosition = position + normal * b * noise * displacement * 10.;\n\n\tvec3 newPosition = position + normal * displacement * ((noise * 100. * rumble) + 1.) * explodeAmount;\n\t//vec3 newPosition = tempPosition;\n\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );\n\n}"
 
 /***/ },
 /* 38 */
 /***/ function(module, exports) {
 
-	module.exports = "#define PHONG\n// #define USE_ENVMAP\n// #define ENVMAP_TYPE_CUBE\n// #define ENVMAP_MODE_REFLECTION\n// #define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+	module.exports = "void main() {\n\n\tgl_FragColor = vec4( 0. );\n\n}\n"
 
 /***/ },
 /* 39 */
+/***/ function(module, exports) {
+
+	module.exports = "#define PHONG\n#define USE_ENVMAP\n#define ENVMAP_TYPE_CUBE\n#define ENVMAP_MODE_REFLECTION\n#define ENVMAP_BLENDING_MULTIPLY // ADD / MIX / MULTIPLY\n\nuniform vec3 diffuse;\nuniform vec3 emissive;\nuniform vec3 specular;\nuniform float shininess;\nuniform float opacity;\n\n#include <common>\n#include <packing>\n#include <color_pars_fragment>\n#include <uv_pars_fragment>\n#include <uv2_pars_fragment>\n#include <map_pars_fragment>\n#include <alphamap_pars_fragment>\n#include <aomap_pars_fragment>\n#include <lightmap_pars_fragment>\n#include <emissivemap_pars_fragment>\n#include <envmap_pars_fragment>\n#include <fog_pars_fragment>\n#include <bsdfs>\n#include <lights_pars>\n#include <lights_phong_pars_fragment>\n#include <shadowmap_pars_fragment>\n#include <bumpmap_pars_fragment>\n#include <normalmap_pars_fragment>\n#include <specularmap_pars_fragment>\n#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>\n\nvoid main() {\n\n\t#include <clipping_planes_fragment>\n\n\tvec4 diffuseColor = vec4( diffuse, opacity );\n\tReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );\n\tvec3 totalEmissiveRadiance = emissive;\n\n\t#include <logdepthbuf_fragment>\n\t#include <map_fragment>\n\t#include <color_fragment>\n\t#include <alphamap_fragment>\n\t#include <alphatest_fragment>\n\t#include <specularmap_fragment>\n\t#include <normal_flip>\n\t#include <normal_fragment>\n\t#include <emissivemap_fragment>\n\n\t// accumulation\n\t#include <lights_phong_fragment>\n\t#include <lights_template>\n\n\t// modulation\n\t#include <aomap_fragment>\n\n\tvec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;\n\n\t#include <envmap_fragment>\n\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n\t#include <premultiplied_alpha_fragment>\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n\t#include <fog_fragment>\n\n}"
+
+/***/ },
+/* 40 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -52221,17 +52309,17 @@
 	};
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(17);
-	var audioAnalyser = __webpack_require__(26);
-	var gui = __webpack_require__(20);
+	var threeEnv = __webpack_require__(18);
+	var audioAnalyser = __webpack_require__(27);
+	var gui = __webpack_require__(21);
 	var guiFolder = gui.addFolder('Background');
 	var shaders = {
-		vertex: __webpack_require__(28),
-		fragment: __webpack_require__(41)
+		vertex: __webpack_require__(29),
+		fragment: __webpack_require__(42)
 	}
 
 	var swampMaterial, swampGeometry, swampMesh;
@@ -52304,34 +52392,35 @@
 	}
 
 /***/ },
-/* 41 */
+/* 42 */
 /***/ function(module, exports) {
 
 	module.exports = "\nuniform float iGlobalTime;\nuniform vec2 iResolution;\nuniform float bounce;\nuniform float pulse;\nuniform float scale;\nfloat ltime;\n\n//\n// GLSL textureless classic 3D noise \"cnoise\",\n// with an RSL-style periodic variant \"pnoise\".\n// Author:  Stefan Gustavson (stefan.gustavson@liu.se)\n// Version: 2011-10-11\n//\n// Many thanks to Ian McEwan of Ashima Arts for the\n// ideas for permutation and gradient selection.\n//\n// Copyright (c) 2011 Stefan Gustavson. All rights reserved.\n// Distributed under the MIT license. See LICENSE file.\n// https://github.com/stegu/webgl-noise\n//\n\nvec3 mod289(vec3 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 mod289(vec4 x)\n{\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec4 permute(vec4 x)\n{\n  return mod289(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec3 fade(vec3 t) {\n  return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\n// Classic Perlin noise\nfloat cnoise(vec3 P)\n{\n  vec3 Pi0 = floor(P); // Integer part for indexing\n  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\n// Classic Perlin noise, periodic variant\nfloat pnoise(vec3 P, vec3 rep)\n{\n  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period\n  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period\n  Pi0 = mod289(Pi0);\n  Pi1 = mod289(Pi1);\n  vec3 Pf0 = fract(P); // Fractional part for interpolation\n  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0\n  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);\n  vec4 iy = vec4(Pi0.yy, Pi1.yy);\n  vec4 iz0 = Pi0.zzzz;\n  vec4 iz1 = Pi1.zzzz;\n\n  vec4 ixy = permute(permute(ix) + iy);\n  vec4 ixy0 = permute(ixy + iz0);\n  vec4 ixy1 = permute(ixy + iz1);\n\n  vec4 gx0 = ixy0 * (1.0 / 7.0);\n  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;\n  gx0 = fract(gx0);\n  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);\n  vec4 sz0 = step(gz0, vec4(0.0));\n  gx0 -= sz0 * (step(0.0, gx0) - 0.5);\n  gy0 -= sz0 * (step(0.0, gy0) - 0.5);\n\n  vec4 gx1 = ixy1 * (1.0 / 7.0);\n  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;\n  gx1 = fract(gx1);\n  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);\n  vec4 sz1 = step(gz1, vec4(0.0));\n  gx1 -= sz1 * (step(0.0, gx1) - 0.5);\n  gy1 -= sz1 * (step(0.0, gy1) - 0.5);\n\n  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);\n  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);\n  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);\n  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);\n  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);\n  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);\n  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);\n  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);\n\n  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));\n  g000 *= norm0.x;\n  g010 *= norm0.y;\n  g100 *= norm0.z;\n  g110 *= norm0.w;\n  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));\n  g001 *= norm1.x;\n  g011 *= norm1.y;\n  g101 *= norm1.z;\n  g111 *= norm1.w;\n\n  float n000 = dot(g000, Pf0);\n  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));\n  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));\n  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));\n  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));\n  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));\n  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));\n  float n111 = dot(g111, Pf1);\n\n  vec3 fade_xyz = fade(Pf0);\n  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);\n  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);\n  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); \n  return 2.2 * n_xyz;\n}\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec2 p = gl_FragCoord.xy / iResolution.xy * scale;\n  ltime = iGlobalTime;\n  ltime = ltime*6.;\n\n \n  float f = cnoise(vec3(p, ltime + bounce)) * pulse;\n\n  // vignette\n  float vig = 1. - pow(4.*(p.x - .5)*(p.x - .5), 2.);\n  vig *= 1. - pow(4.*(p.y - .5)*(p.y - .5), 10.);\n\n  gl_FragColor = vec4(vec3(0.663, 0.51, 0.729),f);\n}"
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(15);
-	var threeEnv = __webpack_require__(17);
+	var TWEEN = __webpack_require__(16);
+	var threeEnv = __webpack_require__(18);
 
-	var gui = __webpack_require__(20);
+	var gui = __webpack_require__(21);
 	var guiFolder = gui.addFolder('Leaves');
 
+
+	var leafData = __webpack_require__(44);
 	var loader = new THREE.JSONLoader();
-	var leafModel;
+
 	var particles = [];
 	var numLeafs = 50;
 
 	var zLimit = 500;
 
-	var radius = window.innerHeight/2.5;
+	var radius = window.innerHeight * 0.35;
 
 	var leafGroup = new THREE.Object3D();
 	threeEnv.scene.add(leafGroup);
-
 
 	var material = new THREE.MeshBasicMaterial(
 	{
@@ -52389,18 +52478,8 @@
 	guiFolder.add(params, 'active');
 
 
-	loader.load('leaf.js', function ( geometry ) {
-
-			
-
-			
-			leafModel = new THREE.Mesh( geometry, material );
-			leafModel.scale.set(5,5,5);
-
-			init();
-
-		}
-	);
+	var leafModel = new THREE.Mesh( loader.parse(leafData).geometry, material );
+	leafModel.scale.set(10,10,10);
 
 	function posNeg() {
 		return Math.random() > 0.5 ? 1 : -1;
@@ -52414,7 +52493,7 @@
 
 		this.index = i;
 		
-	//	leafGroup.add(this.mesh);
+		leafGroup.add(this.mesh);
 
 		this.reset = function() {
 
@@ -52541,6 +52620,9 @@
 
 	}
 
+
+	init();
+
 	module.exports = {
 		draw: draw,
 		params: params
@@ -52551,17 +52633,268 @@
 
 
 /***/ },
-/* 43 */
+/* 44 */
+/***/ function(module, exports) {
+
+	module.exports = {
+		"name": "Plane.002Geometry.2",
+		"vertices": [
+			0.326005,
+			0.014731,
+			0.139908,
+			-0.872615,
+			0.475592,
+			10.1946,
+			1.18652,
+			0.504524,
+			10.2278,
+			0.168268,
+			-0.246087,
+			10.1509,
+			-0.769665,
+			0.319543,
+			5.72063,
+			0.684721,
+			0.002037,
+			15.1964,
+			-0.5173,
+			-0.014852,
+			15.177,
+			1.23224,
+			0.347671,
+			5.7529,
+			0.015311,
+			-0.817929,
+			20.1364,
+			0.090234,
+			-0.430803,
+			15.1519,
+			0.23666,
+			-0.015767,
+			5.70816,
+			-0.35116,
+			0.048767,
+			10.1673,
+			0.678409,
+			0.063232,
+			10.1839,
+			0.735322,
+			0.10935,
+			5.7259,
+			-0.265633,
+			0.095286,
+			5.70976,
+			-0.212483,
+			-0.291147,
+			15.1589,
+			0.388528,
+			-0.282703,
+			15.1686
+		],
+		"normals": [
+			-0.369517,
+			-0.035272,
+			0.928554,
+			0.559274,
+			0.0167,
+			0.828815,
+			0.396397,
+			-0.022924,
+			0.917793,
+			-0.536021,
+			-0.000959,
+			0.844204,
+			-0.648748,
+			-0.031171,
+			0.760365,
+			-0.467787,
+			-0.043508,
+			0.88277,
+			0.493556,
+			-0.028009,
+			0.869263,
+			0.670516,
+			-0.009901,
+			0.741829,
+			0.243408,
+			-0.001407,
+			0.969923,
+			-0.406863,
+			-0.030013,
+			0.912996,
+			0.433102,
+			-0.016471,
+			0.901194,
+			-0.215897,
+			-0.008812,
+			0.976376,
+			0.446621,
+			-0.062606,
+			0.89253,
+			0.694045,
+			-0.025375,
+			0.719484,
+			-0.672384,
+			-0.047405,
+			0.738683,
+			-0.419125,
+			-0.076564,
+			0.904694
+		],
+		"metadata": {
+			"generator": "io_three",
+			"vertices": 17,
+			"normals": 16,
+			"faces": 16,
+			"version": 3,
+			"type": "Geometry",
+			"uvs": 0
+		},
+		"uvs": [],
+		"faces": [
+			33,
+			14,
+			10,
+			3,
+			11,
+			0,
+			0,
+			0,
+			0,
+			33,
+			13,
+			7,
+			2,
+			12,
+			1,
+			1,
+			1,
+			1,
+			33,
+			10,
+			13,
+			12,
+			3,
+			2,
+			2,
+			2,
+			2,
+			33,
+			4,
+			14,
+			11,
+			1,
+			3,
+			3,
+			3,
+			3,
+			33,
+			1,
+			11,
+			15,
+			6,
+			4,
+			4,
+			4,
+			4,
+			33,
+			11,
+			3,
+			9,
+			15,
+			5,
+			5,
+			5,
+			5,
+			33,
+			3,
+			12,
+			16,
+			9,
+			6,
+			6,
+			6,
+			6,
+			33,
+			12,
+			2,
+			5,
+			16,
+			7,
+			7,
+			7,
+			7,
+			32,
+			0,
+			13,
+			10,
+			8,
+			8,
+			8,
+			32,
+			0,
+			14,
+			4,
+			9,
+			9,
+			9,
+			32,
+			0,
+			7,
+			13,
+			10,
+			10,
+			10,
+			32,
+			0,
+			10,
+			14,
+			11,
+			11,
+			11,
+			32,
+			9,
+			16,
+			8,
+			12,
+			12,
+			12,
+			32,
+			16,
+			5,
+			8,
+			13,
+			13,
+			13,
+			32,
+			6,
+			15,
+			8,
+			14,
+			14,
+			14,
+			32,
+			15,
+			9,
+			8,
+			15,
+			15,
+			15
+		]
+	};
+
+/***/ },
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(17);
-	var TWEEN = __webpack_require__(15);
-	var gui = __webpack_require__(20);
-	var mask = __webpack_require__(35);
+	var threeEnv = __webpack_require__(18);
+	var TWEEN = __webpack_require__(16);
+	var gui = __webpack_require__(21);
+	var mask = __webpack_require__(36);
 	var guiFolder = gui.addFolder('Crystals');
-	var audioAnalyser = __webpack_require__(26);
-	var clock = __webpack_require__(25);
+	var audioAnalyser = __webpack_require__(27);
+	var clock = __webpack_require__(26);
 
 	var numCrystals = 5;
 	var crystals = [];
@@ -52710,13 +53043,13 @@
 
 
 /***/ },
-/* 44 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(15);
-	var threeEnv = __webpack_require__(17);
-	var gui = __webpack_require__(20).addFolder('Lines');
+	var TWEEN = __webpack_require__(16);
+	var threeEnv = __webpack_require__(18);
+	var gui = __webpack_require__(21).addFolder('Lines');
 
 	var numLines = 30;
 	var lineLength = 1000;
@@ -52810,14 +53143,14 @@
 	}
 
 /***/ },
-/* 45 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var threeEnv = __webpack_require__(17);
-	var TWEEN = __webpack_require__(15);
-	var gui = __webpack_require__(20).addFolder('Ribbons');
-	var clock = __webpack_require__(25);
+	var threeEnv = __webpack_require__(18);
+	var TWEEN = __webpack_require__(16);
+	var gui = __webpack_require__(21).addFolder('Ribbons');
+	var clock = __webpack_require__(26);
 
 	var numFlashes = 0;
 	var flashing = false;
@@ -53087,17 +53420,55 @@
 	}
 
 /***/ },
-/* 46 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var audioAnalyser = __webpack_require__(26);
-	var clock = __webpack_require__(25);
-	var TWEEN = __webpack_require__(15);
+	var THREE = __webpack_require__(6);
+	var threeEnv = __webpack_require__(18);
+	var camera = __webpack_require__(35);
 
-	var cowbellData = __webpack_require__(47);
-	var flutesData = __webpack_require__(48);
-	var manData = __webpack_require__(49);
-	var bongosData = __webpack_require__(50);
+	var controls = new THREE.DeviceOrientationControls(threeEnv.camera);
+
+	controls.updateAlphaOffsetAngle(-Math.PI/2);
+
+	var posX = 0;
+	var posY = 0;
+	var width = threeEnv.box.width;
+	var height = threeEnv.box.height;
+
+	var shift = 0.1;
+
+	document.addEventListener('mousemove', function(e) {
+
+		posX = (((e.clientX / width) - 0.5) * 2) * width * shift / 2;
+		posY = (((e.clientY / height) - 0.5) * 2) * height * shift / 2;
+	})
+
+	var run = function() {
+
+		controls.update();
+
+		camera.params.x = posX;
+		camera.params.y = posY;
+
+	}
+
+	module.exports = {
+		run: run
+	}
+
+/***/ },
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var audioAnalyser = __webpack_require__(27);
+	var clock = __webpack_require__(26);
+	var TWEEN = __webpack_require__(16);
+
+	var cowbellData = __webpack_require__(50);
+	var flutesData = __webpack_require__(51);
+	var manData = __webpack_require__(52);
+	var bongosData = __webpack_require__(53);
 
 	var timelineIndex = 0;
 
@@ -53108,15 +53479,15 @@
 	var congosSpinPulse = false;
 	var manLeaves = true;
 
-	var mask = __webpack_require__(35);
-	var ribbons = __webpack_require__(45);
-	var crystals = __webpack_require__(43);
-	var leaves = __webpack_require__(42);
-	var background = __webpack_require__(40);
-	var lines = __webpack_require__(44);
-	var vLight = __webpack_require__(24);
-	var camera = __webpack_require__(34);
-	var titles = __webpack_require__(51);
+	var mask = __webpack_require__(36);
+	var ribbons = __webpack_require__(47);
+	var crystals = __webpack_require__(45);
+	var leaves = __webpack_require__(43);
+	var background = __webpack_require__(41);
+	var lines = __webpack_require__(46);
+	var vLight = __webpack_require__(25);
+	var camera = __webpack_require__(35);
+	var titles = __webpack_require__(54);
 
 	var now;
 
@@ -53413,7 +53784,7 @@
 	}
 
 /***/ },
-/* 47 */
+/* 50 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -53581,7 +53952,7 @@
 	];
 
 /***/ },
-/* 48 */
+/* 51 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -54233,7 +54604,7 @@
 	];
 
 /***/ },
-/* 49 */
+/* 52 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -55652,7 +56023,7 @@
 	];
 
 /***/ },
-/* 50 */
+/* 53 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -56711,17 +57082,17 @@
 	];
 
 /***/ },
-/* 51 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(6);
-	var TWEEN = __webpack_require__(15);
-	var threeEnv = __webpack_require__(17);
-	var paths = __webpack_require__(52);
+	var TWEEN = __webpack_require__(16);
+	var threeEnv = __webpack_require__(18);
+	var paths = __webpack_require__(55);
 
 	// our utility functions
-	var createGeometry = __webpack_require__(53)(THREE);
-	var svgMesh3d = __webpack_require__(55);
+	var createGeometry = __webpack_require__(56)(THREE);
+	var svgMesh3d = __webpack_require__(58);
 
 	var TextMesh = function(pathString, detail, scale) {
 
@@ -56738,11 +57109,13 @@
 		var material = new THREE.MeshBasicMaterial({
 		  side: THREE.BackSide,
 		  transparent: true,
-		  opacity: 0
+		  opacity: 1
 		  // wireframe: true
 		});
 		
 		this.mesh = new THREE.Mesh(geometry, material);
+
+		this.mesh.visible = false;
 
 		this.mesh.scale.set(scale, scale, scale);
 
@@ -56750,7 +57123,7 @@
 
 
 		this.enter = function() {
-			material.opacity = 1;
+			that.mesh.visible = true;
 		}
 
 		this.exit = function() {
@@ -56787,7 +57160,7 @@
 
 
 /***/ },
-/* 52 */
+/* 55 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -56796,10 +57169,10 @@
 	};
 
 /***/ },
-/* 53 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(54)
+	var inherits = __webpack_require__(57)
 
 	module.exports = function(THREE) {
 
@@ -56854,7 +57227,7 @@
 	}
 
 /***/ },
-/* 54 */
+/* 57 */
 /***/ function(module, exports) {
 
 	if (typeof Object.create === 'function') {
@@ -56883,18 +57256,18 @@
 
 
 /***/ },
-/* 55 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var parseSVG = __webpack_require__(56)
-	var getContours = __webpack_require__(57)
-	var cdt2d = __webpack_require__(63)
-	var cleanPSLG = __webpack_require__(76)
-	var getBounds = __webpack_require__(119)
-	var normalize = __webpack_require__(120)
-	var random = __webpack_require__(122)
-	var assign = __webpack_require__(123)
-	var simplify = __webpack_require__(124)
+	var parseSVG = __webpack_require__(59)
+	var getContours = __webpack_require__(60)
+	var cdt2d = __webpack_require__(66)
+	var cleanPSLG = __webpack_require__(79)
+	var getBounds = __webpack_require__(122)
+	var normalize = __webpack_require__(123)
+	var random = __webpack_require__(125)
+	var assign = __webpack_require__(126)
+	var simplify = __webpack_require__(127)
 
 	module.exports = svgMesh3d
 	function svgMesh3d (svgPath, opt) {
@@ -57013,7 +57386,7 @@
 
 
 /***/ },
-/* 56 */
+/* 59 */
 /***/ function(module, exports) {
 
 	
@@ -57074,13 +57447,13 @@
 
 
 /***/ },
-/* 57 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var bezier = __webpack_require__(58)
-	var abs = __webpack_require__(60)
-	var norm = __webpack_require__(61)
-	var copy = __webpack_require__(62)
+	var bezier = __webpack_require__(61)
+	var abs = __webpack_require__(63)
+	var norm = __webpack_require__(64)
+	var copy = __webpack_require__(65)
 
 	function set(out, x, y) {
 	    out[0] = x
@@ -57124,13 +57497,13 @@
 	}
 
 /***/ },
-/* 58 */
+/* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(59)()
+	module.exports = __webpack_require__(62)()
 
 /***/ },
-/* 59 */
+/* 62 */
 /***/ function(module, exports) {
 
 	function clone(point) { //TODO: use gl-vec2 for this
@@ -57333,7 +57706,7 @@
 
 
 /***/ },
-/* 60 */
+/* 63 */
 /***/ function(module, exports) {
 
 	
@@ -57406,7 +57779,7 @@
 
 
 /***/ },
-/* 61 */
+/* 64 */
 /***/ function(module, exports) {
 
 	
@@ -57612,7 +57985,7 @@
 
 
 /***/ },
-/* 62 */
+/* 65 */
 /***/ function(module, exports) {
 
 	module.exports = function vec2Copy(out, a) {
@@ -57622,15 +57995,15 @@
 	}
 
 /***/ },
-/* 63 */
+/* 66 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var monotoneTriangulate = __webpack_require__(64)
-	var makeIndex = __webpack_require__(72)
-	var delaunayFlip = __webpack_require__(73)
-	var filterTriangulation = __webpack_require__(75)
+	var monotoneTriangulate = __webpack_require__(67)
+	var makeIndex = __webpack_require__(75)
+	var delaunayFlip = __webpack_require__(76)
+	var filterTriangulation = __webpack_require__(78)
 
 	module.exports = cdt2d
 
@@ -57710,13 +58083,13 @@
 
 
 /***/ },
-/* 64 */
+/* 67 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bsearch = __webpack_require__(65)
-	var orient = __webpack_require__(66)[3]
+	var bsearch = __webpack_require__(68)
+	var orient = __webpack_require__(69)[3]
 
 	var EVENT_POINT = 0
 	var EVENT_END   = 1
@@ -57903,7 +58276,7 @@
 
 
 /***/ },
-/* 65 */
+/* 68 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -57961,15 +58334,15 @@
 
 
 /***/ },
-/* 66 */
+/* 69 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
 
-	var twoProduct = __webpack_require__(67)
-	var robustSum = __webpack_require__(68)
-	var robustScale = __webpack_require__(69)
-	var robustSubtract = __webpack_require__(71)
+	var twoProduct = __webpack_require__(70)
+	var robustSum = __webpack_require__(71)
+	var robustScale = __webpack_require__(72)
+	var robustSubtract = __webpack_require__(74)
 
 	var NUM_EXPAND = 5
 
@@ -58156,7 +58529,7 @@
 	generateOrientationProc()
 
 /***/ },
-/* 67 */
+/* 70 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -58194,7 +58567,7 @@
 	}
 
 /***/ },
-/* 68 */
+/* 71 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -58355,13 +58728,13 @@
 	}
 
 /***/ },
-/* 69 */
+/* 72 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
 
-	var twoProduct = __webpack_require__(67)
-	var twoSum = __webpack_require__(70)
+	var twoProduct = __webpack_require__(70)
+	var twoSum = __webpack_require__(73)
 
 	module.exports = scaleLinearExpansion
 
@@ -58410,7 +58783,7 @@
 	}
 
 /***/ },
-/* 70 */
+/* 73 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -58432,7 +58805,7 @@
 	}
 
 /***/ },
-/* 71 */
+/* 74 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -58593,12 +58966,12 @@
 	}
 
 /***/ },
-/* 72 */
+/* 75 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bsearch = __webpack_require__(65)
+	var bsearch = __webpack_require__(68)
 
 	module.exports = createTriangulation
 
@@ -58703,13 +59076,13 @@
 
 
 /***/ },
-/* 73 */
+/* 76 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var inCircle = __webpack_require__(74)[4]
-	var bsearch = __webpack_require__(65)
+	var inCircle = __webpack_require__(77)[4]
+	var bsearch = __webpack_require__(68)
 
 	module.exports = delaunayRefine
 
@@ -58824,15 +59197,15 @@
 
 
 /***/ },
-/* 74 */
+/* 77 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
 
-	var twoProduct = __webpack_require__(67)
-	var robustSum = __webpack_require__(68)
-	var robustDiff = __webpack_require__(71)
-	var robustScale = __webpack_require__(69)
+	var twoProduct = __webpack_require__(70)
+	var robustSum = __webpack_require__(71)
+	var robustDiff = __webpack_require__(74)
+	var robustScale = __webpack_require__(72)
 
 	var NUM_EXPAND = 6
 
@@ -58996,12 +59369,12 @@
 	generateInSphereTest()
 
 /***/ },
-/* 75 */
+/* 78 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bsearch = __webpack_require__(65)
+	var bsearch = __webpack_require__(68)
 
 	module.exports = classifyFaces
 
@@ -59182,24 +59555,24 @@
 
 
 /***/ },
-/* 76 */
+/* 79 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
 	module.exports = cleanPSLG
 
-	var UnionFind = __webpack_require__(77)
-	var boxIntersect = __webpack_require__(78)
-	var compareCell = __webpack_require__(92)
-	var segseg = __webpack_require__(93)
-	var rat = __webpack_require__(94)
-	var ratCmp = __webpack_require__(105)
-	var ratToFloat = __webpack_require__(106)
-	var ratVec = __webpack_require__(109)
-	var nextafter = __webpack_require__(110)
+	var UnionFind = __webpack_require__(80)
+	var boxIntersect = __webpack_require__(81)
+	var compareCell = __webpack_require__(95)
+	var segseg = __webpack_require__(96)
+	var rat = __webpack_require__(97)
+	var ratCmp = __webpack_require__(108)
+	var ratToFloat = __webpack_require__(109)
+	var ratVec = __webpack_require__(112)
+	var nextafter = __webpack_require__(113)
 
-	var solveIntersection = __webpack_require__(111)
+	var solveIntersection = __webpack_require__(114)
 
 	//Bounds on a rational number when rounded to a float
 	function boundRat(r) {
@@ -59548,7 +59921,7 @@
 
 
 /***/ },
-/* 77 */
+/* 80 */
 /***/ function(module, exports) {
 
 	"use strict"; "use restrict";
@@ -59615,16 +59988,16 @@
 	}
 
 /***/ },
-/* 78 */
+/* 81 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
 	module.exports = boxIntersectWrapper
 
-	var pool = __webpack_require__(79)
-	var sweep = __webpack_require__(86)
-	var boxIntersectIter = __webpack_require__(88)
+	var pool = __webpack_require__(82)
+	var sweep = __webpack_require__(89)
+	var boxIntersectIter = __webpack_require__(91)
 
 	function boxEmpty(d, box) {
 	  for(var j=0; j<d; ++j) {
@@ -59758,13 +60131,13 @@
 	}
 
 /***/ },
-/* 79 */
+/* 82 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, Buffer) {'use strict'
 
-	var bits = __webpack_require__(84)
-	var dup = __webpack_require__(85)
+	var bits = __webpack_require__(87)
+	var dup = __webpack_require__(88)
 
 	//Legacy pool support
 	if(!global.__TYPEDARRAY_POOL) {
@@ -59975,10 +60348,10 @@
 	    BUFFER[i].length = 0
 	  }
 	}
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(80).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(83).Buffer))
 
 /***/ },
-/* 80 */
+/* 83 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer, global) {/*!
@@ -59991,9 +60364,9 @@
 
 	'use strict'
 
-	var base64 = __webpack_require__(81)
-	var ieee754 = __webpack_require__(82)
-	var isArray = __webpack_require__(83)
+	var base64 = __webpack_require__(84)
+	var ieee754 = __webpack_require__(85)
+	var isArray = __webpack_require__(86)
 
 	exports.Buffer = Buffer
 	exports.SlowBuffer = SlowBuffer
@@ -61530,10 +61903,10 @@
 	  return i
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(80).Buffer, (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(83).Buffer, (function() { return this; }())))
 
 /***/ },
-/* 81 */
+/* 84 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -61663,7 +62036,7 @@
 
 
 /***/ },
-/* 82 */
+/* 85 */
 /***/ function(module, exports) {
 
 	exports.read = function (buffer, offset, isLE, mLen, nBytes) {
@@ -61753,7 +62126,7 @@
 
 
 /***/ },
-/* 83 */
+/* 86 */
 /***/ function(module, exports) {
 
 	var toString = {}.toString;
@@ -61764,7 +62137,7 @@
 
 
 /***/ },
-/* 84 */
+/* 87 */
 /***/ function(module, exports) {
 
 	/**
@@ -61974,7 +62347,7 @@
 
 
 /***/ },
-/* 85 */
+/* 88 */
 /***/ function(module, exports) {
 
 	"use strict"
@@ -62028,7 +62401,7 @@
 	module.exports = dupe
 
 /***/ },
-/* 86 */
+/* 89 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
@@ -62041,9 +62414,9 @@
 	  scanComplete:   scanComplete
 	}
 
-	var pool  = __webpack_require__(79)
-	var bits  = __webpack_require__(84)
-	var isort = __webpack_require__(87)
+	var pool  = __webpack_require__(82)
+	var bits  = __webpack_require__(87)
+	var isort = __webpack_require__(90)
 
 	//Flag for blue
 	var BLUE_FLAG = (1<<28)
@@ -62467,7 +62840,7 @@
 	}
 
 /***/ },
-/* 87 */
+/* 90 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -62708,21 +63081,21 @@
 	}
 
 /***/ },
-/* 88 */
+/* 91 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
 	module.exports = boxIntersectIter
 
-	var pool = __webpack_require__(79)
-	var bits = __webpack_require__(84)
-	var bruteForce = __webpack_require__(89)
+	var pool = __webpack_require__(82)
+	var bits = __webpack_require__(87)
+	var bruteForce = __webpack_require__(92)
 	var bruteForcePartial = bruteForce.partial
 	var bruteForceFull = bruteForce.full
-	var sweep = __webpack_require__(86)
-	var findMedian = __webpack_require__(90)
-	var genPartition = __webpack_require__(91)
+	var sweep = __webpack_require__(89)
+	var findMedian = __webpack_require__(93)
+	var genPartition = __webpack_require__(94)
 
 	//Twiddle parameters
 	var BRUTE_FORCE_CUTOFF    = 128       //Cut off for brute force search
@@ -63207,7 +63580,7 @@
 	}
 
 /***/ },
-/* 89 */
+/* 92 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -63356,14 +63729,14 @@
 	exports.full    = bruteForcePlanner(true)
 
 /***/ },
-/* 90 */
+/* 93 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
 	module.exports = findMedian
 
-	var genPartition = __webpack_require__(91)
+	var genPartition = __webpack_require__(94)
 
 	var partitionStartLessThan = genPartition('lo<p0', ['p0'])
 
@@ -63503,7 +63876,7 @@
 	}
 
 /***/ },
-/* 91 */
+/* 94 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -63528,7 +63901,7 @@
 	}
 
 /***/ },
-/* 92 */
+/* 95 */
 /***/ function(module, exports) {
 
 	module.exports = compareCells
@@ -63588,14 +63961,14 @@
 
 
 /***/ },
-/* 93 */
+/* 96 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
 
 	module.exports = segmentsIntersect
 
-	var orient = __webpack_require__(66)[3]
+	var orient = __webpack_require__(69)[3]
 
 	function checkCollinear(a0, a1, b0, b1) {
 
@@ -63640,17 +64013,17 @@
 	}
 
 /***/ },
-/* 94 */
+/* 97 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var isRat = __webpack_require__(95)
-	var isBN = __webpack_require__(96)
-	var num2bn = __webpack_require__(99)
-	var str2bn = __webpack_require__(101)
-	var rationalize = __webpack_require__(102)
-	var div = __webpack_require__(104)
+	var isRat = __webpack_require__(98)
+	var isBN = __webpack_require__(99)
+	var num2bn = __webpack_require__(102)
+	var str2bn = __webpack_require__(104)
+	var rationalize = __webpack_require__(105)
+	var div = __webpack_require__(107)
 
 	module.exports = makeRational
 
@@ -63706,12 +64079,12 @@
 
 
 /***/ },
-/* 95 */
+/* 98 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var isBN = __webpack_require__(96)
+	var isBN = __webpack_require__(99)
 
 	module.exports = isRat
 
@@ -63721,12 +64094,12 @@
 
 
 /***/ },
-/* 96 */
+/* 99 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var BN = __webpack_require__(97)
+	var BN = __webpack_require__(100)
 
 	module.exports = isBN
 
@@ -63738,7 +64111,7 @@
 
 
 /***/ },
-/* 97 */
+/* 100 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(module) {(function (module, exports) {
@@ -66060,10 +66433,10 @@
 
 	})(typeof module === 'undefined' || module, this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(98)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(101)(module)))
 
 /***/ },
-/* 98 */
+/* 101 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -66079,13 +66452,13 @@
 
 
 /***/ },
-/* 99 */
+/* 102 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var BN = __webpack_require__(97)
-	var db = __webpack_require__(100)
+	var BN = __webpack_require__(100)
+	var db = __webpack_require__(103)
 
 	module.exports = num2bn
 
@@ -66100,7 +66473,7 @@
 
 
 /***/ },
-/* 100 */
+/* 103 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var hasTypedArrays = false
@@ -66204,15 +66577,15 @@
 	  var hi = module.exports.hi(n)
 	  return !(hi & 0x7ff00000)
 	}
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(80).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(83).Buffer))
 
 /***/ },
-/* 101 */
+/* 104 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var BN = __webpack_require__(97)
+	var BN = __webpack_require__(100)
 
 	module.exports = str2BN
 
@@ -66222,13 +66595,13 @@
 
 
 /***/ },
-/* 102 */
+/* 105 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var num2bn = __webpack_require__(99)
-	var sign = __webpack_require__(103)
+	var num2bn = __webpack_require__(102)
+	var sign = __webpack_require__(106)
 
 	module.exports = rationalize
 
@@ -66254,12 +66627,12 @@
 
 
 /***/ },
-/* 103 */
+/* 106 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bn = __webpack_require__(97)
+	var bn = __webpack_require__(100)
 
 	module.exports = sign
 
@@ -66269,12 +66642,12 @@
 
 
 /***/ },
-/* 104 */
+/* 107 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var rationalize = __webpack_require__(102)
+	var rationalize = __webpack_require__(105)
 
 	module.exports = div
 
@@ -66284,7 +66657,7 @@
 
 
 /***/ },
-/* 105 */
+/* 108 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -66297,13 +66670,13 @@
 
 
 /***/ },
-/* 106 */
+/* 109 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bn2num = __webpack_require__(107)
-	var ctz = __webpack_require__(108)
+	var bn2num = __webpack_require__(110)
+	var ctz = __webpack_require__(111)
 
 	module.exports = roundRat
 
@@ -66344,7 +66717,7 @@
 
 
 /***/ },
-/* 107 */
+/* 110 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -66372,13 +66745,13 @@
 
 
 /***/ },
-/* 108 */
+/* 111 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var db = __webpack_require__(100)
-	var ctz = __webpack_require__(84).countTrailingZeros
+	var db = __webpack_require__(103)
+	var ctz = __webpack_require__(87).countTrailingZeros
 
 	module.exports = ctzNumber
 
@@ -66397,14 +66770,14 @@
 
 
 /***/ },
-/* 109 */
+/* 112 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
 	module.exports = float2rat
 
-	var rat = __webpack_require__(94)
+	var rat = __webpack_require__(97)
 
 	function float2rat(v) {
 	  var result = new Array(v.length)
@@ -66416,12 +66789,12 @@
 
 
 /***/ },
-/* 110 */
+/* 113 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict"
 
-	var doubleBits = __webpack_require__(100)
+	var doubleBits = __webpack_require__(103)
 
 	var SMALLEST_DENORM = Math.pow(2, -1074)
 	var UINT_MAX = (-1)>>>0
@@ -66463,7 +66836,7 @@
 	}
 
 /***/ },
-/* 111 */
+/* 114 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
@@ -66472,15 +66845,15 @@
 
 	module.exports = solveIntersection
 
-	var ratMul = __webpack_require__(112)
-	var ratDiv = __webpack_require__(104)
-	var ratSub = __webpack_require__(113)
-	var ratSign = __webpack_require__(114)
-	var rvSub = __webpack_require__(115)
-	var rvAdd = __webpack_require__(116)
-	var rvMuls = __webpack_require__(118)
+	var ratMul = __webpack_require__(115)
+	var ratDiv = __webpack_require__(107)
+	var ratSub = __webpack_require__(116)
+	var ratSign = __webpack_require__(117)
+	var rvSub = __webpack_require__(118)
+	var rvAdd = __webpack_require__(119)
+	var rvMuls = __webpack_require__(121)
 
-	var toFloat = __webpack_require__(106)
+	var toFloat = __webpack_require__(109)
 
 	function ratPerp(a, b) {
 	  return ratSub(ratMul(a[0], b[1]), ratMul(a[1], b[0]))
@@ -66513,12 +66886,12 @@
 
 
 /***/ },
-/* 112 */
+/* 115 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var rationalize = __webpack_require__(102)
+	var rationalize = __webpack_require__(105)
 
 	module.exports = mul
 
@@ -66528,12 +66901,12 @@
 
 
 /***/ },
-/* 113 */
+/* 116 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var rationalize = __webpack_require__(102)
+	var rationalize = __webpack_require__(105)
 
 	module.exports = sub
 
@@ -66543,12 +66916,12 @@
 
 
 /***/ },
-/* 114 */
+/* 117 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bnsign = __webpack_require__(103)
+	var bnsign = __webpack_require__(106)
 
 	module.exports = sign
 
@@ -66558,12 +66931,12 @@
 
 
 /***/ },
-/* 115 */
+/* 118 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bnsub = __webpack_require__(113)
+	var bnsub = __webpack_require__(116)
 
 	module.exports = sub
 
@@ -66578,12 +66951,12 @@
 
 
 /***/ },
-/* 116 */
+/* 119 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var bnadd = __webpack_require__(117)
+	var bnadd = __webpack_require__(120)
 
 	module.exports = add
 
@@ -66598,12 +66971,12 @@
 
 
 /***/ },
-/* 117 */
+/* 120 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var rationalize = __webpack_require__(102)
+	var rationalize = __webpack_require__(105)
 
 	module.exports = add
 
@@ -66615,13 +66988,13 @@
 
 
 /***/ },
-/* 118 */
+/* 121 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	var rat = __webpack_require__(94)
-	var mul = __webpack_require__(112)
+	var rat = __webpack_require__(97)
+	var mul = __webpack_require__(115)
 
 	module.exports = muls
 
@@ -66637,7 +67010,7 @@
 
 
 /***/ },
-/* 119 */
+/* 122 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -66664,11 +67037,11 @@
 	}
 
 /***/ },
-/* 120 */
+/* 123 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var getBounds = __webpack_require__(119)
-	var unlerp = __webpack_require__(121)
+	var getBounds = __webpack_require__(122)
+	var unlerp = __webpack_require__(124)
 
 	module.exports = normalizePathScale
 	function normalizePathScale (positions, bounds) {
@@ -66701,7 +67074,7 @@
 	}
 
 /***/ },
-/* 121 */
+/* 124 */
 /***/ function(module, exports) {
 
 	module.exports = function range(min, max, value) {
@@ -66709,7 +67082,7 @@
 	}
 
 /***/ },
-/* 122 */
+/* 125 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -66728,7 +67101,7 @@
 
 
 /***/ },
-/* 123 */
+/* 126 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -66817,11 +67190,11 @@
 
 
 /***/ },
-/* 124 */
+/* 127 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var simplifyRadialDist = __webpack_require__(125)
-	var simplifyDouglasPeucker = __webpack_require__(126)
+	var simplifyRadialDist = __webpack_require__(128)
+	var simplifyDouglasPeucker = __webpack_require__(129)
 
 	//simplifies using both algorithms
 	module.exports = function simplify(points, tolerance) {
@@ -66834,7 +67207,7 @@
 	module.exports.douglasPeucker = simplifyDouglasPeucker;
 
 /***/ },
-/* 125 */
+/* 128 */
 /***/ function(module, exports) {
 
 	function getSqDist(p1, p2) {
@@ -66870,7 +67243,7 @@
 	}
 
 /***/ },
-/* 126 */
+/* 129 */
 /***/ function(module, exports) {
 
 	// square distance from a point to a segment
@@ -66938,35 +67311,58 @@
 
 
 /***/ },
-/* 127 */
+/* 130 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var composers = __webpack_require__(19)
-
+	var composers = __webpack_require__(20)
+	var threeEnv = __webpack_require__(18);
+	var mask = __webpack_require__(36);
 	var sample = new Array();
 	var sampleSize = 64;
 	var sum;
 	var average;
-	var fpsThreshold = 30;
-	var quality = 1; // Higher is worse
+	var fpsThreshold = 40;
+	var screenAreaLimit = 1500000;
+	var adjustTime = 3000; // How long to let FPS adjust before checking agaiin
+	var lastChange = 0;
+	var changed = false;
+	var quality = 0;
 
-	var check = function(fps) {
+	var check = function(timePassed, fps) {
 
 		sample.unshift(fps);
 
 		if (sample.length > sampleSize) {
+			
 			sample.pop();
 
-			if (average < fpsThreshold && quality < 3 ) {
-
-				quality++;
-				sample = [];
-				console.log('quality: '+quality);
-				composers.changeQuality(quality);
+			if (timePassed > lastChange + adjustTime) {
 
 
+				if (average < fpsThreshold) {
+					// If screen is large, reduce render size
+					if (threeEnv.box.area > screenAreaLimit) {
+						composers.changeQuality(2);
+						changed = true;
+					}
+
+					if (!changed && quality < 1) {
+
+						switch (quality) {
+							case 0:
+								mask.params.cubeCamera = false;
+								break;
+						}
+
+						quality++;
+						changed = true; 
+
+					}
+				}
 
 			}
+
+
 		}
 
 		sum = 0;
@@ -66976,6 +67372,11 @@
 		}
 
 		average = sum/sample.length;
+
+		if (changed) {
+			lastChange = Date.now();
+			changed = false;
+		}
 
 		
 		

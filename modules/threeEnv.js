@@ -35,6 +35,7 @@ bgCamera.position.z = 500;
 scene.add(camera);
 bgScene.add(bgCamera);
 
+
 // controls = new OrbitControls(camera);
 
 // var axes = new THREE.AxisHelper(50);

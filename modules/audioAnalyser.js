@@ -103,5 +103,6 @@ var getTime = function() {
 module.exports = {
 	getLevels: getLevels,
 	updateLevels: updateLevels,
-	getTime: getTime
+	getTime: getTime,
+	audio: audio
 }
