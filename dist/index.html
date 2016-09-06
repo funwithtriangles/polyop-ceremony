@@ -1,9 +1,64 @@
 <html>
     <head>
         <meta charset="utf-8">
-         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <style>
+
+        	@keyframes fadeIn {
+        		0% {
+        			opacity: 0;
+        		}
+        		100% {
+        			opacity: 1;
+        		}
+        	}
+
+        	body {
+				margin: 0;
+				background: #4f6ab1;
+			}
+
+			audio {
+				display: none;
+			}
+
+			canvas {
+				animation: 1s fadeIn;
+			}
+
+			.debug-visualiser {
+				display: none;
+			}
+        </style>
     </head>
     <body>
-        <script type="text/javascript" src="bundle.js" charset="utf-8"></script>
+        <script>
+        function loadScript(src, callback)
+		{
+		  var s,
+		      r,
+		      ts,
+		      t;
+		  r = false;
+		  s = document.createElement('script');
+		  s.type = 'text/javascript';
+		  s.src = src;
+		  s.onload = s.onreadystatechange = function() {
+		    //console.log( this.readyState ); //uncomment this line to see which ready states are called.
+		    if ( !r && (!this.readyState || this.readyState == 'complete') )
+		    {
+		      r = true;
+		      callback();
+		    }
+		  };
+		  ts = document.getElementsByTagName('script');
+		  t = ts[ts.length-1];
+		  t.parentNode.insertBefore(s, t.nextSibling);
+		}
+		
+		loadScript('bundle.js', function() {
+			console.log('loaded');
+		})
+        </script>
     </body>
 </html>
