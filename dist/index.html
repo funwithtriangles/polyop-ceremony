@@ -16,6 +16,9 @@
         	body {
 				margin: 0;
 				background: #4f6ab1;
+				font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+				color: white;
+				font-size: 20px;
 			}
 
 			audio {
@@ -29,9 +32,46 @@
 			.debug-visualiser {
 				display: none;
 			}
+
+			.text {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				z-index: 100;
+			}
+
+			.intro {
+				width: 70%;
+				margin: auto;
+				text-align: center;
+			}
+
+			h1 {
+				font-weight: normal;
+				text-transform: uppercase;
+			}
+
+			.loading {
+				animation: fadeIn 1s alternate infinite;
+			}
+
+			.hide {
+				display: none;
+			}
         </style>
     </head>
     <body>
+		
+		<div class="text">
+	    	<div class="intro">
+	    		<h1 class="loading">Loading</h1>
+	    		<h1 class="play hide">Click screen to play</h1>
+				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
+	    	</div>
+		</div>
         <script>
         function loadScript(src, callback)
 		{
@@ -57,7 +97,8 @@
 		}
 		
 		loadScript('bundle.js', function() {
-			console.log('loaded');
+			document.querySelector('.play').classList.remove('hide');
+			document.querySelector('.loading').classList.add('hide');
 		})
         </script>
     </body>
