@@ -22,7 +22,7 @@ function launchIntoFullscreen(element) {
   }
 }
 
-document.addEventListener('click', function() {
+document.querySelector('.play').addEventListener('click', function() {
 	launchIntoFullscreen(threeEnv.renderer.domElement);
 	audio.play();
   document.querySelector('.intro').classList.add('hide');

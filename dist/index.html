@@ -13,6 +13,15 @@
         		}
         	}
 
+        	@keyframes spin {
+        		0% {
+        			transform: rotate(0);
+        		}
+        		100% {
+        			transform: rotate(360deg);
+        		}
+        	}
+
         	body {
 				margin: 0;
 				background: #4f6ab1;
@@ -52,27 +61,63 @@
 				text-align: center;
 			}
 
-			h1 {
-				font-weight: normal;
+			.status {
 				text-transform: uppercase;
+				margin-top: 1rem;
+				font-size: 0.8rem;
+				display: block;
 			}
 
 			.loading {
-				animation: fadeIn 1s alternate infinite;
+				animation: fadeIn 1s alternate infinite; 
+				margin: 0 auto;
 			}
 
 			.hide {
 				display: none;
 			}
+
+			.icon {
+				width: 5rem;
+				margin: 0 auto;
+				text-transform: uppercase;
+			}
+
+			.play {
+				opacity: 0.7;
+				cursor: pointer;
+				transition: 0.3s;
+			}
+
+			.play:hover {
+				opacity: 1;
+			}
+
         </style>
     </head>
     <body>
 		
 		<div class="text">
 	    	<div class="intro">
-	    		<h1 class="loading">Loading</h1>
-	    		<h1 class="play hide">Click screen to play</h1>
-				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
+
+	    		<div class="icon">
+					<svg class="loading" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+						 viewBox="0 0 366 366" enable-background="new 0 0 366 366" xml:space="preserve">
+					<g>
+						<path fill="#FFFFFF" d="M281.9,52.8L105.6,0L0,158.4l65,182.8l177.4,6.7L366,218.8L281.9,52.8z M331.6,170.2l-57-89l4-15.4
+							L331.6,170.2z M238.4,336.7L50.3,186.9L269.7,85.2L238.4,336.7z M270.9,78.4l-121-56.1L275.7,60L270.9,78.4z M109.3,10.2l11.2,3.4
+							l146.6,67.9L50,182.2L106.8,14L109.3,10.2z M45.2,183L9.7,159.6L97.4,28L45.2,183z M44.3,187.6l16.9,116.9L12.1,166.4L44.3,187.6z
+							 M68.7,325.5L49.3,191.7l184.9,147.2l-162.9-6.2L68.7,325.5z M243.1,334.7l30.7-246.9l77.7,121.4l4,8L243.1,334.7z"/>
+					</g>
+					</svg>
+
+					<svg class="play hide" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+				
+					<path fill="#FFFFFF" d="M256 0c-141.385 0-256 114.615-256 256s114.615 256 256 256 256-114.615 256-256-114.615-256-256-256zM256 464c-114.875 0-208-93.125-208-208s93.125-208 208-208 208 93.125 208 208-93.125 208-208 208zM192 144l192 112-192 112z"></path>
+					</svg>
+				</div>
+				<span class="status">Loading</span>
+				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong><br>Headphones recommended.</p>
 	    	</div>
 		</div>
 
@@ -107,6 +152,7 @@
 		loadScript('bundle.js', function() {
 			document.querySelector('.play').classList.remove('hide');
 			document.querySelector('.loading').classList.add('hide');
+			document.querySelector('.status').innerHTML = "Begin";
 		})
         </script>
     </body>
