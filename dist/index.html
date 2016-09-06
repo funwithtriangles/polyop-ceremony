@@ -22,7 +22,10 @@
 			}
 
 			audio {
-				display: none;
+				display: none; 
+				position: absolute;
+				bottom: 0;
+				left: 0;
 			}
 
 			canvas {
@@ -72,6 +75,11 @@
 				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
 		</div>
+
+		<audio preload="auto" controls>
+			<source src="ceremony.mp3" type="audio/mpeg">
+		</audio>
+
         <script>
         function loadScript(src, callback)
 		{

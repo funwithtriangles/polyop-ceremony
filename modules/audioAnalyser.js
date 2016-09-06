@@ -4,11 +4,7 @@ var guiFolder = gui.addFolder('Frequencies');
 
 var audioContext, analyser, source, stream, freqs;
 
-var audio = new Audio();
-audio.src = 'ceremony.mp3';
-audio.controls = true;
-// audio.autoplay = true;
-document.body.appendChild(audio);
+var audio = document.querySelector('audio');
 
 var elVisualiser = document.createElement("div");
 elVisualiser.className = "debug-visualiser";
