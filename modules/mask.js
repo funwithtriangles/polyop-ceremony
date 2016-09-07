@@ -43,7 +43,7 @@ var params = {
 	explodeAmount: 0,
 	explodeSpeed: 0,
 	rumbling: false,
-	cubeCamera: true,
+	cubeCamera: false,
 	enterScene: function(skip) {
 
 		if (!skip) {
