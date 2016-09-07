@@ -27,6 +27,8 @@ var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
 var mask = require('./mask');
+var tribe = require('./tribe');
+var mask = require('./mask');
 var crystals = require('./crystals');
 var lines = require('./lines');
 var ribbons = require('./ribbons');
@@ -78,6 +80,7 @@ function loop() {
 	background.draw(timePassed);
 	leaves.draw(timePassed);
 	mask.draw(timePassed);
+	tribe.draw(timePassed);
 	crystals.draw(timePassed);
 	ribbons.draw(timePassed);
 	lines.draw(timePassed);
