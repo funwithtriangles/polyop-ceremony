@@ -17,6 +17,7 @@ var congosSpinPulse = false;
 var manLeaves = true;
 
 var mask = require('./mask');
+var tribe = require('./tribe');
 var ribbons = require('./ribbons');
 var crystals = require('./crystals');
 var leaves = require('./leaves');
@@ -36,6 +37,7 @@ var barBeat = function(bar, beat) {
 
 }
 
+
 var timeline = [
 	{
 		time: 8.5,
@@ -54,6 +56,7 @@ var timeline = [
 		event: function() {
 			titles.polyop.exitFancy();
 			mask.params.enterScene();
+			tribe.params.enterMasks();
 		}
 	},
 	{
@@ -87,6 +90,7 @@ var timeline = [
 			crystals.params.startSpeedFlux();
 			camera.params.stopOrbit();
 			mask.params.startDancing(skip, 10)
+			tribe.params.dancePower = 10;
 			leaves.params.speed = -0.2;
 			leaves.params.groupRotZ = 0.04;
 			background.params.scale = 4.0;
@@ -290,6 +294,7 @@ var bongosPart = new MidiPart(bongosData, function() {
 
 	if (congosSpin) {
 		mask.params.spin();
+		tribe.params.alternateSpins();
 	}
 
 	if (congosPulse) {
