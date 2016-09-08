@@ -53,7 +53,7 @@
 				height: 100%;
 				display: flex;
 				z-index: 100;
-				display: none;
+				/* display: none; */
 			}
 
 			.intro {
@@ -98,12 +98,24 @@
 				z-index: 100 !important;
 			}
 
+			.landscape-warning {
+				display: none;
+				font-size: 1.5rem;
+			}
+
+			@media all and (orientation:portrait) {
+			 	.landscape-warning {
+			 		display: block;
+			 	}
+			}
+
         </style>
     </head>
     <body>
 		
 		<div class="text">
 	    	<div class="intro">
+				<p class="landscape-warning"><strong>For best results, please rotate your device to landscape.</strong></p>
 
 	    		<div class="icon">
 					<svg class="loading" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -122,7 +134,7 @@
 					</svg>
 				</div>
 				<span class="status">Loading</span>
-				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong><br>Headphones recommended.</p>
+				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
 		</div>
 
