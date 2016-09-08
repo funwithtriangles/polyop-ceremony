@@ -93,7 +93,7 @@ var Crystal = function() {
 	var geometry = new THREE.IcosahedronGeometry(this.size);
 	this.mesh = new THREE.Mesh(geometry, crystalMaterial);
 
-	var light = new THREE.PointLight( 0xffffff, 1, 0 );
+	var light = new THREE.PointLight( 0xffffff, 1, 1000 );
 
 	this.group.add(light);
 	this.group.add(this.mesh);

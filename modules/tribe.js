@@ -1,7 +1,8 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var group = new THREE.Object3D();
-
+var loader = new THREE.ObjectLoader();
+var maskModel = require('../assets/baby.json');
 var numGuys = 5;
 
 threeEnv.scene.add(group);
@@ -10,7 +11,7 @@ group.position.z = 500;
 group.rotation.y = THREE.Math.degToRad(180);
 
 var trackLength = 500;
-var wedge = THREE.Math.degToRad(220);
+var wedge = THREE.Math.degToRad(200);
 
 var wedgeSlice = wedge/(numGuys-1);
 
@@ -18,11 +19,19 @@ var params = {
 
 }
 
-var Guy = function(angle) {
+var maskGeom = loader.parse(maskModel).children[0].geometry;
+
+function isEven(n) {
+	return n % 2 == 0;
+}
+
+var Guy = function(angle, reversed) {
 
 	this.track = new THREE.Object3D();
-//	this.track.position.z = trackLength;
-	var geom = new THREE.OctahedronGeometry(100);
+	this.mesh = new THREE.Object3D();
+
+	var geom = maskGeom.clone();
+
 	var material = new THREE.MeshPhongMaterial({
 		color: 0x4f6ab1,
 		shading: THREE.FlatShading,
@@ -31,9 +40,13 @@ var Guy = function(angle) {
 		//wireframe: true
 	});
 
-	this.mesh = new THREE.Mesh(geom, material);
+	var innerMesh = new THREE.Mesh(geom, material);
 
+	if (reversed) {
+		innerMesh.rotation.y = THREE.Math.degToRad(180);
+	}
 	
+	this.mesh.add(innerMesh);
 
 	this.track.add(this.mesh);
 
@@ -43,15 +56,14 @@ var Guy = function(angle) {
 
 	this.track.rotation.y = angle;
 
+
 }
 
 
 for (var i = 0; i < numGuys; i++) {
 
 	var angle = wedgeSlice * i;
-	var guy = new Guy(angle - wedge/2);
-
-	console.log(THREE.Math.radToDeg(angle));
+	var guy = new Guy(angle - wedge/2, isEven(i));
 
 }
 

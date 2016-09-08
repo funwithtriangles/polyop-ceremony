@@ -4,6 +4,7 @@ var camera = require('./camera');
 var audio = require('./audioAnalyser').audio;
 // var effect = new THREE.VREffect( threeEnv.renderer );
 var controls = new THREE.VRControls(threeEnv.camera);
+// var controls = new THREE.DeviceOrientationControls(threeEnv.camera);
 //var WebVRManager = require('./webvr-manager');
 //var composers = require('./composers');
 
