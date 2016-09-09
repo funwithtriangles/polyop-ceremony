@@ -9,6 +9,8 @@ var loader = new THREE.ObjectLoader();
 var maskModel = require('../assets/baby.json');
 var numGuys = 5;
 var guys = [];
+var trackLength = 500;
+var wedge, wedgeSlice;
 
 var numSpins = 0;
 
@@ -17,13 +19,12 @@ threeEnv.scene.add(group);
 group.position.z = 500;
 group.rotation.y = THREE.Math.degToRad(180);
 
-var trackLength = 500;
-var wedge = THREE.Math.degToRad(200);
-
-var wedgeSlice = wedge/(numGuys-1);
+setWedge(THREE.Math.degToRad(200));
 
 var params = {
+	rotSpeed: 0,
 	dancePower: 0,
+	waveStrength: 0,
 	enterMasks: function() {
 
 		for (var i = 0; i < numGuys; i++) {
@@ -45,23 +46,78 @@ var params = {
 
 		numSpins ++;
 		
+	},
+	gotoCircle: function() {
+
+
+		var tween = new TWEEN.Tween(group.position)
+	    .to({z: 0}, 10000)
+	    .easing(TWEEN.Easing.Quadratic.InOut)
+	    .start();
+
+		setWedge(Math.PI*2, true);
+
+		for (var i = 0; i < numGuys; i++) {
+
+			guys[i].reposition();
+
+		}
+
+	},
+	slowDown: function() {
+
+		var tween = new TWEEN.Tween(params)
+	    .to({rotSpeed: 0}, 30000)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+
+	},
+	slowWaves: function() {
+
+		var tween = new TWEEN.Tween(params)
+	    .to({waveStrength: 0}, 10000)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
 
 	}
+
 }
 
 gui.add(params, 'enterMasks');
 gui.add(params, 'alternateSpins');
 gui.add(params, 'dancePower', 1, 20).name('Baby Dance Power');
+gui.add(params, 'gotoCircle');
 
 var maskGeom = loader.parse(maskModel).children[0].geometry;
+
+function setWedge(angle, full) {
+
+	if (full) {
+		adjust = 0;
+	} else {
+		adjust = 1;
+	}
+
+	wedge = angle;
+	wedgeSlice = wedge/(numGuys-adjust);
+
+}
 
 function isEven(n) {
 	return n % 2 == 0;
 }
 
-var Guy = function(angle, index) {
+var Guy = function(index) {
 
 	var that = this;
+
+	var angle;
+
+	function calcAngle() {
+		angle = (wedgeSlice * index) - (wedge/2);
+	}
+
+	calcAngle();
 
 	this.track = new THREE.Object3D();
 	this.posMesh = new THREE.Object3D();
@@ -134,24 +190,36 @@ var Guy = function(angle, index) {
 
 	}
 
+	this.reposition = function() {
 
+		calcAngle();
 
+		var tween = new TWEEN.Tween(that.track.rotation)
+	    .to({y: angle}, 10000)
+	    .easing(TWEEN.Easing.Quadratic.InOut)
+	    .start();
+
+	}
 
 }
 
 
 for (var i = 0; i < numGuys; i++) {
 
-	var angle = wedgeSlice * i;
-	guys.push(new Guy(angle - wedge/2, i));
+	guys.push(new Guy(i));
 
 }
 
 var draw = function() {
 
+	var wave = ((clock.lfo.sine + 1)/2) * params.waveStrength;
+
+
 	for (var i = 0; i < numGuys; i++) {
 		guys[i].draw();
 	}
+
+	group.rotation.y += params.rotSpeed + wave;
 
 }
 

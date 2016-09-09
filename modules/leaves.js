@@ -37,6 +37,12 @@ var params = {
 	speed: -0.02,
 	opacity: 1,
 	active: true,
+	fadeOut: function() {
+		var tween = new TWEEN.Tween(params)
+	    .to({opacity: 0}, 10000)
+	    .easing(TWEEN.Easing.Quintic.Out)
+	    .start();
+	},
 	allFade: function() {
 
 		params.opacity = 0;
