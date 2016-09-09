@@ -388,10 +388,12 @@ var draw = function(time) {
 
 
 		if (params.cubeCamera) {
-			cubeCamera.position.copy( mainMask.mask.position );
-			cubeCamera.position.y += 150;
 
+			mask.visible = false;
+			cubeCamera.position.copy( mask.position );
+			cubeCamera.position.y += 150;
 			cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+			mask.visible = true;
 		}
 		
 
