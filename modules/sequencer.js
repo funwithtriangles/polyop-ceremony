@@ -131,9 +131,6 @@ var timeline = [
 			ribbons.params.startRibbons();
 			leaves.params.groupRotZ = 0.08;
 			leaves.params.speed = -0.4;
-			tribe.params.gotoCircle();
-			tribe.params.rotSpeed = 0.005;
-			tribe.params.waveStrength = 0.01;
 
 		}
 	},
@@ -153,6 +150,8 @@ var timeline = [
 		time: barBeat(72, 0),
 		event: function() {
 			leaves.params.gotoCircle()
+			tribe.params.gotoCircle();
+			tribe.params.waveStrength = 0.02;
 			
 		}
 	},
@@ -163,13 +162,22 @@ var timeline = [
 		}
 	},
 	{
+		time: barBeat(78, 0),
+		event: function() {
+			tribe.params.waveStrength = 0;
+			tribe.params.rotSpeed = 0.01;
+			leaves.params.slowDown();
+			leaves.params.gotoCircle(15000, TWEEN.Easing.Quadratic.InOut);
+			tribe.params.slowDown();
+			tribe.params.rise();
+		}
+	},
+	{
 		time: barBeat(80, 0),
 		event: function(skip) {
 			mask.params.startRumble(skip);
-			leaves.params.slowDown();
-			tribe.params.slowDown();
 			vLight.params.fadeIn(skip);
-			leaves.params.gotoCircle(15000, TWEEN.Easing.Quadratic.InOut);
+			
 			leaves.params.particleRot = 0;
 		}
 	},
@@ -179,17 +187,15 @@ var timeline = [
 			
 			manLeaves = false;
 			leaves.params.fadeOut();
-			tribe.params.slowWaves();
 
 		}
 	},
-	// {
-	// 	time: barBeat(95, 3),
-	// 	event: function(skip) {
-	// 		manLeaves = false;
-	// 		leaves.params.opacity = 0;
-	// 	}
-	// },
+	{
+		time: barBeat(95, 2),
+		event: function(skip) {
+			tribe.params.shootMasks();
+		}
+	},
 	{
 		time: barBeat(96, 0),
 		event: function(skip) {

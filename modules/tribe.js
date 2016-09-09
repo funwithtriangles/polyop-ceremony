@@ -16,7 +16,6 @@ var numSpins = 0;
 
 threeEnv.scene.add(group);
 
-group.position.z = 500;
 group.rotation.y = THREE.Math.degToRad(180);
 
 setWedge(THREE.Math.degToRad(200));
@@ -25,11 +24,22 @@ var params = {
 	rotSpeed: 0,
 	dancePower: 0,
 	waveStrength: 0,
+	trackLift: 0,
+	groupZPos: 500,
 	enterMasks: function() {
 
 		for (var i = 0; i < numGuys; i++) {
 
 			guys[i].enterScene();
+
+		}
+
+	},
+	shootMasks: function() {
+
+		for (var i = 0; i < numGuys; i++) {
+
+			guys[i].shootInwards();
 
 		}
 
@@ -50,8 +60,8 @@ var params = {
 	gotoCircle: function() {
 
 
-		var tween = new TWEEN.Tween(group.position)
-	    .to({z: 0}, 10000)
+		var tween = new TWEEN.Tween(params)
+	    .to({groupZPos: 250}, 10000)
 	    .easing(TWEEN.Easing.Quadratic.InOut)
 	    .start();
 
@@ -67,7 +77,7 @@ var params = {
 	slowDown: function() {
 
 		var tween = new TWEEN.Tween(params)
-	    .to({rotSpeed: 0}, 30000)
+	    .to({rotSpeed: 0.005}, 30000)
 	    .easing(TWEEN.Easing.Quadratic.Out)
 	    .start();
 
@@ -79,6 +89,22 @@ var params = {
 	    .easing(TWEEN.Easing.Quadratic.Out)
 	    .start();
 
+	},
+	slowReset: function() {
+
+		group.rotation.y = group.rotation.y % (Math.PI * 2);
+
+		var tween = new TWEEN.Tween(group.rotation)
+	    .to({y: Math.PI * 4}, 30000)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+
+	},
+	rise: function() {
+		var tween = new TWEEN.Tween(params)
+	    .to({groupZPos: 0, trackLift: Math.PI/3}, 30000)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
 	}
 
 }
@@ -87,6 +113,7 @@ gui.add(params, 'enterMasks');
 gui.add(params, 'alternateSpins');
 gui.add(params, 'dancePower', 1, 20).name('Baby Dance Power');
 gui.add(params, 'gotoCircle');
+gui.add(params, 'trackLift', 0, Math.PI);
 
 var maskGeom = loader.parse(maskModel).children[0].geometry;
 
@@ -119,12 +146,14 @@ var Guy = function(index) {
 
 	calcAngle();
 
-	this.track = new THREE.Object3D();
-	this.posMesh = new THREE.Object3D();
-	this.danceMesh = new THREE.Object3D();
+	this.yTrack = new THREE.Object3D(); // Rotate on Y (carousel)
+	this.xTrack = new THREE.Object3D(); // Rotate on X (lift up)
+	this.posMesh = new THREE.Object3D(); // Move along track (in and out)
+	this.danceMesh = new THREE.Object3D(); // Intricate moves
 
-	group.add(this.track);
-	this.track.add(this.posMesh);
+	group.add(this.yTrack);
+	this.yTrack.add(this.xTrack);
+	this.xTrack.add(this.posMesh);
 	this.posMesh.add(this.danceMesh);
 
 	var geom = maskGeom.clone();
@@ -149,7 +178,7 @@ var Guy = function(index) {
 
 	this.posMesh.position.z = -trackLength*2;
 
-	this.track.rotation.y = angle;
+	this.yTrack.rotation.y = angle;
 
 	this.enterScene = function() {
 
@@ -157,6 +186,17 @@ var Guy = function(index) {
 	    .to({z: -trackLength}, 25000)
 	    .easing(TWEEN.Easing.Sinusoidal.Out)
 	    .start();
+	}
+
+	this.shootInwards = function() {
+
+		tween = new TWEEN.Tween(that.posMesh.position)
+	    .to({z: 0}, 1000)
+	    .easing(TWEEN.Easing.Elastic.In)
+	    .start()
+	    .onComplete(function() {
+	    	innerMesh.visible = false;
+	    })
 	}
 
 	this.spin = function() {
@@ -188,13 +228,15 @@ var Guy = function(index) {
 		that.danceMesh.position.y = yMaskPos;
 		that.danceMesh.position.z = zMaskPos;
 
+		that.xTrack.rotation.x = params.trackLift;
+
 	}
 
 	this.reposition = function() {
 
 		calcAngle();
 
-		var tween = new TWEEN.Tween(that.track.rotation)
+		var tween = new TWEEN.Tween(that.yTrack.rotation)
 	    .to({y: angle}, 10000)
 	    .easing(TWEEN.Easing.Quadratic.InOut)
 	    .start();
@@ -212,7 +254,7 @@ for (var i = 0; i < numGuys; i++) {
 
 var draw = function() {
 
-	var wave = ((clock.lfo.sine + 1)/2) * params.waveStrength;
+	var wave = ((clock.lfo.sine + 0.9)/2) * params.waveStrength;
 
 
 	for (var i = 0; i < numGuys; i++) {
@@ -220,6 +262,7 @@ var draw = function() {
 	}
 
 	group.rotation.y += params.rotSpeed + wave;
+	group.position.z = params.groupZPos;
 
 }
 
