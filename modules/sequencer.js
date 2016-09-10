@@ -16,6 +16,7 @@ var congosPulse = false;
 var congosSpinPulse = false;
 var manLeaves = true;
 
+var threeEnv = require('./threeEnv');
 var mask = require('./mask');
 var tribe = require('./tribe');
 var ribbons = require('./ribbons');
@@ -168,8 +169,6 @@ var timeline = [
 			tribe.params.rotSpeed = 0.01;
 			leaves.params.slowDown();
 			leaves.params.gotoCircle(15000, TWEEN.Easing.Quadratic.InOut);
-			tribe.params.slowDown();
-			tribe.params.rise();
 		}
 	},
 	{
@@ -177,14 +176,23 @@ var timeline = [
 		event: function(skip) {
 			mask.params.startRumble(skip);
 			vLight.params.fadeIn(skip);
-			
+			threeEnv.params.fadeToBlack();
 			leaves.params.particleRot = 0;
 		}
 	},
 	{
-		time: barBeat(92, 3),
+		time: barBeat(84, 0),
 		event: function(skip) {
 			
+			tribe.params.slowDown();
+			tribe.params.rise();
+
+		}
+	},
+	{
+		time: barBeat(88, 0),
+		event: function(skip) {
+		
 			manLeaves = false;
 			leaves.params.fadeOut();
 
@@ -202,6 +210,7 @@ var timeline = [
 			mask.params.explode(skip);
 			manLeaves = false;
 			leaves.params.opacity = 0;
+			background.params.scale = 1.0;
 		}
 	},
 	{
@@ -233,6 +242,7 @@ var timeline = [
 		time: barBeat(127, 2),
 		event: function(skip) {
 			mask.params.implode(skip);
+			threeEnv.params.fadeBack();
 		}
 	}
 ]

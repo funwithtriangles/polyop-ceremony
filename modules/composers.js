@@ -160,7 +160,7 @@ var draw = function(timePassed) {
 
 	threeEnv.renderer.setClearColor(0x000000, 0);
  	oclComposer.render( 0.1 );
- 	threeEnv.renderer.setClearColor(0x4f6ab1);
+ 	threeEnv.renderer.setClearColor(threeEnv.params.bgColor);
 	finalComposer.render( 0.1 );
 
 	grPass.uniforms.fExposure.value = vLight.params.exposure;

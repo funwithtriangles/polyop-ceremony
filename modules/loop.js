@@ -75,6 +75,7 @@ function loop() {
 	clock.run();
 	sequencer.run();
 	controls.run(timePassed);
+	threeEnv.run();
 
 	lights.draw(timePassed);
 	background.draw(timePassed);
