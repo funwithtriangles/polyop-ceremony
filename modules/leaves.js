@@ -14,7 +14,7 @@ var numLeafs = 50;
 
 var zLimit = 2000;
 
-var radius = window.innerHeight * 0.35;
+var radius = 320;
 
 var leafGroup = new THREE.Object3D();
 threeEnv.scene.add(leafGroup);
