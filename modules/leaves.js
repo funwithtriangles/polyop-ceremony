@@ -12,7 +12,7 @@ var loader = new THREE.JSONLoader();
 var particles = [];
 var numLeafs = 50;
 
-var zLimit = 500;
+var zLimit = 2000;
 
 var radius = window.innerHeight * 0.35;
 
@@ -104,7 +104,7 @@ var Leaf = function(i) {
 
 		that.mesh.position.x = (((Math.random() + 1.1) * 1000) - 1000) * posNeg();
 		that.mesh.position.y = (((Math.random() + 1.1) * 1000) - 1000) * posNeg();
-		that.mesh.position.z = (Math.random() * zLimit*2) - zLimit;
+		that.mesh.position.z = ((Math.random() * zLimit * 2) - zLimit) + 500;
 
 
 		that.vz = Math.random() + 0.5;
@@ -203,12 +203,12 @@ var draw = function(timePassed) {
 
 
 
-		if (params.active && particle.mesh.position.z > zLimit && params.speed > 0) {
+		if (params.active && particle.mesh.position.z > zLimit + 500 && params.speed > 0) {
 			particle.mesh.position.z = -zLimit;
 		}
 		
 		if (params.active && particle.mesh.position.z < -zLimit && params.speed < 0) {
-			particle.mesh.position.z = zLimit;
+			particle.mesh.position.z = zLimit + 500;
 		}
 
 	}
