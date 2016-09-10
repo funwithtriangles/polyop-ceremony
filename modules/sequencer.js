@@ -165,6 +165,9 @@ var timeline = [
 	{
 		time: barBeat(78, 0),
 		event: function() {
+
+			crystals.params.speed = 0.005;
+			crystals.params.speedFlux = 0;
 			tribe.params.waveStrength = 0;
 			tribe.params.rotSpeed = 0.01;
 			leaves.params.slowDown();
