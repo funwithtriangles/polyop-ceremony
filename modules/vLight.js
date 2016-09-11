@@ -17,6 +17,14 @@ var params = {
 		pulsing = true;
 
 	},
+	stopPulsing: function() {
+		pulsing = false;
+
+		var tween = new TWEEN.Tween(params)
+		    .to({exposure: 1}, 500)
+		    .easing(TWEEN.Easing.Quadratic.In)
+		    .start();
+	},
 	fadeIn: function(skip) {
 
 		if (!skip) {
@@ -32,6 +40,14 @@ var params = {
 
 		}
 		
+
+	},
+	fadeOut: function() {
+
+		var tween = new TWEEN.Tween(params)
+		    .to({exposure: 0}, 5000)
+		    .easing(TWEEN.Easing.Quadratic.In)
+		    .start();
 
 	}
 }

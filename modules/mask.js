@@ -26,11 +26,22 @@ var tessellateModifier = new THREE.TessellateModifier( 8 );
 
 var cubeCamera = new THREE.CubeCamera( 1, 10000, 512 );
 
+// Hack to change mask envMap to all white 
+var whiteBox = new THREE.Mesh(
+		new THREE.BoxGeometry(10, 10, 10), 
+		new THREE.MeshBasicMaterial({
+			color: 0xffffff,
+			side: THREE.BackSide
+		}));
+
+whiteBox.position.y = 1000;
+
 threeEnv.scene.add(cubeCamera);
+threeEnv.scene.add(whiteBox);
 
 var params = {
 	zGroupPos: -800,
-	//zGroupPos: 0,
+	// zGroupPos: 0,
 	xRotSpeed: 0,
 	yRotSpeed: 0,
 	zRotSpeed: 0,
@@ -179,6 +190,19 @@ var params = {
 	},
 	defaultPos: function() {
 		params.zGroupPos = 0;
+	},
+	endMask: function() {
+		// mainMask.headTop.material = endMaterial;
+		// mainMask.headBottom.material = endMaterial;
+		// mainMask.edges.visible = true;
+
+		uniforms.diffuse.value = new THREE.Color( 0xffffff );
+
+		// Move cube camera to hidden white box
+		params.cubeCamera = false;
+		cubeCamera.position.copy(whiteBox.position);
+		cubeCamera.updateCubeMap( threeEnv.renderer, threeEnv.scene );
+
 	}
 }
 
@@ -195,6 +219,7 @@ gui.add(params, 'spin');
 gui.add(params, 'startRumble');
 gui.add(params, 'explodeAmount', 0, 1500);
 gui.add(params, 'rumble', 0, 3);
+gui.add(params, 'endMask');
 
 
 
@@ -207,6 +232,7 @@ uniforms.diffuse.value = new THREE.Color( 0x555555 );
 uniforms.specular.value = new THREE.Color( 0x111111 );
 uniforms.shininess.value = 50;
 uniforms.envMap.value = cubeCamera.renderTarget.texture;
+//uniforms.envMap = {type: "t", value: cubeCamera.renderTarget.texture}
 uniforms.explodeAmount = {type: "f", value: 0.0};
 uniforms.rumble = {type: "f", value: 0.0};
 uniforms.time = {type: "f", value: 0.0};
@@ -227,14 +253,15 @@ var coreMaterial = new THREE.ShaderMaterial( {
 });
 
 
-// var coreMaterial = new THREE.MeshLambertMaterial( { 
-// 	color: 0x555555, 
-// 	specular: 0x111111,
-// 	shininess: 50,
-// 	shading: THREE.FlatShading,
-// 	//envMap: cubeCamera.renderTarget.texture,
-// 	//combine: THREE.AddOperation
-// } );
+
+var endMaterial = new THREE.MeshPhongMaterial( { 
+	color: 0xffffff, 
+	specular: 0x111111,
+	shininess: 0,
+	shading: THREE.FlatShading,
+	// transparent: true,
+	// opacity: 0.6
+});
 
 var oclMaterial = new THREE.ShaderMaterial( {
 
@@ -293,6 +320,8 @@ var Mask = function(mask) {
 	that.oclGroup = new THREE.Object3D();
 	that.mask = mask;
 
+	that.edges = new THREE.Object3D();
+
 	that.oclMask = new THREE.Object3D();
 
 	mask.position.y = maskYOffset;
@@ -300,6 +329,16 @@ var Mask = function(mask) {
 
 	that.headTop = mask.getObjectByName( 'head_top' );
 	that.headBottom = mask.getObjectByName( 'head_bottom' );
+
+	var edgesTop = new THREE.LineSegments(
+	    new THREE.EdgesGeometry( that.headTop.geometry.clone(),  Math.PI*1.3 ), 
+	    new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 3 } ) 
+	);
+
+	var edgesBottom = new THREE.LineSegments(
+	    new THREE.EdgesGeometry( that.headBottom.geometry.clone(), Math.PI*1.3 ), 
+	    new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 3 } ) 
+	);
 
 	that.headTop.geometry = makeExplodable(that.headTop.geometry);
 	that.headBottom.geometry = makeExplodable(that.headBottom.geometry);
@@ -322,6 +361,18 @@ var Mask = function(mask) {
 	that.oclGroup.add(that.oclMask);
 	threeEnv.scene.add(that.group);
 	threeEnv.oclScene.add(that.oclGroup);
+
+
+	that.edges.position.y = maskYOffset;
+	that.edges.rotation.y = Math.PI;
+	that.edges.add(edgesTop);
+	that.edges.add(edgesBottom);
+	that.edges.scale.set(1.01, 1, 1.01);
+	that.edges.visible = false;
+
+	that.group.add(that.edges);
+
+
 
 }
 

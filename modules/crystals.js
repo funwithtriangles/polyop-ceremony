@@ -21,6 +21,7 @@ var params = {
 	radius: 1,
 	visible: true,
 	scale: 1,
+	lightIntensity: 1,
 	pulseScale: function() {
 
 		params.scale = 1.4;
@@ -93,9 +94,9 @@ var Crystal = function() {
 	var geometry = new THREE.IcosahedronGeometry(this.size);
 	this.mesh = new THREE.Mesh(geometry, crystalMaterial);
 
-	var light = new THREE.PointLight( 0xffffff, 1, 1000 );
+	this.light = new THREE.PointLight( 0xffffff, params.lightIntensity, 1000 );
 
-	this.group.add(light);
+	this.group.add(this.light);
 	this.group.add(this.mesh);
 
 	mask.mask.group.add(this.group);
@@ -140,6 +141,8 @@ var draw = function() {
 
 		crystal.mesh.rotation.x += levelsData[1].average * 0.5;
 		crystal.mesh.rotation.y += levelsData[2].average * 0.5;
+
+		crystal.light.intensity = params.lightIntensity;
 
 	}
 

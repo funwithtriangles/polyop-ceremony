@@ -61,7 +61,7 @@ var params = {
 
 
 		var tween = new TWEEN.Tween(params)
-	    .to({groupZPos: 250}, 10000)
+	    .to({groupZPos: 250}, 5000)
 	    .easing(TWEEN.Easing.Quadratic.InOut)
 	    .start();
 

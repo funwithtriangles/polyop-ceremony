@@ -115,7 +115,7 @@ var timeline = [
 		event: function(skip) {
 			leaves.params.active = true;
 			mask.params.startDancing(skip, 2);
-			tribe.params.dancePower = 0;
+			tribe.params.dancePower = 2;
 			ribbons.params.stopRibbons();
 			ribbons.params.opacity = 0;
 			manLeaves = false;
@@ -151,6 +151,7 @@ var timeline = [
 		time: barBeat(72, 0),
 		event: function() {
 			leaves.params.gotoCircle()
+			tribe.params.dancePower = 0;
 			tribe.params.gotoCircle();
 			tribe.params.waveStrength = 0.02;
 			
@@ -239,6 +240,7 @@ var timeline = [
 		event: function(skip) {
 			congosPulse = false;
 			congosSpinPulse = false;
+			vLight.params.stopPulsing();
 		}
 	},
 	{
@@ -246,6 +248,14 @@ var timeline = [
 		event: function(skip) {
 			mask.params.implode(skip);
 			threeEnv.params.fadeBack();
+		}
+	},
+	{
+		time: barBeat(128, 0),
+		event: function(skip) {
+			mask.params.endMask();
+			crystals.params.lightIntensity = 0.4;
+			vLight.params.fadeOut();
 		}
 	}
 ]
