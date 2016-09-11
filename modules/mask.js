@@ -34,7 +34,7 @@ var whiteBox = new THREE.Mesh(
 			side: THREE.BackSide
 		}));
 
-whiteBox.position.y = 1000;
+whiteBox.position.y = 10000;
 
 threeEnv.scene.add(cubeCamera);
 threeEnv.scene.add(whiteBox);
@@ -70,6 +70,12 @@ var params = {
 
 		}
 
+	},
+	zoomIn: function() {
+		var tween = new TWEEN.Tween(params)
+		    .to({zGroupPos: 100}, 10000)
+		    .easing(TWEEN.Easing.Quadratic.InOut)
+		    .start();
 	},
 	spin: function() {
 

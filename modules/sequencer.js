@@ -247,7 +247,7 @@ var timeline = [
 		time: barBeat(127, 2),
 		event: function(skip) {
 			mask.params.implode(skip);
-			threeEnv.params.fadeBack();
+			// threeEnv.params.fadeBack();
 		}
 	},
 	{
@@ -256,6 +256,7 @@ var timeline = [
 			mask.params.endMask();
 			crystals.params.lightIntensity = 0.4;
 			vLight.params.fadeOut();
+			mask.params.zoomIn();
 		}
 	}
 ]
