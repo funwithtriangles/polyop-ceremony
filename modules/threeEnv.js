@@ -54,7 +54,7 @@ scene.fog = new THREE.FogExp2( bgColor, 0.0015 );
 camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 
 
-bgCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+bgCamera = new THREE.OrthographicCamera(box.width / - 2, box.width / 2, box.height / 2, box.height / - 2, 1, 1000 );
 bgCamera.position.z = 500;
 
 scene.add(camera);

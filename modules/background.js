@@ -22,7 +22,7 @@ guiFolder.add(params, 'bounceAmp', 0, 1);
 guiFolder.add(params, 'pulseAmp', 0, 1);
 guiFolder.add(params, 'scale', 1, 10);
 
-swampGeometry = new THREE.PlaneGeometry( window.innerWidth * 1.1, window.innerHeight * 1.1);
+swampGeometry = new THREE.PlaneGeometry( window.innerWidth, window.innerHeight * 1.1);
 
 swampMaterial = new THREE.ShaderMaterial( {
 
