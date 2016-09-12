@@ -15,6 +15,7 @@
     "tween.js": "^16.3.4"
   },
   "devDependencies": {
+    "webpack": "^1.13.2",
     "webpack-glsl-loader": "^1.0.1"
   },
   "scripts": {

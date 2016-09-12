@@ -1,3 +1,5 @@
+var webpack = require("webpack");
+
 module.exports = {
     entry: "./entry.js",
     output: {
@@ -26,5 +28,8 @@ module.exports = {
         inline: true,
         contentBase: 'dist/',
         host: '0.0.0.0'
-    }
+    },
+    plugins: [
+        new webpack.optimize.UglifyJsPlugin({minimize: true})
+    ]
 };
