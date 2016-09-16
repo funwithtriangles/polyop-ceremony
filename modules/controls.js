@@ -24,6 +24,7 @@ function launchIntoFullscreen(element) {
 }
 
 document.querySelector('.play').addEventListener('click', function() {
+  controls.resetPose();
 	launchIntoFullscreen(threeEnv.renderer.domElement);
 	audio.play();
   document.querySelector('.intro').classList.add('hide');
