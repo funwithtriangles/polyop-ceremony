@@ -11,6 +11,12 @@ var controls = new THREE.VRControls(threeEnv.camera);
 //var manager = new WebVRManager(threeEnv.renderer, effect);
 
 
+var params = {
+  resetPose: function() {
+    controls.resetPose();
+  }
+}
+
 function launchIntoFullscreen(element) {
   if(element.requestFullscreen) {
     element.requestFullscreen();
@@ -24,7 +30,7 @@ function launchIntoFullscreen(element) {
 }
 
 document.querySelector('.play').addEventListener('click', function() {
-  controls.resetPose();
+  params.resetPose();
 	launchIntoFullscreen(threeEnv.renderer.domElement);
 	audio.play();
   document.querySelector('.intro').classList.add('hide');
@@ -48,5 +54,6 @@ window.addEventListener('resize', onResize, true);
 window.addEventListener('vrdisplaypresentchange', onResize, true);
 
 module.exports = {
-	run: run
+	run: run,
+  params: params
 }

@@ -27,6 +27,7 @@ var lines = require('./lines');
 var vLight = require('./vLight');
 var camera = require('./camera');
 var titles = require('./titles');
+var controls = require('./controls');
 
 var now;
 
@@ -90,6 +91,7 @@ var timeline = [
 			crystals.params.changeSpeed(skip, 0.16);
 			crystals.params.startSpeedFlux();
 			camera.params.stopOrbit();
+			controls.params.resetPose();
 			mask.params.startDancing(skip, 10)
 			tribe.params.dancePower = 10;
 			leaves.params.speed = -0.2;
@@ -127,6 +129,7 @@ var timeline = [
 		event: function() {
 			cowbellCamera = false;
 			cowbellRibbons = true;
+			controls.params.resetPose();
 			camera.params.stopOrbit();
 			leaves.params.gotoCircle();
 			ribbons.params.startRibbons();
