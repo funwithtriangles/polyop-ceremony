@@ -6,6 +6,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
 
+        	@-webkit-keyframes fadeIn {
+        		0% {
+        			opacity: 0;
+        		}
+        		100% {
+        			opacity: 1;
+        		}
+        	}
+
         	@keyframes fadeIn {
         		0% {
         			opacity: 0;
@@ -15,16 +24,34 @@
         		}
         	}
 
-        	@keyframes spin {
+        	@-webkit-keyframes spin {
         		0% {
-        			transform: rotate(0);
+        			-webkit-transform: rotate(0);
+        			        transform: rotate(0);
         		}
         		100% {
-        			transform: rotate(360deg);
+        			-webkit-transform: rotate(360deg);
+        			        transform: rotate(360deg);
         		}
         	}
 
+        	@keyframes spin {
+        		0% {
+        			-webkit-transform: rotate(0);
+        			        transform: rotate(0);
+        		}
+        		100% {
+        			-webkit-transform: rotate(360deg);
+        			        transform: rotate(360deg);
+        		}
+        	}
+
+        	html {
+        		height: 100%;
+        	}
+
         	body {
+        		height: 100%;
 				margin: 0;
 				background: #4f6ab1;
 				font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -41,7 +68,8 @@
 			}
 
 			canvas {
-				animation: 1s fadeIn;
+				-webkit-animation: 1s fadeIn;
+				        animation: 1s fadeIn;
 			}
 
 			.debug-visualiser {
@@ -54,14 +82,21 @@
 				top: 0;
 				width: 100%;
 				height: 100%;
+				display: -webkit-box;
+				display: -ms-flexbox;
 				display: flex;
+				-webkit-box-align: center;
+				    -ms-flex-align: center;
+				        align-items: center;
+				-webkit-box-pack: center;
+				    -ms-flex-pack: center;
+				        justify-content: center;
 				z-index: 100;
 				/* display: none; */
 			}
 
 			.intro {
 				width: 70%;
-				margin: auto;
 				text-align: center;
 			}
 
@@ -73,7 +108,8 @@
 			}
 
 			.loading {
-				animation: fadeIn 1s alternate infinite; 
+				-webkit-animation: fadeIn 1s alternate infinite;
+				        animation: fadeIn 1s alternate infinite; 
 				margin: 0 auto;
 			}
 
@@ -90,6 +126,7 @@
 			.play {
 				opacity: 0.7;
 				cursor: pointer;
+				-webkit-transition: 0.3s;
 				transition: 0.3s;
 			}
 
