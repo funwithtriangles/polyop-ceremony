@@ -14,6 +14,7 @@ require('../threeExtras/TessellateModifier');
 require('../threeExtras/DeviceOrientationControls');
 require('../threeExtras/VRControls');
 require('../threeExtras/VREffect');
+require('../threeExtras/PointerLockControls');
 
 
 var TWEEN = require('tween.js');
