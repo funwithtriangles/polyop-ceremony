@@ -259,16 +259,6 @@ var coreMaterial = new THREE.ShaderMaterial( {
 });
 
 
-
-var endMaterial = new THREE.MeshPhongMaterial( { 
-	color: 0xffffff, 
-	specular: 0x111111,
-	shininess: 0,
-	shading: THREE.FlatShading,
-	// transparent: true,
-	// opacity: 0.6
-});
-
 var oclMaterial = new THREE.ShaderMaterial( {
 
 	uniforms:     uniforms,
