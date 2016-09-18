@@ -65,11 +65,14 @@ function loop() {
 
 	stats.begin();
 
-	TWEEN.update();
+	if (controls.params.isPlaying) {
+		TWEEN.update();
+	}
+	
 
 	timePassed = Date.now() - start;
 
-	 performanceTest.check(timePassed, fps);
+	performanceTest.check(timePassed, fps);
 
 	audioAnalyser.updateLevels();
 

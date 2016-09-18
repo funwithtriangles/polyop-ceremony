@@ -18,6 +18,7 @@ positionObject.add(innerObject);
 camera.params.positionObject = positionObject;
 
 var params = {
+  isPlaying: false,
   resetPose: function() {
 
     positionObject.rotation.x = 0;
@@ -95,16 +96,39 @@ if (mobileAndTabletcheck()) {
 
 }
 
+function play() {
+
+  params.resetPose();
+  launchIntoFullscreen(threeEnv.renderer.domElement);
+  document.querySelector('.intro').classList.add('hide');
+  params.isPlaying = true;
+  audio.play();
+
+}
+
+
+function pause() {
+
+  params.resetPose();
+  exitFullscreen();
+  document.querySelector('.intro').classList.remove('hide');
+  params.isPlaying = false;
+  audio.pause();
+}
+
 
 function pointerlockchange( event ) {
 
   if ( document.pointerLockElement === controlElement || document.mozPointerLockElement === controlElement || document.webkitPointerLockElement === controlElement ) {
 
     controls.enabled = true;
+    play();
+
 
   } else {
 
     controls.enabled = false;
+    pause();
 
   }
 
@@ -116,10 +140,20 @@ function pointerlockerror( event ) {
 
 };
 
+function fullscreenchange(event) {
+
+  var fullScreen = document.fullscreenEnabled || document.mozFullscreenEnabled || document.webkitIsFullScreen ? true : false;
+
+  if ( fullScreen ) {
+    play();
+  } else {
+    pause();
+  }
+
+}
 
 
 function startPointerLockControls() {
-
 
   controlElement.requestPointerLock = controlElement.requestPointerLock || controlElement.mozRequestPointerLock || controlElement.webkitRequestPointerLock;
 
@@ -131,11 +165,7 @@ function startPointerLockControls() {
   // pointerObject.position.z = 500;
   // camera.params.zReset = 0;
 
-
-
   innerObject.add(pointerObject);
-
-
  
   // Hook pointer lock state change events
   document.addEventListener( 'pointerlockchange', pointerlockchange, false );
@@ -160,24 +190,39 @@ function startVRControls() {
 
 
 
-function launchIntoFullscreen(element) {
+function launchIntoFullscreen() {
   if(controlElement.requestFullscreen) {
     controlElement.requestFullscreen();
-  } else if(element.mozRequestFullScreen) {
+  } else if(controlElement.mozRequestFullScreen) {
     controlElement.mozRequestFullScreen();
-  } else if(element.webkitRequestFullscreen) {
+  } else if(controlElement.webkitRequestFullscreen) {
     controlElement.webkitRequestFullscreen();
-  } else if(element.msRequestFullscreen) {
+  } else if(controlElement.msRequestFullscreen) {
     controlElement.msRequestFullscreen();
   }
 }
 
-document.querySelector('.play').addEventListener('click', function() {
-  params.resetPose();
-	launchIntoFullscreen(threeEnv.renderer.domElement);
-	audio.play();
-  document.querySelector('.intro').classList.add('hide');
+function exitFullscreen() {
 
+  if(document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if(document.mozExitFullscreen) {
+    document.mozExitFullscreen();
+  } else if(document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  } else if(document.msExitFullscreen) {
+    document.msExitFullscreen();
+  }
+
+}
+
+document.addEventListener( 'fullscreenchange', fullscreenchange, false );
+document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
+document.addEventListener( 'webkitfullscreenchange', fullscreenchange, false );
+
+document.querySelector('.play').addEventListener('click', function() {
+
+  play();
 
   if (controlMode == 'pointer') {
 
@@ -185,7 +230,29 @@ document.querySelector('.play').addEventListener('click', function() {
 
   }
 
+})
 
+document.addEventListener('keyup', function(e) {
+
+  if (e.keyCode == 32){
+
+    if (params.isPlaying) {
+      
+      pause();
+
+    } else {
+
+      play();
+
+      if (controlMode == 'pointer') {
+
+        controlElement.requestPointerLock();
+
+      }
+
+    }
+
+  }
 
 })
 
