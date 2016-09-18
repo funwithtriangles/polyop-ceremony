@@ -70,20 +70,29 @@ var timeline = [
 		event: function() {
 			mask.params.defaultPos();
 			camera.params.startOrbit();
-
+			controls.params.startOrbit();
 		}
 	},
 	{
 		time: barBeat(28, 0),
-		event: camera.params.startOrbit
+		event: function() {
+			camera.params.startOrbit();
+			controls.params.startOrbit();
+		}
 	},
 	{
 		time: barBeat(32, 0),
-		event: camera.params.startOrbit
+		event: function() {
+			camera.params.startOrbit();
+			controls.params.startOrbit();
+		}
 	},
 	{
 		time: barBeat(36, 0),
-		event: camera.params.startOrbit
+		event: function() {
+			camera.params.startOrbit();
+			controls.params.startOrbit();
+		}
 	},
 	{
 		time: barBeat(40, 0),
@@ -91,6 +100,7 @@ var timeline = [
 			crystals.params.changeSpeed(skip, 0.16);
 			crystals.params.startSpeedFlux();
 			camera.params.stopOrbit();
+			controls.params.stopOrbit();
 			controls.params.resetPose();
 			mask.params.startDancing(skip, 10)
 			tribe.params.dancePower = 10;
@@ -131,6 +141,7 @@ var timeline = [
 			cowbellRibbons = true;
 			controls.params.resetPose();
 			camera.params.stopOrbit();
+			controls.params.stopOrbit();
 			leaves.params.gotoCircle();
 			ribbons.params.startRibbons();
 			leaves.params.groupRotZ = 0.08;
@@ -312,6 +323,7 @@ var cowbellPart = new MidiPart(cowbellData, function() {
 
 	if (cowbellCamera) {
 		camera.params.startOrbit();
+		controls.params.startOrbit();
 	}
 
 	if (cowbellRibbons) {

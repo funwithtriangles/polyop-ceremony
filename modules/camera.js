@@ -10,8 +10,6 @@ var lookAt = target.position.clone();
 var orbiting = false;
 var orbitProgress = 0;
 
-var zReset = 500;
-
 lookAt.y += 100;
 
 var radius = 250;
@@ -20,6 +18,8 @@ var constant = 0.0002;
 var params = {
 	x: 0,
 	y: 0,
+	zReset: 500,
+	positionObject: camera,
 	startOrbit: function() {
 		orbiting = true;
 		orbitProgress ++;
@@ -38,16 +38,16 @@ var draw = function(timePassed) {
 
 	if (orbiting) {
 
-		camera.position.x = target.position.x + radius * Math.cos( constant * timePassed + orbitProgress );         
-		camera.position.z = target.position.z + radius * Math.sin( constant * timePassed + orbitProgress );
-		camera.position.y = target.position.y + radius * Math.cos( constant * timePassed + orbitProgress );
-		camera.lookAt( lookAt );
+		params.positionObject.position.x = target.position.x + radius * Math.cos( constant * timePassed + orbitProgress );         
+		params.positionObject.position.z = target.position.z + radius * Math.sin( constant * timePassed + orbitProgress );
+		params.positionObject.position.y = target.position.y + radius * Math.cos( constant * timePassed + orbitProgress );
+		params.positionObject.lookAt( lookAt );
 	
 	} else {
 
-		camera.position.x = params.x;
-		camera.position.y = params.y;
-		camera.position.z = zReset;
+		params.positionObject.position.x = params.x;
+		params.positionObject.position.y = params.y;
+		params.positionObject.position.z = params.zReset;
 	
 	}
 	

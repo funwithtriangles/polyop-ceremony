@@ -7,16 +7,57 @@ var controlMode;
 
 var controlElement = document.body;
 
+var positionObject, innerObject, pointerObject;
 
+var positionObject = new THREE.Object3D();
+var innerObject = new THREE.Object3D();
+
+threeEnv.scene.add(positionObject);
+positionObject.add(innerObject);
+
+camera.params.positionObject = positionObject;
 
 var params = {
   resetPose: function() {
 
+    positionObject.rotation.x = 0;
+    positionObject.rotation.y = 0;
+    positionObject.rotation.z = 0;
+
     if (controlMode == 'VR') {
+
         controls.resetPose();
+
     } else {
-      // pointerlock reset here
+       
+        // Yaw
+        innerObject.children[0].rotation.x = 0;
+        innerObject.children[0].rotation.y = 0;
+        innerObject.children[0].rotation.z = 0;
+
+        // Pitch
+        innerObject.children[0].children[0].rotation.x = 0;
+        innerObject.children[0].children[0].rotation.y = 0;
+        innerObject.children[0].children[0].rotation.z = 0;
+
+
+
+        // camera.params.object.children[0].rotation.set(new THREE.Vector3( 0, 0, 0));
+        // camera.params.object.children[0].children[0].rotation.set(new THREE.Vector3( 0, 0, 0));
+
     }
+  },
+  startOrbit: function() {
+
+    params.resetPose();
+    innerObject.rotation.y = Math.PI;
+    
+
+  },
+  stopOrbit: function() {
+
+    innerObject.rotation.y = 0;
+
   }
 }
 
@@ -57,8 +98,6 @@ if (mobileAndTabletcheck()) {
 
 function pointerlockchange( event ) {
 
-  console.log(event);
-
   if ( document.pointerLockElement === controlElement || document.mozPointerLockElement === controlElement || document.webkitPointerLockElement === controlElement ) {
 
     controls.enabled = true;
@@ -81,12 +120,20 @@ function pointerlockerror( event ) {
 
 function startPointerLockControls() {
 
+
   controlElement.requestPointerLock = controlElement.requestPointerLock || controlElement.mozRequestPointerLock || controlElement.webkitRequestPointerLock;
 
   controlMode = 'pointer';
 
   controls = new THREE.PointerLockControls(threeEnv.camera);
-  threeEnv.scene.add( controls.getObject() );
+
+  var pointerObject = controls.getObject();
+  // pointerObject.position.z = 500;
+  // camera.params.zReset = 0;
+
+
+
+  innerObject.add(pointerObject);
 
 
  
@@ -106,6 +153,8 @@ function startVRControls() {
 
   controlMode = 'VR';
   controls = new THREE.VRControls(threeEnv.camera);
+
+  innerObject.add(threeEnv.camera);
 
 }
 
