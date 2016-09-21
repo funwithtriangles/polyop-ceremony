@@ -20,27 +20,68 @@ var TextMesh = function(pathString, detail, scale) {
 
 	// wrap it in a mesh and material
 	var material = new THREE.MeshBasicMaterial({
-	  side: THREE.BackSide,
+	  side: THREE.DoubleSide,
 	  transparent: true,
 	  opacity: 1
 	  // wireframe: true
 	});
+
+	this.megaGroup = new THREE.Object3D();
+
+	this.group1 = new THREE.Object3D();
+
 	
-	this.mesh = new THREE.Mesh(geometry, material);
+	this.mesh1 = new THREE.Mesh(geometry, material);
+	this.mesh1.visible = false;
 
-	this.mesh.visible = false;
+	//this.group.visible = false;
 
-	this.mesh.scale.set(scale, scale, scale);
+	this.mesh1.scale.set(scale, scale, scale);
 
-	threeEnv.scene.add(this.mesh);
+	// Behind
+	this.mesh2 = this.mesh1.clone();
+	this.mesh2.rotation.y = Math.PI;
+	this.mesh2.position.z = 1000;
+
+	// Left
+	this.mesh3 = this.mesh1.clone();
+	this.mesh3.position.x = -500;
+	this.mesh3.rotation.y = Math.PI/2;
+	this.mesh3.position.z = 500;
+
+	// Right
+	this.mesh4 = this.mesh1.clone();
+	this.mesh4.position.x = 500;
+	this.mesh4.rotation.y = -Math.PI/2;
+	this.mesh4.position.z = 500;
+
+
+	this.group1.add(this.mesh1);
+	this.group1.add(this.mesh2);
+	this.group1.add(this.mesh3);
+	this.group1.add(this.mesh4);
+
+	this.group2 = this.group1.clone();
+	this.group3 = this.group1.clone();
+
+	this.group2.position.y = 500;
+	this.group3.position.y = -500;
+
+	this.megaGroup.add(this.group1);
+	this.megaGroup.add(this.group2);
+	this.megaGroup.add(this.group3);
+	
+
+	threeEnv.scene.add(this.megaGroup);
+
 
 
 	this.enter = function() {
-		that.mesh.visible = true;
+		that.megaGroup.traverse( function ( object ) { object.visible = true; } );
 	}
 
 	this.exit = function() {
-		that.mesh.visible = false;
+		that.megaGroup.traverse( function ( object ) { object.visible = false; } );
 	}
 
 	this.exitFancy = function(skip) {
@@ -51,12 +92,12 @@ var TextMesh = function(pathString, detail, scale) {
 		    .to({opacity: 0}, 5000)
 		    .start()
 		    .onComplete(function() {
-		    	that.mesh.visible = false;
+		    	that.megaGroup.visible = false;
 		    });
 
 		} else {
 
-			that.mesh.visible = false;
+			that.megaGroup.visible = false;
 	
 		}
 		
