@@ -46,47 +46,111 @@
         		}
         	}
 
-        	@keyframes look {
+        	@-webkit-keyframes look {
 				0% {
-					transform: rotateY(0);
+					-webkit-transform: rotateY(0);
+					        transform: rotateY(0);
 				}
 
 				20% {
-					transform: rotateY(-45deg);
+					-webkit-transform: rotateY(-45deg);
+					        transform: rotateY(-45deg);
 				}
 
 				50% {
-					transform: rotateY(45deg);
+					-webkit-transform: rotateY(45deg);
+					        transform: rotateY(45deg);
 				}
 
 				70% {
-					transform: rotateX(30deg);
+					-webkit-transform: rotateX(30deg);
+					        transform: rotateX(30deg);
 				}
 
 				90% {
-					transform: rotateX(0);
+					-webkit-transform: rotateX(0);
+					        transform: rotateX(0);
+				}
+        	}
+
+        	@keyframes look {
+				0% {
+					-webkit-transform: rotateY(0);
+					        transform: rotateY(0);
+				}
+
+				20% {
+					-webkit-transform: rotateY(-45deg);
+					        transform: rotateY(-45deg);
+				}
+
+				50% {
+					-webkit-transform: rotateY(45deg);
+					        transform: rotateY(45deg);
+				}
+
+				70% {
+					-webkit-transform: rotateX(30deg);
+					        transform: rotateX(30deg);
+				}
+
+				90% {
+					-webkit-transform: rotateX(0);
+					        transform: rotateX(0);
+				}
+        	}
+
+        	@-webkit-keyframes wiggle {
+				0% {
+					-webkit-transform: translate();
+					        transform: translate();
+				}
+
+				20% {
+					-webkit-transform: translate(0.5rem, 0.5rem);
+					        transform: translate(0.5rem, 0.5rem);
+				}
+
+				50% {
+					-webkit-transform: translate(-0.2rem, 0.2rem);
+					        transform: translate(-0.2rem, 0.2rem);
+				}
+
+				70% {
+					-webkit-transform: translate(0.5rem, -0.2rem);
+					        transform: translate(0.5rem, -0.2rem);
+				}
+
+				90% {
+					-webkit-transform: rotateX(0);
+					        transform: rotateX(0);
 				}
         	}
 
         	@keyframes wiggle {
 				0% {
-					transform: translate();
+					-webkit-transform: translate();
+					        transform: translate();
 				}
 
 				20% {
-					transform: translate(0.5rem, 0.5rem);
+					-webkit-transform: translate(0.5rem, 0.5rem);
+					        transform: translate(0.5rem, 0.5rem);
 				}
 
 				50% {
-					transform: translate(-0.2rem, 0.2rem);
+					-webkit-transform: translate(-0.2rem, 0.2rem);
+					        transform: translate(-0.2rem, 0.2rem);
 				}
 
 				70% {
-					transform: translate(0.5rem, -0.2rem);
+					-webkit-transform: translate(0.5rem, -0.2rem);
+					        transform: translate(0.5rem, -0.2rem);
 				}
 
 				90% {
-					transform: rotateX(0);
+					-webkit-transform: rotateX(0);
+					        transform: rotateX(0);
 				}
         	}
 
@@ -191,15 +255,23 @@
 				bottom: 5%;
 				left: 0;
 				z-index: 100;
-				perspective: 500px;
+				-webkit-perspective: 500px;
+				        perspective: 500px;
 				opacity: 0;
+				-webkit-transition: 0.3s;
 				transition: 0.3s;
 			}
 
 			.hint {
+				display: -webkit-box;
+				display: -ms-flexbox;
 				display: flex;
-				align-items: center;
-				justify-content: center;
+				-webkit-box-align: center;
+				    -ms-flex-align: center;
+				        align-items: center;
+				-webkit-box-pack: center;
+				    -ms-flex-pack: center;
+				        justify-content: center;
 				font-size: 1rem;
 			}
 
@@ -208,6 +280,8 @@
 			}
 
 			.is-mobile .hint-mobile {
+				display: -webkit-box;
+				display: -ms-flexbox;
 				display: flex;
 			}
 
@@ -220,16 +294,20 @@
 			}
 
 			.hint svg {
-				flex: 0 0 3rem;
+				-webkit-box-flex: 0;
+				    -ms-flex: 0 0 3rem;
+				        flex: 0 0 3rem;
 				margin-right: 1rem;
 			}
 
 			.hint-mobile svg {
-				animation: look 4s infinite ease-in-out;
+				-webkit-animation: look 4s infinite ease-in-out;
+				        animation: look 4s infinite ease-in-out;
 			}
 
 			.hint-mouse svg {
-				animation: wiggle 4s infinite ease-in-out;
+				-webkit-animation: wiggle 4s infinite ease-in-out;
+				        animation: wiggle 4s infinite ease-in-out;
 			}
 
 			.landscape-warning {
@@ -242,7 +320,7 @@
 			 		display: block;
 			 	}
 			}
-
+			
         </style>
     </head>
     <body>
