@@ -28,6 +28,7 @@ var vLight = require('./vLight');
 var camera = require('./camera');
 var titles = require('./titles');
 var controls = require('./controls');
+var messaging = require('./messaging');
 
 var now;
 
@@ -41,6 +42,18 @@ var barBeat = function(bar, beat) {
 
 
 var timeline = [
+	{
+		time: 1,
+		event: function() {
+			messaging.showHint();
+		}
+	},
+	{
+		time: 8,
+		event: function() {
+			messaging.hideHint();
+		}
+	},
 	{
 		time: 8.5,
 		event: titles.nudibranch.enter

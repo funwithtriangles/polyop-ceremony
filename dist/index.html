@@ -46,6 +46,31 @@
         		}
         	}
 
+        	@keyframes look {
+				0% {
+					transform: rotateY(0);
+				}
+
+				20% {
+					transform: rotateY(-45deg);
+				}
+
+				50% {
+					transform: rotateY(45deg);
+				}
+
+				70% {
+					transform: rotateX(30deg);
+				}
+
+				90% {
+					transform: rotateX(0);
+				}
+
+
+
+        	}
+
         	html {
         		height: 100%;
         	}
@@ -139,6 +164,31 @@
 				display: none;
 			}
 
+			.hint {
+				position: absolute;
+				width: 100%;
+				bottom: 5%;
+				left: 0;
+				z-index: 100;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1rem;
+				perspective: 500px;
+				opacity: 0;
+				transition: 0.3s;
+			}
+
+			.hint.show {
+				opacity: 1;
+			}
+
+			.hint svg {
+				flex: 0 0 3rem;
+				margin-right: 1rem;
+				animation: look 4s infinite ease-in-out;
+			}
+
 			.landscape-warning {
 				display: none;
 				font-size: 1.5rem;
@@ -177,6 +227,15 @@
 				<span class="status">Loading</span>
 				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
+		</div>
+
+		<div class="hint">
+			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+
+				<path fill="#FFFFFF" d="M368 0h-224c-26.4 0-48 21.6-48 48v416c0 26.4 21.6 48 48 48h224c26.4 0 48-21.6 48-48v-416c0-26.4-21.6-48-48-48zM192 24h128v16h-128v-16zM256 480c-17.673 0-32-14.327-32-32s14.327-32 32-32 32 14.327 32 32-14.327 32-32 32zM384 384h-256v-320h256v320z"></path>
+			</svg>
+			<p>Tilt or drag to look around</p>
+
 		</div>
 
 		<audio preload="auto" controls>

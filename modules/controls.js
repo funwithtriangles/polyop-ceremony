@@ -99,7 +99,7 @@ if (mobileAndTabletcheck()) {
 function play() {
 
   params.resetPose();
-  launchIntoFullscreen(threeEnv.renderer.domElement);
+  launchIntoFullscreen(document.body);
   document.querySelector('.intro').classList.add('hide');
   params.isPlaying = true;
   audio.play();
