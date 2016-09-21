@@ -1,4 +1,4 @@
-var elHint = document.querySelector('.hint');
+var elHint = document.querySelector('.hint-container');
 
 var showHint = function() {
 	elHint.classList.add('show');

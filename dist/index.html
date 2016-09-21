@@ -66,9 +66,28 @@
 				90% {
 					transform: rotateX(0);
 				}
+        	}
 
+        	@keyframes wiggle {
+				0% {
+					transform: translate();
+				}
 
+				20% {
+					transform: translate(0.5rem, 0.5rem);
+				}
 
+				50% {
+					transform: translate(-0.2rem, 0.2rem);
+				}
+
+				70% {
+					transform: translate(0.5rem, -0.2rem);
+				}
+
+				90% {
+					transform: rotateX(0);
+				}
         	}
 
         	html {
@@ -116,7 +135,7 @@
 				-webkit-box-pack: center;
 				    -ms-flex-pack: center;
 				        justify-content: center;
-				z-index: 100;
+				z-index: 101;
 				/* display: none; */
 			}
 
@@ -149,10 +168,12 @@
 			}
 
 			.play {
+				position: relative;
 				opacity: 0.7;
 				cursor: pointer;
 				-webkit-transition: 0.3s;
 				transition: 0.3s;
+				z-index: 100;
 			}
 
 			.play:hover {
@@ -164,29 +185,51 @@
 				display: none;
 			}
 
-			.hint {
+			.hint-container {
 				position: absolute;
 				width: 100%;
 				bottom: 5%;
 				left: 0;
 				z-index: 100;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				font-size: 1rem;
 				perspective: 500px;
 				opacity: 0;
 				transition: 0.3s;
 			}
 
-			.hint.show {
+			.hint {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 1rem;
+			}
+
+			.hint-mobile {
+				display: none;
+			}
+
+			.is-mobile .hint-mobile {
+				display: flex;
+			}
+
+			.is-mobile .hint-mouse {
+				display: none;
+			}
+
+			.hint-container.show {
 				opacity: 1;
 			}
 
 			.hint svg {
 				flex: 0 0 3rem;
 				margin-right: 1rem;
+			}
+
+			.hint-mobile svg {
 				animation: look 4s infinite ease-in-out;
+			}
+
+			.hint-mouse svg {
+				animation: wiggle 4s infinite ease-in-out;
 			}
 
 			.landscape-warning {
@@ -229,12 +272,25 @@
 	    	</div>
 		</div>
 
-		<div class="hint">
-			<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+		<div class="hint-container">
+			<div class="hint-mobile hint">
+				<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
 
-				<path fill="#FFFFFF" d="M368 0h-224c-26.4 0-48 21.6-48 48v416c0 26.4 21.6 48 48 48h224c26.4 0 48-21.6 48-48v-416c0-26.4-21.6-48-48-48zM192 24h128v16h-128v-16zM256 480c-17.673 0-32-14.327-32-32s14.327-32 32-32 32 14.327 32 32-14.327 32-32 32zM384 384h-256v-320h256v320z"></path>
-			</svg>
-			<p>Tilt or drag to look around</p>
+					<path fill="#FFFFFF" d="M368 0h-224c-26.4 0-48 21.6-48 48v416c0 26.4 21.6 48 48 48h224c26.4 0 48-21.6 48-48v-416c0-26.4-21.6-48-48-48zM192 24h128v16h-128v-16zM256 480c-17.673 0-32-14.327-32-32s14.327-32 32-32 32 14.327 32 32-14.327 32-32 32zM384 384h-256v-320h256v320z"></path>
+				</svg>
+				<p>Tilt or drag to look around</p>
+			</div>
+
+			<div class="hint-mouse hint">
+				<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+
+					<svg fill="#FFFFFF" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+					<path d="M397.759 318.145l-76.8-128c-35.532-59.222-111.393-79.334-171.395-46.317-12.93-23.235-21.564-45.225-21.564-63.828 0-17.485 3.79-40.151 21.843-48.83 1.368-0.658 3.435-1.651 5.47-3.687 6.249-6.249 6.249-16.379 0-22.628-5.266-5.266-13.29-6.094-19.421-2.484-25.726 12.414-39.892 39.978-39.892 77.629 0 25.991 11.055 54.009 27.449 82.79-42.94 40.348-53.559 106.479-22.008 159.065l76.8 128c24.001 40.003 66.395 62.164 109.88 62.164 22.411 0 45.118-5.891 65.734-18.26 60.619-36.37 80.275-114.996 43.904-175.614zM236.069 297.825c-4.576 2.912-9.688 4.303-14.737 4.303-9.090 0-17.985-4.503-23.228-12.74l-36.771-57.782c-8.153-12.813-4.376-29.811 8.438-37.965 12.812-8.154 29.81-4.377 37.965 8.437l36.771 57.782c8.153 12.814 4.376 29.811-8.438 37.965z"></path>
+					</svg>
+
+				</svg>
+				<p>Move mouse to look around</p>
+			</div>
 
 		</div>
 

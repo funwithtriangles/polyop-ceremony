@@ -85,6 +85,7 @@ var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement
 if (mobileAndTabletcheck()) {
 
   startVRControls();
+  document.body.classList.add('is-mobile');
 
 } else if (havePointerLock) {
 
@@ -99,7 +100,8 @@ if (mobileAndTabletcheck()) {
 function play() {
 
   params.resetPose();
-  launchIntoFullscreen(document.body);
+  // launchIntoFullscreen(document.body);
+  launchIntoFullscreen(threeEnv.renderer.domElement);
   document.querySelector('.intro').classList.add('hide');
   params.isPlaying = true;
   audio.play();
