@@ -93,7 +93,7 @@ if (mobileAndTabletcheck()) {
 
 } else {
 
-  startVRControlsControls();
+  startVRControls();
 
 }
 
