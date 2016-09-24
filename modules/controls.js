@@ -60,7 +60,8 @@ var params = {
 
     innerObject.rotation.y = 0;
 
-  }
+  },
+  pause: pause
 }
 
 
@@ -212,7 +213,7 @@ function exitFullscreen() {
 
   if(document.exitFullscreen) {
     document.exitFullscreen();
-  } else if(document.mozExitFullscreen) {
+  } else if(document.mozxitFullscreen) {
     document.mozExitFullscreen();
   } else if(document.webkitExitFullscreen) {
     document.webkitExitFullscreen();

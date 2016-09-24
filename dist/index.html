@@ -320,7 +320,28 @@
 			 		display: block;
 			 	}
 			}
+
+			.sticker {
+				border-radius: 1000px;
+			}
+
+			.sell-container {
+				padding: 1rem;
+				text-align: center;
+				display: none;
+				color: white;
+				text-decoration: none;
+				animation: fadeIn 0.3s;
+			}
+
+			.sell-container.show {
+				display: block;
+			}
 			
+			.sell-container img {
+				max-width: 100%;
+			}
+
         </style>
     </head>
     <body>
@@ -348,6 +369,15 @@
 				<span class="status">Loading</span>
 				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
+
+	    	<a href="https://polyop.bandcamp.com/merch/ceremony-vinyl-only" class="sell-container" data-sell  onclick="trackOutboundLink('https://polyop.bandcamp.com/merch/ceremony-vinyl-only'); return false;">
+				
+
+				<img class="sticker" src="sticker.jpg">
+				<h2>Preorder Vinyl Now</h2>
+			
+
+			</a>
 		</div>
 
 		<div class="hint-container">
@@ -372,6 +402,8 @@
 
 		</div>
 
+
+
 		<audio preload="auto" controls>
 			<source src="ceremony.mp3" type="audio/mpeg">
 		</audio>
@@ -384,6 +416,13 @@
 
 		  ga('create', 'UA-60252396-1', 'auto');
 		  ga('send', 'pageview');
+
+		  function trackOutboundLink(url) {
+		   ga('send', 'event', 'outbound', 'click', url, {
+		     'transport': 'beacon',
+		     'hitCallback': function(){document.location = url;}
+		   });
+		}
 
 		</script>
 
@@ -418,6 +457,8 @@
 			document.querySelector('.loading').classList.add('hide');
 			document.querySelector('.status').innerHTML = "&nbsp;";
 		})
+
+
         </script>
 
 

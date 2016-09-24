@@ -295,6 +295,13 @@ var timeline = [
 			mask.params.zoomIn();
 			analytics.event('finished');
 		}
+	},
+	{
+		time: barBeat(129, 0),
+		event: function(skip) {
+			controls.params.pause();
+			messaging.endState();
+		}
 	}
 ]
 
