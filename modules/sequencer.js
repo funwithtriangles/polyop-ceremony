@@ -29,6 +29,7 @@ var camera = require('./camera');
 var titles = require('./titles');
 var controls = require('./controls');
 var messaging = require('./messaging');
+var analytics = require('./analytics');
 
 var now;
 
@@ -72,6 +73,7 @@ var timeline = [
 			titles.polyop.exitFancy();
 			mask.params.enterScene();
 			tribe.params.enterMasks();
+			analytics.event('opening');
 		}
 	},
 	{
@@ -133,6 +135,12 @@ var timeline = [
 		event: function(skip) {
 			crystals.params.fadeOut(skip);
 			ribbons.params.startRibbons();
+		}
+	},
+	{
+		time: barBeat(50, 0),
+		event: function(skip) {
+			analytics.event('ribbons');
 		}
 	},
 	{
@@ -209,6 +217,7 @@ var timeline = [
 			vLight.params.fadeIn(skip);
 			threeEnv.params.fadeToBlack();
 			leaves.params.particleRot = 0;
+			analytics.event('rumble');
 		}
 	},
 	{
@@ -284,6 +293,7 @@ var timeline = [
 			crystals.params.lightIntensity = 0.4;
 			vLight.params.fadeOut();
 			mask.params.zoomIn();
+			analytics.event('finished');
 		}
 	}
 ]

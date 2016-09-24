@@ -37,6 +37,7 @@ var controls = require('./controls');
 var clock = require('./clock');
 var sequencer = require('./sequencer');
 var performanceTest = require('./performanceTest');
+var analytics = require('./analytics');
 
 var lastLoop = new Date;
 
@@ -72,6 +73,7 @@ function loop() {
 
 	timePassed = Date.now() - start;
 
+	analytics.update(fps);
 	performanceTest.check(timePassed, fps);
 
 	audioAnalyser.updateLevels();
@@ -91,6 +93,7 @@ function loop() {
 	lines.draw(timePassed);
 	vLight.draw(timePassed);
 	camera.draw(timePassed);
+
 
 
 	composers.draw(timePassed);

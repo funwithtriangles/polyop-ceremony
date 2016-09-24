@@ -2,6 +2,7 @@ var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var camera = require('./camera');
 var audio = require('./audioAnalyser').audio;
+var analytics = require('./analytics');
 
 var controlMode;
 
@@ -99,6 +100,8 @@ if (mobileAndTabletcheck()) {
 
 function play() {
 
+  analytics.event('play');
+
   params.resetPose();
   // launchIntoFullscreen(document.body);
   launchIntoFullscreen(threeEnv.renderer.domElement);
@@ -111,6 +114,7 @@ function play() {
 
 function pause() {
 
+  analytics.event('pause');
   params.resetPose();
   exitFullscreen();
   document.querySelector('.intro').classList.remove('hide');
