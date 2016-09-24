@@ -331,6 +331,7 @@
 				display: none;
 				color: white;
 				text-decoration: none;
+				-webkit-animation: fadeIn 0.3s;
 				animation: fadeIn 0.3s;
 			}
 
@@ -339,7 +340,13 @@
 			}
 			
 			.sell-container img {
-				max-width: 100%;
+				max-width: 40%;
+			}
+
+			@media all and (min-height: 500px) {
+			 	.sell-container img {
+			 		max-width: 100%;
+			 	}
 			}
 
         </style>
@@ -347,7 +354,7 @@
     <body>
 		
 		<div class="text">
-	    	<div class="intro">
+	    	<div class="intro hide">
 				<p class="landscape-warning"><strong>For best results, please rotate your device to landscape.</strong></p>
 
 	    		<div class="icon">
@@ -370,7 +377,7 @@
 				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
 
-	    	<a href="https://polyop.bandcamp.com/merch/ceremony-vinyl-only" class="sell-container" data-sell  onclick="trackOutboundLink('https://polyop.bandcamp.com/merch/ceremony-vinyl-only'); return false;">
+	    	<a href="https://polyop.bandcamp.com/merch/ceremony-vinyl-only" class="sell-container show" data-sell  onclick="trackOutboundLink('https://polyop.bandcamp.com/merch/ceremony-vinyl-only'); return false;">
 				
 
 				<img class="sticker" src="sticker.jpg">
