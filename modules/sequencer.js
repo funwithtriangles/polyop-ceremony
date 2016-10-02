@@ -297,10 +297,10 @@ var timeline = [
 		}
 	},
 	{
-		time: barBeat(129, 0),
+		time: barBeat(130, 0),
 		event: function(skip) {
-			controls.params.pause();
 			messaging.endState();
+			controls.params.end();
 		}
 	}
 ]

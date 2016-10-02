@@ -61,8 +61,10 @@ var params = {
     innerObject.rotation.y = 0;
 
   },
-  pause: pause
+  pause: pause,
+  end: end
 }
+
 
 
 // var effect = new THREE.VREffect( threeEnv.renderer );
@@ -98,6 +100,13 @@ if (mobileAndTabletcheck()) {
   startVRControls();
 
 }
+
+function end() {
+  if (!mobileAndTabletcheck()) {
+    exitFullscreen();
+  }
+}
+
 
 function play() {
 
