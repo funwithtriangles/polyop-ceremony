@@ -50,9 +50,15 @@ function init() {
 	threeEnv.renderer.setSize( window.innerWidth, window.innerHeight );
 	start = Date.now();
 
-	stats = new Stats();
-	stats.showPanel( 0 );
+	// stats = new Stats();
+	// stats.showPanel( 0 );
 	// document.body.appendChild( stats.dom );
+
+	ga('send', 'event', 'Ceremony', 'loaded');
+	document.querySelector('.play').classList.remove('hide');
+	document.querySelector('.loading').classList.add('hide');
+	document.querySelector('.status').innerHTML = "&nbsp;";
+
 
 	loop();
 }
@@ -64,7 +70,7 @@ function loop() {
     lastLoop = thisLoop;
    
 
-	stats.begin();
+	// stats.begin();
 
 	if (controls.params.isPlaying) {
 		TWEEN.update();
@@ -98,7 +104,7 @@ function loop() {
 
 	composers.draw(timePassed);
 	
-	stats.end();
+	// stats.end();
 
   	requestAnimationFrame( loop );
     
