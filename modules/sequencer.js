@@ -297,7 +297,7 @@ var timeline = [
 		}
 	},
 	{
-		time: barBeat(130, 0),
+		time: barBeat(132, 0),
 		event: function(skip) {
 			messaging.endState();
 			controls.params.end();
