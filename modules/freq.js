@@ -127,6 +127,12 @@ Freq.prototype.Stream.prototype.pause = function() {
 
 }
 
+Freq.prototype.Stream.prototype.getTime = function() {
+	  
+	return (Date.now() - this.startedAt) / 1000;
+
+}
+
 // Update band data (should only happen once per tick)
 Freq.prototype.Stream.prototype.update = function() {
 

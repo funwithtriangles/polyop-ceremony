@@ -73,8 +73,12 @@ function loop() {
 	// stats.begin();
 
 	if (controls.params.isPlaying) {
+
+		clock.run();
 		TWEEN.update();
 		audioAnalyser.updateLevels();
+		sequencer.run();
+		
 	}
 	
 
@@ -85,8 +89,8 @@ function loop() {
 
 
 
-	clock.run();
-	sequencer.run();
+	
+	
 	controls.run(timePassed);
 	threeEnv.run();
 
@@ -95,7 +99,7 @@ function loop() {
 	leaves.draw(timePassed);
 	mask.draw(timePassed);
 	tribe.draw(timePassed);
-	// crystals.draw(timePassed);
+    crystals.draw(timePassed);
 	ribbons.draw(timePassed);
 	lines.draw(timePassed);
 	vLight.draw(timePassed);

@@ -104,7 +104,7 @@ var getLevels = function() {
 }
 
 var getTime = function() {
-	return audio.currentTime
+	return stream.getTime();
 }
 
 module.exports = {
