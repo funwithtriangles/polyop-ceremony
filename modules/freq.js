@@ -1,5 +1,3 @@
-var bufferTools = require('./bufferTools');
-
 // Overwrite properties of one object with another
 var extend = function() {
   var extended = {};
@@ -16,26 +14,36 @@ var extend = function() {
   return extended;
 };
 
+
+
 Freq = function() {
 	this.streams = [];
 };
 
-Freq.prototype.createStream = function( context, settings ) {
+Freq.prototype.createStream = function( url, context, settings ) {
 
-	var stream = new this.Stream( context, settings );
+	var stream = new this.Stream( url, context, settings );
 
 	this.streams.push( stream );
 
 	return stream;
 }
 
-Freq.prototype.Stream = function( context, settings ) {
+Freq.prototype.Stream = function( url, context, settings ) {
+
+	    
+	var that = this;
+
+	var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
+    request.onload = function() {
+        context.decodeAudioData(request.response, onBufferLoad, onBufferError);
+    };
+    request.send();
+
 
 	this.context = context;
-
-	bufferTools.loadSounds(this, {
-		buffer: 'ceremony.mp3'
-	});
 
 	this.defaults = {
 		bandVals: [
@@ -76,6 +84,15 @@ Freq.prototype.Stream = function( context, settings ) {
 
 		this.bands.push( new Band( lower, upper, this.freqDomain ) );
 	}
+
+
+	function onBufferLoad(b) {
+		that.buffer = b;
+	}
+
+	function onBufferError(e) {
+	    console.onBufferError('onBufferError', e);
+	};
 
 }
 

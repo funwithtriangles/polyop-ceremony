@@ -69,7 +69,7 @@ smoothing.onChange(function(value) {
 
 
 // Create a stream
-stream = analyser.createStream(audioContext, {
+stream = analyser.createStream('ceremony.mp3', audioContext, {
 	bandVals: [
 		[ params['a0'], params['a1'] ],
 		[ params['b0'], params['b1'] ],
