@@ -16,6 +16,8 @@ var initScripts = function() {
 }
 
 var loadingAudio = function() {
+
+	document.querySelector('.landscape-warning').classList.remove('hide');
 	elStatus.innerHTML = "Downloading Audio";
 }
 
