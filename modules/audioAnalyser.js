@@ -1,6 +1,7 @@
 var Freq = require('./freq');
 var gui = require('./gui');
 var guiFolder = gui.addFolder('Frequencies');
+var messaging = require('./messaging');
 
 var audioContext, analyser, source, stream, freqs;
 
@@ -12,6 +13,8 @@ document.body.appendChild( elVisualiser );
 
 var bufferScope;
 
+
+messaging.loadingAudio();
 
 audioContext = new( window.AudioContext || window.webkitAudioContext );
 // Set up audio lib

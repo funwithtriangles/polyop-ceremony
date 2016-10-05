@@ -54,12 +54,6 @@ function init() {
 	// stats.showPanel( 0 );
 	// document.body.appendChild( stats.dom );
 
-	ga('send', 'event', 'Ceremony', 'loaded');
-	document.querySelector('.play').classList.remove('hide');
-	document.querySelector('.loading').classList.add('hide');
-	document.querySelector('.status').innerHTML = "&nbsp;";
-
-
 	loop();
 }
 
@@ -78,7 +72,7 @@ function loop() {
 		TWEEN.update();
 		audioAnalyser.updateLevels();
 		sequencer.run();
-		
+
 	}
 	
 

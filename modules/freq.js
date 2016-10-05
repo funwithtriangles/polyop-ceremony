@@ -1,3 +1,5 @@
+var messaging = require('./messaging');
+
 // Overwrite properties of one object with another
 var extend = function() {
   var extended = {};
@@ -38,6 +40,8 @@ Freq.prototype.Stream = function( url, context, settings ) {
     request.open('GET', url, true);
     request.responseType = 'arraybuffer';
     request.onload = function() {
+
+    	messaging.decodingAudio();
         context.decodeAudioData(request.response, onBufferLoad, onBufferError);
     };
     request.send();
@@ -88,6 +92,8 @@ Freq.prototype.Stream = function( url, context, settings ) {
 
 	function onBufferLoad(b) {
 		that.buffer = b;
+
+		messaging.ready();
 	}
 
 	function onBufferError(e) {
