@@ -54,12 +54,6 @@ function init() {
 	// stats.showPanel( 0 );
 	// document.body.appendChild( stats.dom );
 
-	ga('send', 'event', 'Ceremony', 'loaded');
-	document.querySelector('.play').classList.remove('hide');
-	document.querySelector('.loading').classList.add('hide');
-	document.querySelector('.status').innerHTML = "&nbsp;";
-
-
 	loop();
 }
 
@@ -73,7 +67,12 @@ function loop() {
 	// stats.begin();
 
 	if (controls.params.isPlaying) {
+
+		clock.run();
 		TWEEN.update();
+		audioAnalyser.updateLevels();
+		sequencer.run();
+
 	}
 	
 
@@ -82,10 +81,10 @@ function loop() {
 	analytics.update(fps);
 	performanceTest.check(timePassed, fps);
 
-	audioAnalyser.updateLevels();
 
-	clock.run();
-	sequencer.run();
+
+	
+	
 	controls.run(timePassed);
 	threeEnv.run();
 
@@ -94,7 +93,7 @@ function loop() {
 	leaves.draw(timePassed);
 	mask.draw(timePassed);
 	tribe.draw(timePassed);
-	crystals.draw(timePassed);
+    crystals.draw(timePassed);
 	ribbons.draw(timePassed);
 	lines.draw(timePassed);
 	vLight.draw(timePassed);

@@ -15,7 +15,7 @@ var tick = 0;
 
 
 var deltaStep = Math.PI / params.ppq;
-var marker = audioAnalyser.getTime();
+var marker;
 var now;
 
 var pulse = function() {
@@ -31,14 +31,21 @@ var pulse = function() {
 	lfo.sineTwo = Math.sin(deltaStep / 2 * tick);
 	lfo.sineBar = Math.sin(deltaStep / 4 * tick);
 
+
 }
 
 
 var run = function() {
+
+	if (!marker) {
+		marker = audioAnalyser.getTime();
+	}
+
 	now = audioAnalyser.getTime();
 
 	// Check to see if time passed is more than time per pulse
 	var result = now - marker;
+
 
 	while (result > params.spp) {
 		// Pulse if so

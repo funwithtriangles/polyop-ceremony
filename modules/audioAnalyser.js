@@ -1,6 +1,7 @@
 var Freq = require('./freq');
 var gui = require('./gui');
 var guiFolder = gui.addFolder('Frequencies');
+var messaging = require('./messaging');
 
 var audioContext, analyser, source, stream, freqs;
 
@@ -10,11 +11,12 @@ var elVisualiser = document.createElement("div");
 elVisualiser.className = "debug-visualiser";
 document.body.appendChild( elVisualiser );
 
+var bufferScope;
+
+
+messaging.loadingAudio();
 
 audioContext = new( window.AudioContext || window.webkitAudioContext );
-
-source = audioContext.createMediaElementSource(audio);
-
 // Set up audio lib
 analyser = new Freq(audioContext);
 
@@ -68,8 +70,9 @@ smoothing.onChange(function(value) {
 	stream.updateSmoothing(value);
 });
 
+
 // Create a stream
-stream = analyser.createStream(source, {
+stream = analyser.createStream('ceremony.mp3', audioContext, {
 	bandVals: [
 		[ params['a0'], params['a1'] ],
 		[ params['b0'], params['b1'] ],
@@ -81,9 +84,20 @@ stream = analyser.createStream(source, {
 // Create a new visualiser from stream passing in an empty div
 // stream.visualiser(elVisualiser);
 
+var play = function() {
+
+	stream.play();
+
+}
+
+var pause = function() {
+
+	stream.pause();
+}
 
 // Should only happen once per tick
 var updateLevels = function() {
+
 	stream.update();
 }
 
@@ -93,12 +107,14 @@ var getLevels = function() {
 }
 
 var getTime = function() {
-	return audio.currentTime
+	return stream.getTime();
 }
 
 module.exports = {
 	getLevels: getLevels,
 	updateLevels: updateLevels,
 	getTime: getTime,
-	audio: audio
+	audio: audio,
+	play: play,
+	pause: pause
 }

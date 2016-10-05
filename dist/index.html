@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1" />
         <style>
 
         	@-webkit-keyframes fadeIn {
@@ -14,7 +14,7 @@
         			opacity: 1;
         		}
         	}
-
+  
         	@keyframes fadeIn {
         		0% {
         			opacity: 0;
@@ -23,7 +23,7 @@
         			opacity: 1;
         		}
         	}
-
+  
         	@-webkit-keyframes spin {
         		0% {
         			-webkit-transform: rotate(0);
@@ -34,7 +34,7 @@
         			        transform: rotate(360deg);
         		}
         	}
-
+  
         	@keyframes spin {
         		0% {
         			-webkit-transform: rotate(0);
@@ -221,9 +221,6 @@
 				margin: 0 auto;
 			}
 
-			.hide {
-				display: none;
-			}
 
 			.icon {
 				width: 5rem;
@@ -251,7 +248,7 @@
 
 			.hint-container {
 				position: absolute;
-				width: 100%;
+				width: 100vw;
 				bottom: 5%;
 				left: 0;
 				z-index: 100;
@@ -266,6 +263,7 @@
 				display: -webkit-box;
 				display: -ms-flexbox;
 				display: flex;
+				display: -webkit-flex;
 				-webkit-box-align: center;
 				    -ms-flex-align: center;
 				        align-items: center;
@@ -276,7 +274,7 @@
 			}
 
 			.hint-mobile {
-				display: none;
+			/*	display: none;*/
 			}
 
 			.is-mobile .hint-mobile {
@@ -297,7 +295,16 @@
 				-webkit-box-flex: 0;
 				    -ms-flex: 0 0 3rem;
 				        flex: 0 0 3rem;
+				-webkit-flex: 0 0 3rem;
 				margin-right: 1rem;
+				width: 3rem;
+			}
+
+			.hint p {
+				-webkit-box-flex: 0;
+				    -ms-flex: 0 0 auto;
+				        flex: 0 0 auto;
+				-webkit-flex: 0 0 auto;
 			}
 
 			.hint-mobile svg {
@@ -311,7 +318,6 @@
 			}
 
 			.landscape-warning {
-				display: none;
 				font-size: 1.5rem;
 			}
 
@@ -332,7 +338,7 @@
 				color: white;
 				text-decoration: none;
 				-webkit-animation: fadeIn 0.3s;
-				animation: fadeIn 0.3s;
+				        animation: fadeIn 0.3s;
 			}
 
 			.sell-container.show {
@@ -349,13 +355,17 @@
 			 	}
 			}
 
+
+			.hide {
+				display: none;
+			}
         </style>
     </head>
     <body>
 		
 		<div class="text">
 	    	<div class="intro">
-				<p class="landscape-warning"><strong>For best results, please rotate your device to landscape.</strong></p>
+				<p class="landscape-warning hide"><strong>For best results, please rotate your device to landscape.</strong></p>
 
 	    		<div class="icon">
 					<svg class="loading" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -373,7 +383,7 @@
 					<path fill="#FFFFFF" d="M256 0c-141.385 0-256 114.615-256 256s114.615 256 256 256 256-114.615 256-256-114.615-256-256-256zM256 464c-114.875 0-208-93.125-208-208s93.125-208 208-208 208 93.125 208 208-93.125 208-208 208zM192 144l192 112-192 112z"></path>
 					</svg>
 				</div>
-				<span class="status">Loading</span>
+				<span class="status">Loading Scripts</span>
 				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
 
@@ -388,7 +398,7 @@
 		</div>
 
 		<div class="hint-container">
-			<div class="hint-mobile hint">
+			<div class="hint-mobile hint hide">
 				<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
 
 					<path fill="#FFFFFF" d="M368 0h-224c-26.4 0-48 21.6-48 48v416c0 26.4 21.6 48 48 48h224c26.4 0 48-21.6 48-48v-416c0-26.4-21.6-48-48-48zM192 24h128v16h-128v-16zM256 480c-17.673 0-32-14.327-32-32s14.327-32 32-32 32 14.327 32 32-14.327 32-32 32zM384 384h-256v-320h256v320z"></path>
@@ -408,12 +418,6 @@
 			</div>
 
 		</div>
-
-
-
-		<audio preload="auto" controls>
-			<source src="ceremony.mp3" type="audio/mpeg">
-		</audio>
 
 		<script>
 		  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

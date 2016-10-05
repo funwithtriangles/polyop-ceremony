@@ -7,6 +7,11 @@ var paths = require('../assets/text_paths.json');
 var createGeometry = require('three-simplicial-complex')(THREE);
 var svgMesh3d = require('svg-mesh-3d');
 
+var tileSize = 500;
+var tileSpace = 50;
+
+var numTiles = 10;
+
 var TextMesh = function(pathString, detail, scale) {
 
 	var that = this;
@@ -28,53 +33,50 @@ var TextMesh = function(pathString, detail, scale) {
 
 	this.megaGroup = new THREE.Object3D();
 
-	this.group1 = new THREE.Object3D();
+	this.group = new THREE.Object3D();
 
-	
-	this.mesh1 = new THREE.Mesh(geometry, material);
-	this.mesh1.visible = false;
+	this.meshFront = new THREE.Mesh(geometry, material);
+	this.meshFront.visible = false;
 
-	//this.group.visible = false;
-
-	this.mesh1.scale.set(scale, scale, scale);
+	this.meshFront.scale.set(scale, scale, scale);
 
 	// Behind
-	this.mesh2 = this.mesh1.clone();
-	this.mesh2.rotation.y = Math.PI;
-	this.mesh2.position.z = 1000;
+	this.meshBack = this.meshFront.clone();
+	this.meshBack.rotation.y = Math.PI;
+	this.meshBack.position.z = (tileSize+tileSpace)*2;
 
 	// Left
-	this.mesh3 = this.mesh1.clone();
-	this.mesh3.position.x = -500;
-	this.mesh3.rotation.y = Math.PI/2;
-	this.mesh3.position.z = 500;
+	this.meshLeft = this.meshFront.clone();
+	this.meshLeft.position.x = -(tileSize+tileSpace);
+	this.meshLeft.rotation.y = Math.PI/2;
+	this.meshLeft.position.z = (tileSize+tileSpace);
 
 	// Right
-	this.mesh4 = this.mesh1.clone();
-	this.mesh4.position.x = 500;
-	this.mesh4.rotation.y = -Math.PI/2;
-	this.mesh4.position.z = 500;
+	this.meshRight = this.meshFront.clone();
+	this.meshRight.position.x = (tileSize+tileSpace);
+	this.meshRight.rotation.y = -Math.PI/2;
+	this.meshRight.position.z = (tileSize+tileSpace);
 
+	this.group.add(this.meshFront);
+	this.group.add(this.meshBack);
+	this.group.add(this.meshLeft);
+	this.group.add(this.meshRight);
 
-	this.group1.add(this.mesh1);
-	this.group1.add(this.mesh2);
-	this.group1.add(this.mesh3);
-	this.group1.add(this.mesh4);
+	this.megaGroup.add(this.group);
 
-	this.group2 = this.group1.clone();
-	this.group3 = this.group1.clone();
+	for (var i = 0; i < numTiles/2; i++) {
 
-	this.group2.position.y = 500;
-	this.group3.position.y = -500;
+		var groupTop = this.group.clone();
+		var groupBottom = this.group.clone();
 
-	this.megaGroup.add(this.group1);
-	this.megaGroup.add(this.group2);
-	this.megaGroup.add(this.group3);
-	
+		groupTop.position.y = (tileSize+tileSpace) * i;
+		groupBottom.position.y = -(tileSize+tileSpace) * i;
+
+		this.megaGroup.add(groupTop);
+		this.megaGroup.add(groupBottom);
+	}
 
 	threeEnv.scene.add(this.megaGroup);
-
-
 
 	this.enter = function() {
 		that.megaGroup.traverse( function ( object ) { object.visible = true; } );
@@ -107,7 +109,7 @@ var TextMesh = function(pathString, detail, scale) {
 
 module.exports = {
 	nudibranch: new TextMesh(paths.nudibranch, 5, 200),
-	polyop: new TextMesh(paths.polyop, 3, 500)
+	polyop: new TextMesh(paths.polyop, 3, tileSize)
 }
 
 

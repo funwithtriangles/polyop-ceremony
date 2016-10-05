@@ -6,6 +6,7 @@ var mask = require('./mask');
 var guiFolder = gui.addFolder('Crystals');
 var audioAnalyser = require('./audioAnalyser');
 var clock = require('./clock');
+var controls = require('./controls');
 
 var numCrystals = 5;
 var crystals = [];
@@ -117,8 +118,6 @@ var draw = function() {
 
 	var levelsData = audioAnalyser.getLevels().bands;
 
-
-
 	crystalMaterial.opacity = params.opacity;
 
 	// params.radius = ((clock.lfo.sineTwo + 2) / 4) + 1;
@@ -139,8 +138,10 @@ var draw = function() {
 		crystal.group.position.y = Math.cos( (orbitAngle + offset) * 0.2 ) * 250 * params.radius;
 		crystal.group.position.z = Math.cos( (orbitAngle + offset) * 0.5 ) * 250 * params.radius;
 
-		crystal.mesh.rotation.x += levelsData[1].average * 0.5;
-		crystal.mesh.rotation.y += levelsData[2].average * 0.5;
+		if (controls.params.isPlaying) {
+			crystal.mesh.rotation.x += levelsData[1].average * 0.5;
+			crystal.mesh.rotation.y += levelsData[2].average * 0.5;
+		}
 
 		crystal.light.intensity = params.lightIntensity;
 

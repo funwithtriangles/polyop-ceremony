@@ -1,3 +1,5 @@
+var messaging = require('./messaging');
+
 // Overwrite properties of one object with another
 var extend = function() {
   var extended = {};
@@ -14,20 +16,38 @@ var extend = function() {
   return extended;
 };
 
+
+
 Freq = function() {
 	this.streams = [];
 };
 
-Freq.prototype.createStream = function( source, settings ) {
+Freq.prototype.createStream = function( url, context, settings ) {
 
-	var stream = new this.Stream( source, settings );
+	var stream = new this.Stream( url, context, settings );
 
 	this.streams.push( stream );
 
 	return stream;
 }
 
-Freq.prototype.Stream = function( source, settings ) {
+Freq.prototype.Stream = function( url, context, settings ) {
+
+	    
+	var that = this;
+
+	var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
+    request.onload = function() {
+
+    	messaging.decodingAudio();
+        context.decodeAudioData(request.response, onBufferLoad, onBufferError);
+    };
+    request.send();
+
+
+	this.context = context;
 
 	this.defaults = {
 		bandVals: [
@@ -44,12 +64,11 @@ Freq.prototype.Stream = function( source, settings ) {
 
 	// Create bands array to hold band objs
 	this.bands = [];
-	
 
-	var context = source.context;
 
 	//create analyser node
-	this.analyser = context.createAnalyser();
+	this.analyser = this.context.createAnalyser();
+
 
 	//set size of how many bits we analyse on
 	this.analyser.fftSize = 1024;
@@ -59,11 +78,7 @@ Freq.prototype.Stream = function( source, settings ) {
 
 	this.analyser.smoothingTimeConstant = settings.smoothing;
 
-	//connect to source
-	source.connect( this.analyser );
 
-	//pipe to speakers
-	this.analyser.connect( context.destination );
 
 	// Create array of band objs
 	for ( var i = 0; i < this.settings.bandVals.length; i++ ) {
@@ -73,6 +88,54 @@ Freq.prototype.Stream = function( source, settings ) {
 
 		this.bands.push( new Band( lower, upper, this.freqDomain ) );
 	}
+
+
+	function onBufferLoad(b) {
+		that.buffer = b;
+
+		messaging.ready();
+	}
+
+	function onBufferError(e) {
+	    console.onBufferError('onBufferError', e);
+	};
+
+}
+
+Freq.prototype.Stream.prototype.play = function() {
+
+	this.source = this.context.createBufferSource();
+
+    // Connect graph
+    this.source.connect(this.analyser);
+
+	//pipe to speakers
+	this.analyser.connect( this.context.destination );
+	  
+	this.source.buffer = this.buffer;
+
+
+	if (this.pausedAt) {
+        this.startedAt = Date.now() - this.pausedAt;
+        this.source.start(0, this.pausedAt / 1000);
+    } else {
+        this.startedAt = Date.now();
+        this.source.start(0);
+    }
+
+
+}
+
+Freq.prototype.Stream.prototype.pause = function() {
+	  
+	this.source.stop(0);
+    this.pausedAt = Date.now() - this.startedAt;
+
+}
+
+Freq.prototype.Stream.prototype.getTime = function() {
+	  
+	return (Date.now() - this.startedAt) / 1000;
 
 }
 

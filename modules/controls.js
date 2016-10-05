@@ -1,7 +1,7 @@
 var THREE = require('three');
 var threeEnv = require('./threeEnv');
 var camera = require('./camera');
-var audio = require('./audioAnalyser').audio;
+var audio = require('./audioAnalyser');
 var analytics = require('./analytics');
 
 var controlMode;
@@ -109,6 +109,9 @@ function end() {
 
 
 function play() {
+
+  if (params.isPlaying) { return; }
+  params.isPlaying = true;
 
   analytics.event('play');
 
