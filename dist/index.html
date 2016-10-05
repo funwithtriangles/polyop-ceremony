@@ -6,11 +6,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1" />
         <style>
 
-	        html, body {
-	        	height: 100%;
-	        	min-height: 100%;
-	        }
-
         	@-webkit-keyframes fadeIn {
         		0% {
         			opacity: 0;
@@ -19,7 +14,7 @@
         			opacity: 1;
         		}
         	}
-
+  
         	@keyframes fadeIn {
         		0% {
         			opacity: 0;
@@ -28,7 +23,7 @@
         			opacity: 1;
         		}
         	}
-
+  
         	@-webkit-keyframes spin {
         		0% {
         			-webkit-transform: rotate(0);
@@ -39,7 +34,7 @@
         			        transform: rotate(360deg);
         		}
         	}
-
+  
         	@keyframes spin {
         		0% {
         			-webkit-transform: rotate(0);
@@ -253,7 +248,7 @@
 
 			.hint-container {
 				position: absolute;
-				width: 100%;
+				width: 100vw;
 				bottom: 5%;
 				left: 0;
 				z-index: 100;
@@ -268,6 +263,7 @@
 				display: -webkit-box;
 				display: -ms-flexbox;
 				display: flex;
+				display: -webkit-flex;
 				-webkit-box-align: center;
 				    -ms-flex-align: center;
 				        align-items: center;
@@ -278,7 +274,7 @@
 			}
 
 			.hint-mobile {
-				display: none;
+			/*	display: none;*/
 			}
 
 			.is-mobile .hint-mobile {
@@ -299,7 +295,16 @@
 				-webkit-box-flex: 0;
 				    -ms-flex: 0 0 3rem;
 				        flex: 0 0 3rem;
+				-webkit-flex: 0 0 3rem;
 				margin-right: 1rem;
+				width: 3rem;
+			}
+
+			.hint p {
+				-webkit-box-flex: 0;
+				    -ms-flex: 0 0 auto;
+				        flex: 0 0 auto;
+				-webkit-flex: 0 0 auto;
 			}
 
 			.hint-mobile svg {
@@ -333,7 +338,7 @@
 				color: white;
 				text-decoration: none;
 				-webkit-animation: fadeIn 0.3s;
-				animation: fadeIn 0.3s;
+				        animation: fadeIn 0.3s;
 			}
 
 			.sell-container.show {
@@ -354,7 +359,6 @@
 			.hide {
 				display: none;
 			}
-
         </style>
     </head>
     <body>
