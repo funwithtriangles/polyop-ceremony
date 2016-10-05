@@ -74,6 +74,7 @@ function loop() {
 
 	if (controls.params.isPlaying) {
 		TWEEN.update();
+		audioAnalyser.updateLevels();
 	}
 	
 
@@ -82,7 +83,7 @@ function loop() {
 	analytics.update(fps);
 	performanceTest.check(timePassed, fps);
 
-	audioAnalyser.updateLevels();
+
 
 	clock.run();
 	sequencer.run();
@@ -94,7 +95,7 @@ function loop() {
 	leaves.draw(timePassed);
 	mask.draw(timePassed);
 	tribe.draw(timePassed);
-	crystals.draw(timePassed);
+	// crystals.draw(timePassed);
 	ribbons.draw(timePassed);
 	lines.draw(timePassed);
 	vLight.draw(timePassed);

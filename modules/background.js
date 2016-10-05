@@ -3,6 +3,7 @@ var threeEnv = require('./threeEnv');
 var audioAnalyser = require('./audioAnalyser');
 var gui = require('./gui');
 var guiFolder = gui.addFolder('Background');
+var controls = require('./controls');
 var shaders = {
 	vertex: require('../shaders/simple_vertex.glsl'),
 	fragment: require('../shaders/swamp_01.glsl')
@@ -61,14 +62,17 @@ threeEnv.bgScene.add( swampMesh );
 
 var draw = function(timePassed) {
 
-	var levelsData = audioAnalyser.getLevels().bands;
+	if (controls.params.isPlaying) {
+		var levelsData = audioAnalyser.getLevels().bands;
 
-    swampMaterial.uniforms[ 'iGlobalTime' ].value = .00025 * ( timePassed );
-    // Twist and bounce should be modified slowly here
-    // maybe iterations of shader too
-    swampMaterial.uniforms[ 'bounce' ].value = levelsData[0].average * params.bounceAmp * 10;
-    swampMaterial.uniforms[ 'pulse' ].value = levelsData[1].average * params.pulseAmp * 10;
-    swampMaterial.uniforms[ 'scale' ].value = parseFloat(params.scale);
+	    swampMaterial.uniforms[ 'iGlobalTime' ].value = .00025 * ( timePassed );
+	    // Twist and bounce should be modified slowly here
+	    // maybe iterations of shader too
+	    swampMaterial.uniforms[ 'bounce' ].value = levelsData[0].average * params.bounceAmp * 10;
+	    swampMaterial.uniforms[ 'pulse' ].value = levelsData[1].average * params.pulseAmp * 10;
+	    swampMaterial.uniforms[ 'scale' ].value = parseFloat(params.scale);
+	}
+	
 
 }
 
