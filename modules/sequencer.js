@@ -166,15 +166,15 @@ var timeline = [
 			controls.params.stopOrbit();
 			leaves.params.gotoCircle();
 			ribbons.params.startRibbons();
-			leaves.params.groupRotZ = 0.08;
-			leaves.params.speed = -0.4;
+			leaves.params.groupRotZ = 0.1;
+			leaves.params.speed = 0.6;
 
 		}
 	},
 	{
 		time: barBeat(68, 0),
 		event: function() {
-			leaves.params.gotoCircle()
+			//leaves.params.gotoCircle()
 		}
 	},
 	{
@@ -186,7 +186,7 @@ var timeline = [
 	{
 		time: barBeat(72, 0),
 		event: function() {
-			leaves.params.gotoCircle()
+			//leaves.params.gotoCircle()
 			tribe.params.dancePower = 0;
 			tribe.params.gotoCircle();
 			tribe.params.waveStrength = 0.02;
@@ -196,7 +196,7 @@ var timeline = [
 	{
 		time: barBeat(76, 0),
 		event: function() {
-			leaves.params.gotoCircle()
+			//leaves.params.gotoCircle()
 		}
 	},
 	{

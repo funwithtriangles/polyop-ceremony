@@ -12,7 +12,7 @@ var loader = new THREE.JSONLoader();
 var particles = [];
 var numLeafs = 50;
 
-var zLimit = 2000;
+var zLimit = 1000;
 
 var radius = 320;
 
