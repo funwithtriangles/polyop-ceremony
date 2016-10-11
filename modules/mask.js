@@ -40,8 +40,8 @@ threeEnv.scene.add(cubeCamera);
 threeEnv.scene.add(whiteBox);
 
 var params = {
-	zGroupPos: -800,
-	// zGroupPos: 0,
+	//zGroupPos: -800,
+	zGroupPos: 0,
 	xRotSpeed: 0,
 	yRotSpeed: 0,
 	zRotSpeed: 0,
@@ -110,9 +110,9 @@ var params = {
 
 		if (!skip) {
 
-			params.yRotSpeed = 0.2;
-			params.xRotSpeed = 0.004;
-			params.zRotSpeed = 0.004;
+			params.yRotSpeed = 0.4;
+			params.xRotSpeed = 0.03;
+			params.zRotSpeed = 0.01;
 
 			// This will result in explodeAmount = 766
 			var tween = new TWEEN.Tween(params)
@@ -121,7 +121,7 @@ var params = {
 		    .start();
 
 		    var tween = new TWEEN.Tween(params)
-		    .to({yRotSpeed: 0.004}, 1500)
+		    .to({yRotSpeed: 0.02}, 1500)
 		    .easing(TWEEN.Easing.Exponential.Out)
 		    .start();
 
@@ -138,7 +138,7 @@ var params = {
 		params.explodeAmount = 800;
 
 		var tween = new TWEEN.Tween(params)
-		    .to({explodeAmount: 760}, 100)
+		    .to({explodeAmount: 600}, 100)
 		    .easing(TWEEN.Easing.Sinusoidal.InOut)
 		    .repeat(1)
 		    .yoyo(true)
@@ -151,7 +151,7 @@ var params = {
 		params.zRotSpeed = 0.1;
 
 		var tween = new TWEEN.Tween(params)
-	    .to({yRotSpeed: 0.004, xRotSpeed: 0.004, zRotSpeed: 0.004}, 200)
+	    .to({yRotSpeed: 0.01, xRotSpeed: 0.02, zRotSpeed: 0.01}, 200)
 	    .easing(TWEEN.Easing.Quadratic.Out)
 	    .start();
 
