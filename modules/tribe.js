@@ -105,6 +105,14 @@ var params = {
 	    .to({groupZPos: 0, trackLift: Math.PI/3}, 30000)
 	    .easing(TWEEN.Easing.Quadratic.Out)
 	    .start();
+	},
+	randomFlash: function() {
+
+		for (var i = 0; i < numGuys; i++) {
+
+			guys[i].randomFlash();
+
+		}
 	}
 
 }
@@ -113,7 +121,10 @@ gui.add(params, 'enterMasks');
 gui.add(params, 'alternateSpins');
 gui.add(params, 'dancePower', 1, 20).name('Baby Dance Power');
 gui.add(params, 'gotoCircle');
+gui.add(params, 'randomFlash');
+gui.add(params, 'shootMasks');
 gui.add(params, 'trackLift', 0, Math.PI);
+gui.add(params, 'rotSpeed', 0, 0.1);
 
 var maskGeom = loader.parse(maskModel).children[0].geometry;
 
@@ -137,6 +148,8 @@ function isEven(n) {
 var Guy = function(index) {
 
 	var that = this;
+
+	var disableTrackLift = false;
 
 	var angle;
 
@@ -165,6 +178,7 @@ var Guy = function(index) {
 		shading: THREE.FlatShading,
 		//specular: 0x111111,
 	 	shininess: 0,
+	 	transparent: true
 		//wireframe: true
 	});
 
@@ -209,6 +223,23 @@ var Guy = function(index) {
 	    
 	};
 
+	this.randomFlash = function() {
+
+		disableTrackLift = true;
+
+		material.color.setHex( 0xffffff );
+		innerMesh.visible = true;
+		material.opacity = 1;
+		that.posMesh.position.z = (Math.random() * -trackLength*1.5) - trackLength*0.5;
+		that.xTrack.rotation.x = Math.random() * Math.PI * 2;
+
+		var tween = new TWEEN.Tween(material)
+	    .to({opacity: 0}, 300)
+	    .easing(TWEEN.Easing.Quadratic.Out)
+	    .start();
+
+	}
+
 	this.draw = function() {
 
 		if (reversed) {
@@ -228,7 +259,9 @@ var Guy = function(index) {
 		that.danceMesh.position.y = yMaskPos;
 		that.danceMesh.position.z = zMaskPos;
 
-		that.xTrack.rotation.x = params.trackLift;
+		if (!disableTrackLift) {
+			that.xTrack.rotation.x = params.trackLift;
+		}
 
 	}
 

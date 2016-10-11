@@ -14,6 +14,7 @@ var cowbellRibbons = false;
 var congosSpin = true;
 var congosPulse = false;
 var congosSpinPulse = false;
+var flutesTribe = false;
 var manLeaves = true;
 
 var threeEnv = require('./threeEnv');
@@ -263,6 +264,8 @@ var timeline = [
 		time: barBeat(112, 0),
 		event: function(skip) {
 			congosSpinPulse = true;
+			flutesTribe = true;
+			tribe.params.rotSpeed = 0.01;
 		}
 	},
 	{
@@ -276,6 +279,7 @@ var timeline = [
 		event: function(skip) {
 			congosPulse = false;
 			congosSpinPulse = false;
+			flutesTribe = false;
 			vLight.params.stopPulsing();
 		}
 	},
@@ -365,6 +369,10 @@ var cowbellPart = new MidiPart(cowbellData, function() {
 var flutesPart = new MidiPart(flutesData, function() {
 
 	lines.params.randomFlash();
+
+	if (flutesTribe) {
+		tribe.params.randomFlash();
+	}
 
 })
 
