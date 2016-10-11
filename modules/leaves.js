@@ -42,7 +42,10 @@ var params = {
 		var tween = new TWEEN.Tween(params)
 	    .to({masterOpacity: 0}, 10000)
 	    .easing(TWEEN.Easing.Quintic.Out)
-	    .start();
+	    .start()
+	    .onComplete(function() {
+	    	leafGroup.traverse( function ( object ) { object.visible = false; } );
+	    });
 	},
 	allFade: function() {
 

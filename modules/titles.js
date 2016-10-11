@@ -94,7 +94,7 @@ var TextMesh = function(pathString, detail, scale) {
 		    .to({opacity: 0}, 5000)
 		    .start()
 		    .onComplete(function() {
-		    	that.megaGroup.visible = false;
+		    	that.megaGroup.traverse( function ( object ) { object.visible = false; } );
 		    });
 
 		} else {
