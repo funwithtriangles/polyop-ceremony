@@ -6,7 +6,7 @@ var clock = require('./clock');
 
 var numFlashes = 0;
 var flashing = false;
-var numRibbons = 10;
+var numRibbons = 20;
 var ribbonIndex = 0;
 
 var params = {
@@ -97,6 +97,14 @@ group.position.z = -170;
 
 var Ribbon = function(id) {
 
+
+	var material = new THREE.MeshBasicMaterial({
+		//wireframe: true,
+		side: THREE.DoubleSide,
+		transparent: true,
+		opacity: 0
+	});
+
 	this.container = new THREE.Object3D()
 
 	var length = 75;
@@ -111,19 +119,13 @@ var Ribbon = function(id) {
 
 	
 
-	var sequenceLength = 3;
+	var sequenceLength = 15;
 	var sequenceIndex = -1;
 	var sequence = [];
 
 
 	var geom = new THREE.PlaneGeometry(30, 30, 1, length);
 	
-	var material = new THREE.MeshBasicMaterial({
-		//wireframe: true,
-		side: THREE.DoubleSide,
-		transparent: true,
-		opacity: 0
-	});
 		
 	this.mesh = new THREE.Mesh(geom, material);
 
@@ -228,10 +230,12 @@ var Ribbon = function(id) {
 
 		}
 
-		geom.computeFaceNormals();
-		// geom.computeVertexNormals();
+	//	geom.computeFaceNormals();
+	//	geom.computeVertexNormals();
+		geom.computeBoundingSphere();
 		geom.verticesNeedUpdate	= true;
 		geom.normalsNeedUpdate 	= true;
+
 
 	}
 
