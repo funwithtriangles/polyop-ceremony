@@ -36,10 +36,11 @@ var params = {
 	particleRot: 0.003,
 	speed: -0.02,
 	opacity: 1,
+	masterOpacity: 1,
 	active: true,
 	fadeOut: function() {
 		var tween = new TWEEN.Tween(params)
-	    .to({opacity: 0}, 10000)
+	    .to({masterOpacity: 0}, 10000)
 	    .easing(TWEEN.Easing.Quintic.Out)
 	    .start();
 	},
@@ -190,7 +191,7 @@ var init = function() {
 var draw = function(timePassed) {
 
 	leafGroup.rotation.z += params.groupRotZ * 0.1;
-	material.opacity = params.opacity;
+	material.opacity = params.opacity * params.masterOpacity;
 
 	for (var i = 0; i < particles.length; i++) {
 

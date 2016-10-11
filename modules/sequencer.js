@@ -234,7 +234,6 @@ var timeline = [
 		time: barBeat(88, 0),
 		event: function(skip) {
 		
-			manLeaves = false;
 			leaves.params.fadeOut();
 
 		}
@@ -249,8 +248,6 @@ var timeline = [
 		time: barBeat(96, 0),
 		event: function(skip) {
 			mask.params.explode(skip);
-			manLeaves = false;
-			leaves.params.opacity = 0;
 			background.params.scale = 1.0;
 		}
 	},
