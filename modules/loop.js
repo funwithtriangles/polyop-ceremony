@@ -27,7 +27,6 @@ var camera = require('./camera');
 var audioAnalyser = require('./audioAnalyser');
 var background = require('./background');
 var leaves = require('./leaves');
-var mask = require('./mask');
 var tribe = require('./tribe');
 var mask = require('./mask');
 var crystals = require('./crystals');
