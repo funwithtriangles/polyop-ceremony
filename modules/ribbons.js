@@ -91,7 +91,7 @@ var radius = 0;
 
 threeEnv.scene.add(group);
 
-group.position.z = -150;
+group.position.z = -170;
 
 var Ribbon = function(id) {
 
