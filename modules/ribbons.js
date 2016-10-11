@@ -6,10 +6,12 @@ var clock = require('./clock');
 
 var numFlashes = 0;
 var flashing = false;
+var numRibbons = 10;
+var ribbonIndex = 0;
 
 var params = {
-	ribbonCount: 2,
-	ribbonFreq: 50,
+	ribbonCount: 3,
+	ribbonFreq: 100,
 	ribbonRot: 0.005,
 	opacity: 1,
 	ribbonsActive: false,
@@ -95,28 +97,22 @@ group.position.z = -170;
 
 var Ribbon = function(id) {
 
-	this.container = new THREE.Object3D();
-
-	var tick = 0;
+	this.container = new THREE.Object3D()
 
 	var length = 75;
 
-	var positions = [];
+	var positions, x, y, z;
 
 	var width = 15;
 
 	var speed = 3;
 
-
-
 	var ry = width * 2;
 
-	var x = 0;
-	var y = 0;
-	var z = 0;
+	
 
 	var sequenceLength = 3;
-	var sequenceIndex = 0;
+	var sequenceIndex = -1;
 	var sequence = [];
 
 
@@ -136,10 +132,6 @@ var Ribbon = function(id) {
 	this.container.add(this.mesh);
 
 	this.container.rotation.z = Math.random() * Math.PI * 2;
-
-	for (var i=0; i<length*2; i++) {
-		positions.push(0);
-	}
 
 	for (var i=0; i<sequenceLength; i++) {
 
@@ -168,6 +160,10 @@ var Ribbon = function(id) {
 
 	this.update = function() {
 
+		if (sequenceIndex < 0) {
+			return
+		}
+
 		if (!flashing) {
 			material.opacity = params.opacity;
 		}
@@ -178,7 +174,6 @@ var Ribbon = function(id) {
 		y += sequenceItem.dy * speed;
 		z += sequenceItem.dz * speed;
 
-		tick++;
 
 		// Remove last XYZ
 		positions.pop();
@@ -187,6 +182,37 @@ var Ribbon = function(id) {
 
 		// Add new XYZ
 		positions.unshift(x, y, z);
+
+		updateVertices(positions);
+
+
+		if (sequenceItem.nextZ && z > sequenceItem.nextZ) {
+			sequenceIndex++
+		}
+
+	}
+
+
+	// Prime ribbon to be animated
+	this.reset = function() {
+
+		positions = [];
+
+		for (var i=0; i<length*2; i++) {
+			positions.push(0);
+		}
+
+		updateVertices(positions);
+
+		sequenceIndex = 0;
+
+		x = 0;
+		y = 0;
+		z = 0;
+
+	}
+
+	function updateVertices(positions) {
 
 		for (var i = 0; i < length + 1; i++) {
 
@@ -207,31 +233,18 @@ var Ribbon = function(id) {
 		geom.verticesNeedUpdate	= true;
 		geom.normalsNeedUpdate 	= true;
 
-		if (sequenceItem.nextZ && z > sequenceItem.nextZ) {
-			sequenceIndex++
-		}
-
-		// Destroy ribbons when almost certainly out of view
-		if (z > 500 + length * speed) {
-			this.destroy();
-		}
-
-	}
-
-	// Remove object from scene and array
-	this.destroy = function() {
-		group.remove(this.container);
-		ribbons.splice(ribbons.indexOf(this), 1);
 	}
 
 }
 
 var fireRibbon = function() {
 
-	var ribbon = new Ribbon();
-	group.add(ribbon.container);
+	ribbons[ribbonIndex].reset();
+	ribbonIndex++;
 
-	ribbons.push(ribbon);
+	if (ribbonIndex >= numRibbons) {
+		ribbonIndex = 0;
+	}
 
 }
 
@@ -245,6 +258,14 @@ var updateRibbons = function() {
 
 }
 
+
+
+for (var i = 0; i < numRibbons; i++) {
+	var ribbon = new Ribbon();
+	group.add(ribbon.container);
+	ribbons.push(ribbon);
+
+}
 
 var draw = function(timePassed) {
 
@@ -265,6 +286,8 @@ var draw = function(timePassed) {
 	group.rotation.z += params.ribbonRot * wave;
 	
 }
+
+
 
 module.exports = {
 	draw: draw,
