@@ -40,8 +40,8 @@ threeEnv.scene.add(cubeCamera);
 threeEnv.scene.add(whiteBox);
 
 var params = {
-	//zGroupPos: -800,
-	zGroupPos: 0,
+	zGroupPos: -800,
+	//zGroupPos: 0,
 	xRotSpeed: 0,
 	yRotSpeed: 0,
 	zRotSpeed: 0,
