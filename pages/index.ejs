@@ -182,6 +182,34 @@
 				        animation: 1s fadeIn;
 			}
 
+			a {
+				color: white;
+				text-decoration: none;
+				font-size: 1rem;
+			}
+
+			a:hover {
+				text-decoration: underline;
+			}
+
+			.button {
+				display: inline-block;
+				background: white;
+				padding: 1rem;
+				text-transform: uppercase;
+				color: #4f6ab1;
+				font-size: 1.2rem;
+				margin-bottom: 0.5rem;
+				-webkit-transition: 0.2s;
+				transition: 0.2s;
+			}
+
+			.button:hover {
+				-webkit-transform: scale(1.1);
+				        transform: scale(1.1);
+				text-decoration: none;
+			}
+
 			.debug-visualiser {
 				display: none;
 			}
@@ -338,12 +366,26 @@
 
 			.sticker {
 				border-radius: 1000px;
+				border: 3px solid white;
 			}
 
 			.sell-container {
-				padding: 1rem;
+				position: fixed;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				top: 0;
 				text-align: center;
+				-webkit-box-align: center;
+				    -ms-flex-align: center;
+				        align-items: center;
+				-webkit-box-pack: center;
+				    -ms-flex-pack: center;
+				        justify-content: center;
+				display: -webkit-box;
+				display: -ms-flexbox;
 				display: none;
+				background: rgba(0,0,0,0.5);
 				color: white;
 				text-decoration: none;
 				-webkit-animation: fadeIn 0.3s;
@@ -351,19 +393,69 @@
 			}
 
 			.sell-container.show {
-				display: block;
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
 			}
 			
 			.sell-container img {
-				max-width: 40%;
+				
+				width: 250px;
 			}
 
+			.sell-container > a {
+				width: 250px;
+				-webkit-box-flex: 0;
+				    -ms-flex: 0 0 250px;
+				        flex: 0 0 250px;
+				-webkit-flex: 0 0 250px;
+				margin-right: 1rem;
+			}
+
+
 			@media all and (min-height: 500px) {
+
+			 	.sell-container > a {
+
+			 		margin-right: 2rem;
+
+			 		-webkit-box-flex: 0;
+					    -ms-flex: 0 0 400px;
+					        flex: 0 0 400px;
+					-webkit-flex: 0 0 400px;
+			 	}
+
 			 	.sell-container img {
-			 		max-width: 100%;
+			 		width: 400px;
 			 	}
 			}
 
+
+			@media all and (max-width: 500px) {
+
+				.sell-container {
+					-webkit-box-orient: vertical;
+					-webkit-box-direction: normal;
+					    -ms-flex-direction: column;
+					        flex-direction: column;
+					-webkit-flex-direction: column;
+				}
+
+				.sell-container > a {
+				
+					padding: 1rem;
+					margin-right: 0;
+					-webkit-box-flex: 0;
+					    -ms-flex: 0 0 250px;
+					        flex: 0 0 250px;
+					-webkit-flex: 0 0 250px;
+					width: 250px;
+				}
+
+				.sell-container img {
+					width: 250px;
+				}
+			}
 
 			.hide {
 				display: none;
@@ -396,14 +488,20 @@
 				<p>This is an audio-visual experience, <strong>please turn on your sound.</strong> Headphones recommended.</p>
 	    	</div>
 
-	    	<a href="https://polyop.bandcamp.com/merch/ceremony-vinyl-only" class="sell-container" data-sell  onclick="trackOutboundLink('https://polyop.bandcamp.com/merch/ceremony-vinyl-only'); return false;">
+	    	<div class="sell-container" data-sell>
 				
 
-				<img class="sticker" src="sticker.jpg">
-				<h2>Preorder Vinyl Now</h2>
+				<a href="https://polyop.bandcamp.com/merch/ceremony-vinyl-only" onclick="trackOutboundLink('https://polyop.bandcamp.com/merch/ceremony-vinyl-only'); return false;">
+					<img class="sticker" src="sticker.jpg">
+				</a>
+				<div>
+					<h2>Polyop - Ceremony</h2>
+					<p><a href="https://polyop.bandcamp.com/merch/ceremony-vinyl-only" class="button" onclick="trackOutboundLink('https://polyop.bandcamp.com/merch/ceremony-vinyl-only'); return false;">Order Vinyl Now</a></p>
+					<p><a href="https://github.com/funwithtriangles/polyop-ceremony/">View source on Github</a></p>
+				</div>
 			
 
-			</a>
+			</div>
 		</div>
 
 		<div class="hint-container">
