@@ -1,5 +1,5 @@
 {
-  "name": "polyop_swamp",
+  "name": "polyop_ceremony",
   "version": "1.0.0",
   "description": "",
   "main": "bundle.js",
@@ -16,7 +16,8 @@
     "three-simplicial-complex": "^69.0.6",
     "tween.js": "^16.3.4",
     "webpack": "^1.13.2",
-    "webpack-glsl-loader": "^1.0.1"
+    "webpack-glsl-loader": "^1.0.1",
+    "webvr-polyfill": "^0.9.3"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

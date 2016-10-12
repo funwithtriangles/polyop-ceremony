@@ -1,3 +1,5 @@
+// From the three.js lib
+
 uniform sampler2D tDiffuse;
 uniform float h;
 varying vec2 vUv;

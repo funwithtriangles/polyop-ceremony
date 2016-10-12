@@ -1,3 +1,6 @@
+// http://bkcore.com/blog/3d/webgl-three-js-volumetric-light-godrays.html
+// @author Thibaut 'BKcore' Despoulain <http://bkcore.com>
+
 varying vec2 vUv;
 uniform sampler2D tDiffuse;
 uniform float fX;

@@ -1,3 +1,5 @@
+// From the three.js lib
+
 #define PHONG
 #define USE_ENVMAP
 #define ENVMAP_TYPE_CUBE
