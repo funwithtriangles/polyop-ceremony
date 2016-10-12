@@ -1,4 +1,6 @@
 var webpack = require("webpack");
+var HtmlWebpackPlugin = require('html-webpack-plugin');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: "./entry.js",
@@ -31,5 +33,18 @@ module.exports = {
     },
     plugins: [
     //  new webpack.optimize.UglifyJsPlugin({minimize: true})
+        new HtmlWebpackPlugin({
+            inject: false,
+            template: 'pages/index.ejs',
+            minify: {
+              removeAttributeQuotes: true,
+              collapseWhitespace: true,
+              minifyJS: true,
+              minifyCSS: true
+            }
+        }),
+        new CopyWebpackPlugin([
+            { from: 'files' }
+        ])
     ]
 };
