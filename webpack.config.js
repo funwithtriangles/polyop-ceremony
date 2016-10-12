@@ -1,6 +1,35 @@
+var minimize = process.argv.indexOf('--minimize') !== -1;
+var minifyHTML;
+
 var webpack = require("webpack");
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
+
+if (minimize) {
+    minifyHTML = {
+      removeAttributeQuotes: true,
+      collapseWhitespace: true,
+      minifyJS: true,
+      minifyCSS: true
+    }
+} else {
+    minifyHTML = false;
+}
+
+var plugins = [
+    new CopyWebpackPlugin([
+        { from: 'files' }
+    ]),
+    new HtmlWebpackPlugin({
+        inject: false,
+        template: 'pages/index.ejs',
+        minify: minifyHTML
+    })
+]
+
+if (minimize) {
+    plugins.push(new webpack.optimize.UglifyJsPlugin());
+}
 
 module.exports = {
     entry: "./entry.js",
@@ -31,20 +60,5 @@ module.exports = {
         contentBase: 'dist/',
         host: '0.0.0.0'
     },
-    plugins: [
-    //  new webpack.optimize.UglifyJsPlugin({minimize: true})
-        new HtmlWebpackPlugin({
-            inject: false,
-            template: 'pages/index.ejs',
-            minify: {
-              removeAttributeQuotes: true,
-              collapseWhitespace: true,
-              minifyJS: true,
-              minifyCSS: true
-            }
-        }),
-        new CopyWebpackPlugin([
-            { from: 'files' }
-        ])
-    ]
+    plugins: plugins
 };
